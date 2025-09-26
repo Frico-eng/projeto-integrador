@@ -63,13 +63,21 @@ def mostrar_pagamento(filme, horario, qtd_ingressos=3, preco_unit=32.50):
     show_screen("pagamento")
 
 # --- Seats screen with navigation to payment ---
+# --- Seats screen with navigation to payment ---
 def criar_tela_assentos_com_pagamento(filme, horario):
-    frame = criar_tela_assentos(app, lambda: show_screen("catalogo"))
-
     def avancar_para_pagamento():
         mostrar_pagamento(filme, horario, qtd_ingressos=3, preco_unit=32.50)
-
-    criar_botao(frame, "Avançar para Pagamento", avancar_para_pagamento, width=200).pack(pady=20)
+    
+    # Adiciona o horário selecionado ao dicionário do filme
+    filme_com_horario = filme.copy()
+    filme_com_horario["horario_selecionado"] = horario
+    
+    # Agora passa o filme selecionado para a tela de assentos
+    frame = criar_tela_assentos(app, 
+                               voltar_callback=lambda: show_screen("catalogo"),
+                               avancar_callback=avancar_para_pagamento,
+                               filme_selecionado=filme_com_horario)
+    
     register_screen("assentos", frame)
     return frame
 

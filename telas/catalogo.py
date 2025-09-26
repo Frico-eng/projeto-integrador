@@ -2,28 +2,56 @@ import customtkinter as ctk
 from PIL import Image, ImageTk
 import os
 
-# ================== DADOS ==================
+# ================== CONSTANTES DE CAMINHOS ==================
+# Supondo que você tenha uma pasta 'images' no mesmo diretório
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # sobe uma pasta (pai de 'telas')
+IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
+print(IMAGE_DIR)
+
+# Caminhos para as imagens dos filmes
+FILME_IMAGES = {
+    "senhor_aneis": os.path.join(IMAGE_DIR, "matrix.jpg"),
+    "matrix": os.path.join(IMAGE_DIR, "matrix.jpg"),
+    "interstellar": os.path.join(IMAGE_DIR, "matrix.jpg"),
+    "jumanji": os.path.join(IMAGE_DIR, "matrix.jpg"),
+    "demon_slayer": os.path.join(IMAGE_DIR, "matrix.jpg"),
+    "homem_aranha": os.path.join(IMAGE_DIR, "matrix.jpg"),
+    "invocacao_mal": os.path.join(IMAGE_DIR, "matrix.jpg")
+}
+print(FILME_IMAGES["matrix"])
+# Caminhos para as classificações indicativas
+CLASSIFICACOES = {
+    "12": os.path.join(IMAGE_DIR, "doze.png"),
+    "14": os.path.join(IMAGE_DIR, "catorze.png"),
+    "10": os.path.join(IMAGE_DIR, "dez.png"),
+    "LIVRE": os.path.join(IMAGE_DIR, "livre.png"),
+    "18": os.path.join(IMAGE_DIR, "dezoito.png")
+}
+
+# ================== DADOS DOS FILMES ==================
 filmes = [
     {
         "titulo": "O Senhor dos Anéis",
-        "descricao": "O Senhor dos Anéis conta a saga do hobbit Frodo Bolseiro em sua missão para destruir o Um Anel, uma joia maligna criada pelo Senhor das Trevas Sauron, antes que ele seja usado para dominar a Terra-média. Acompanhado pela Companhia do Anel, composta por elfos, anões, homens e hobbits, Frodo enfrenta perigos e as forças de Sauron, que se aliam a outros vilões como Saruman. A jornada termina com a destruição do Anel na Montanha da Perdição, vencendo o mal e assegurando a paz na Terra-média. ",
-        "teste": "11 de setembro de 2025 | 1h 25min ",
-        "genero": "ficcção de aventura, literatura fantástica, alta fantasia.",
+        "descricao": "O Senhor dos Anéis conta a saga do hobbit Frodo Bolseiro em sua missão para destruir o Um Anel, uma joia maligna criada pelo Senhor das Trevas Sauron, antes que ele seja usado para dominar a Terra-média. Acompanhado pela Companhia do Anel, composta por elfos, anões, homens e hobbits, Frodo enfrenta perigos e as forças de Sauron, que se aliam a outros vilões como Saruman. A jornada termina com a destruição do Anel na Montanha da Perdição, vencendo o mal e assegurando a paz na Terra-média.",
+        "teste": "11 de setembro de 2025 | 1h 25min",
+        "genero": "Ficção de aventura, literatura fantástica, alta fantasia.",
         "direçao": "Peter Jackson",
-        "classificação": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\doze.png",
-        "imagem": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\o senhor dos anéis.jpg",
-        "sessoes_dublado": ["14:15", "18:00",  "20:45", "21:15"],
+        "classificacao": CLASSIFICACOES["12"],
+        "imagem": FILME_IMAGES["senhor_aneis"],
+        "sessoes_dublado": ["14:15", "18:00", "20:45", "21:15"],
         "sessoes_legendado": ["17:00", "20:45", "21:15"]
     },
     {
         "titulo": "Matrix",
-        "descricao": "O jovem programador Thomas Anderson é atormentado por estranhos pesadelos  em que está sempre conectado por cabos a um imenso sistema de computadores do futuro. À medida que o sonho se repete, ele começa a desconfiar da realidade. Thomas conhece os misteriosos Morpheus e Trinity e descobre que é vítima de um sistema inteligente e artificial chamado Matrix, que manipula a mente das pessoas e cria a ilusão de um mundo real enquanto usa os cérebros e corpos dos indivíduos para produzir energia.",
-        "teste": "11 de setembro de 2025  | 1h 49min",
-        "genero": "ação, Aventura, Ficção científica, Cyberpunk.",
+        "descricao": "O jovem programador Thomas Anderson é atormentado por estranhos pesadelos em que está sempre conectado por cabos a um imenso sistema de computadores do futuro. À medida que o sonho se repete, ele começa a desconfiar da realidade. Thomas conhece os misteriosos Morpheus e Trinity e descobre que é vítima de um sistema inteligente e artificial chamado Matrix, que manipula a mente das pessoas e cria a ilusão de um mundo real enquanto usa os cérebros e corpos dos indivíduos para produzir energia.",
+        "teste": "11 de setembro de 2025 | 1h 49min",
+        "genero": "Ação, Aventura, Ficção científica, Cyberpunk.",
         "direçao": "Lana Wachowski e Lilly Wachowski",
-        "classificação": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\catorze.jpg",
-        "imagem": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\Matrix.jpg",
-        "sessoes_dublado": ["14:45", "17:30",  "19:00", "21:30"],
+        "classificacao": CLASSIFICACOES["14"],
+        "imagem": FILME_IMAGES["matrix"],
+        "sessoes_dublado": ["14:45", "17:30", "19:00", "21:30"],
         "sessoes_legendado": ["16:50", "19:00", "21:30"]
     },
     {
@@ -32,10 +60,10 @@ filmes = [
         "teste": "4 de setembro de 2025 | 1h 27min",
         "genero": "Ficção científica, Ação, Suspense, Aventura.",
         "direçao": "Christopher Nolan",
-        "classificação": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\dez.png",
-        "imagem": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\Interstellar.jpg",
+        "classificacao": CLASSIFICACOES["10"],
+        "imagem": FILME_IMAGES["interstellar"],
         "sessoes_dublado": ["13:00", "16:45", "20:00"],
-        "sessoes_legendado": ["17:00", "20:00", "22:30",]
+        "sessoes_legendado": ["17:00", "20:00", "22:30"]
     },
     {
         "titulo": "Jumanji",
@@ -43,10 +71,10 @@ filmes = [
         "teste": "11 de setembro de 2025 | 1h 30min",
         "genero": "Comédia, Infantil, Aventura, Ação.",
         "direçao": "Jake Kasdan e Joe Johnston",
-        "classificação": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\livre.png",
-        "imagem": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\jumanji.jpg",
+        "classificacao": CLASSIFICACOES["LIVRE"],
+        "imagem": FILME_IMAGES["jumanji"],
         "sessoes_dublado": ["11:30", "15:00", "18:30", "21:30"],
-        "sessoes_legendado": ["18:30", "21:30", ]
+        "sessoes_legendado": ["18:30", "21:30"]
     },
     {
         "titulo": "Demon Slayer - Castelo Infinito",
@@ -54,8 +82,8 @@ filmes = [
         "teste": "11 de setembro de 2025 | 2h 36min",
         "genero": "Ação, Aventura, Fantasia Sombria e Artes Marciais.",
         "direçao": "Haruo Sotozaki",
-        "classificação": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\dezoito.png",
-        "imagem": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\Demon Slayer - castelo infinito.jpg",
+        "classificacao": CLASSIFICACOES["18"],
+        "imagem": FILME_IMAGES["demon_slayer"],
         "sessoes_dublado": ["12:00", "16:00", "19:45", "20:45"],
         "sessoes_legendado": ["19:45", "20:45"]
     },
@@ -63,26 +91,25 @@ filmes = [
         "titulo": "Homem-Aranha Sem Volta Para Casa",
         "descricao": "Peter Parker tem a sua identidade secreta revelada e pede ajuda ao Doutor Estranho. Quando o feitiço para reverter o evento não sai como esperado, o Homem-Aranha e o seu companheiro dos Vingadores precisam enfrentar inimigos de todo o multiverso.",
         "teste": "18 de setembro de 2025 | 1h 38min",
-        "genero": "Filme super-heroi, Ação, Aventura, Comédia, Suspense",
-        "direçao": "Jon Watts ",
-        "classificação": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\doze.png",
-        "imagem": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\Homem-aranha sem volta para casa.jpg",
+        "genero": "Filme super-herói, Ação, Aventura, Comédia, Suspense",
+        "direçao": "Jon Watts",
+        "classificacao": CLASSIFICACOES["12"],
+        "imagem": FILME_IMAGES["homem_aranha"],
         "sessoes_dublado": ["13:30", "17:15", "21:00"],
-        "sessoes_legendado": ["16:20", "19:00", "22:30",]
+        "sessoes_legendado": ["16:20", "19:00", "22:30"]
     },
     {
         "titulo": "Invocação do Mal",
-        "descricao": "Invocação do Mal acompanha os investigadores paranormais Ed e Lorraine Warren, chamados para ajudar uma família aterrorizada por uma presença demoníaca em sua nova casa, nos anos 70. O casal luta para confrontar a entidade maligna que se alimenta do medo e busca controlar os membros da família, especialmente a mãe, em um caso que se torna o mais difícil de suas carreiras, tudo baseado em um caso real. ",
-        "teste": "4 de setembro de 2025 | 2h 15min ",
+        "descricao": "Invocação do Mal acompanha os investigadores paranormais Ed e Lorraine Warren, chamados para ajudar uma família aterrorizada por uma presença demoníaca em sua nova casa, nos anos 70. O casal luta para confrontar a entidade maligna que se alimenta do medo e busca controlar os membros da família, especialmente a mãe, em um caso que se torna o mais difícil de suas carreiras, tudo baseado em um caso real.",
+        "teste": "4 de setembro de 2025 | 2h 15min",
         "genero": "Terror, Sobrenatural, Mistério, Suspense.",
-        "direçao": " Michael Chaves",
-        "classificação": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\catorze.jpg",
-        "imagem": r"C:\Users\\58513786\\Documents\\Visual Studio 2022\\aula10.py\\listadproduto.py\\ctk.py\\tela.py\\Invocação do mal.jpg",
+        "direçao": "Michael Chaves",
+        "classificacao": CLASSIFICACOES["14"],
+        "imagem": FILME_IMAGES["invocacao_mal"],
         "sessoes_dublado": ["13:00", "16:00", "22:00", "23:30"],
-        "sessoes_legendado": ["17:00", "19:45", "23:30",]
+        "sessoes_legendado": ["17:00", "19:45", "23:30"]
     },
 ]
-
 
 def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     """Cria e retorna o frame do catálogo de filmes com seleção de horário"""
@@ -104,9 +131,9 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     # Variáveis para os dados do filme
     titulo_var = ctk.StringVar(value="Selecione um filme")
     descricao_var = ctk.StringVar(value="Descrição do filme aparecerá aqui.")
-    lancamento_var = ctk.StringVar(value="lançamento do filme aparecera aqui.")
-    genero_var = ctk.StringVar(value="genêro do filme aparecera aqui.")
-    direcao_var = ctk.StringVar(value="direção do filme aparecera aqui.")
+    lancamento_var = ctk.StringVar(value="Lançamento do filme aparecerá aqui.")
+    genero_var = ctk.StringVar(value="Gênero do filme aparecerá aqui.")
+    direcao_var = ctk.StringVar(value="Direção do filme aparecerá aqui.")
     classificacao_var = ctk.StringVar(value="")
 
     # ----- frame direito: detalhes -----
@@ -118,11 +145,11 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     frame_top.pack(fill="x", padx=12, pady=12)
 
     # Imagem do filme
-    label_imagem = ctk.CTkLabel(frame_top, text="")
+    label_imagem = ctk.CTkLabel(frame_top, text="", width=200, height=300)
     label_imagem.pack(side="left", padx=12, pady=6)
 
     # Frame de textos
-    frame_textos = ctk.CTkFrame(frame_top)
+    frame_textos = ctk.CTkFrame(frame_top, fg_color="transparent")
     frame_textos.pack(side="left", fill="both", expand=True, padx=12)
 
     label_titulo = ctk.CTkLabel(frame_textos, textvariable=titulo_var, font=("Arial", 18, "bold"))
@@ -146,11 +173,16 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     label_direcao = ctk.CTkLabel(frame_textos, textvariable=direcao_var, wraplength=400, justify="left")
     label_direcao.pack(anchor="nw", pady=(0,12))
 
-    label_classificacao = ctk.CTkLabel(frame_textos, textvariable=classificacao_var, wraplength=200, justify="left")
-    label_classificacao.pack(anchor="nw", pady=(0,12))
+    # Frame para classificação
+    frame_classificacao = ctk.CTkFrame(frame_textos, fg_color="transparent")
+    frame_classificacao.pack(anchor="nw", pady=(0,12))
+    
+    ctk.CTkLabel(frame_classificacao, text="Classificação:", font=("Arial", 14, "bold")).pack(side="left")
+    label_classificacao = ctk.CTkLabel(frame_classificacao, text="", width=50, height=50)
+    label_classificacao.pack(side="left", padx=10)
 
     # Frame para sessões com seleção de horário
-    frame_sessoes = ctk.CTkFrame(frame_dir, height=200)
+    frame_sessoes = ctk.CTkFrame(frame_dir, height=600, width=400)
     frame_sessoes.pack(fill="x", padx=12, pady=(6,12))
 
     # Variável para armazenar o horário selecionado
@@ -226,35 +258,33 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
         if caminho and os.path.isfile(caminho):
             try:
                 img = Image.open(caminho)
-            except Exception:
+            except Exception as e:
+                print(f"Erro ao carregar imagem {caminho}: {e}")
                 img = None
+        
         if img is None:
-            img = Image.new("RGB", (600, 280), (20, 20, 20))
-
-        img.thumbnail((1000, 480))
-        foto = ImageTk.PhotoImage(img)
+            # Imagem padrão se não encontrar
+            img = Image.new("RGB", (200, 300), (40, 40, 40))
+        
+        img = img.resize((200, 300), Image.LANCZOS)
+        foto = ctk.CTkImage(img, size=(200, 300))
         label_imagem.configure(image=foto, text="")
         label_imagem.image = foto
-        frame.image_cache[f"poster_{index}"] = foto
 
         # Carregar classificação
-        classificacao = filme.get("classificacao") or filme.get("classificação") or ""
-        if isinstance(classificacao, str) and os.path.isfile(classificacao):
+        classificacao_path = filme.get("classificacao", "")
+        if classificacao_path and os.path.isfile(classificacao_path):
             try:
-                img_c = Image.open(classificacao)
-                img_c.thumbnail((70, 70))
-                foto_c = ImageTk.PhotoImage(img_c)
-                label_classificacao.configure(text="")
-                label_classificacao.configure(image=foto_c)
+                img_c = Image.open(classificacao_path)
+                img_c = img_c.resize((50, 50), Image.LANCZOS)
+                foto_c = ctk.CTkImage(img_c, size=(50, 50))
+                label_classificacao.configure(image=foto_c, text="")
                 label_classificacao.image = foto_c
-                label_classificacao.configure(textvariable=None)
-                frame.image_cache[f"class_{index}"] = foto_c
-            except Exception:
-                classificacao_var.set(str(classificacao))
-                label_classificacao.configure(textvariable=classificacao_var, image=None)
+            except Exception as e:
+                print(f"Erro ao carregar classificação {classificacao_path}: {e}")
+                label_classificacao.configure(image=None, text="N/A")
         else:
-            classificacao_var.set(str(classificacao))
-            label_classificacao.configure(textvariable=classificacao_var, image=None)
+            label_classificacao.configure(image=None, text="N/A")
 
         mostrar_sessoes(filme)
 
@@ -265,7 +295,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
         btn.pack(pady=4, padx=6, fill="x")
 
     # Botões de navegação
-    botoes_frame = ctk.CTkFrame(frame)
+    botoes_frame = ctk.CTkFrame(frame_dir)
     botoes_frame.pack(side="bottom", fill="x", padx=20, pady=10)
 
     btn_voltar = ctk.CTkButton(botoes_frame, text="Voltar", command=voltar_callback)
@@ -279,7 +309,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
 
     btn_confirmar = ctk.CTkButton(botoes_frame, text="Selecionar Assentos", 
                                  command=on_confirmar)
-    btn_confirmar.pack(side="right", padx=10)
+    btn_confirmar.pack(side="left", padx=20)
 
     # Seleciona o primeiro filme por padrão
     if filmes:
