@@ -110,7 +110,15 @@ def inicializar_telas():
 
     botoes_frame = ctk.CTkFrame(login_container, fg_color="transparent")
     botoes_frame.pack(pady=5)
-
+    label_contato = ctk.CTkLabel(
+    right_frame,
+    text="Contato:\nFone: 3230-3003\nEndereço: R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010\nBelém Pa",
+    font=("Arial", 12),
+    text_color="white",
+    justify="center"
+    )
+    label_contato.pack(side="bottom", pady=100)
+    
     criar_botao(botoes_frame, "Entrar",
                 lambda: fazer_login(email_entry, senha_entry, resultado_label),
                 icone_user).pack(side="left", padx=5)
@@ -120,12 +128,13 @@ def inicializar_telas():
 
     # Extra buttons
     criar_botao(right_frame, "Filmes em cartaz", lambda: show_screen("catalogo"), icone_compra, width=250).pack(pady=15)
-
+    
     register_screen("main", tela_inicial)
 
     # --- Cadastro screen ---
     cadastro_frame, btn_voltar_cadastro = abrir_cadastro(app)
     btn_voltar_cadastro.configure(command=lambda: show_screen("main"))
+    
     register_screen("cadastro", cadastro_frame)
 
     # --- Catalog screen (MODIFICADO) ---
@@ -158,6 +167,7 @@ def inicializar_telas():
     thank_you_frame = ctk.CTkFrame(app, fg_color="transparent")
     register_screen("thank_you", thank_you_frame)
     mostrar_tela_agradecimento(thank_you_frame, voltar_callback=lambda: show_screen("main"))
+    label_contato =  ctk.CTkLabel(login_container, text="Contato\n fone:3230-3003|endereço R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010", font=("Arial", 12))
 
     # --- Footers ---
     footer_main, footer_secondary = criar_footer(app)
