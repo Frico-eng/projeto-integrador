@@ -12,13 +12,13 @@ print(IMAGE_DIR)
 
 # Caminhos para as imagens dos filmes
 FILME_IMAGES = {
-    "senhor_aneis": os.path.join(IMAGE_DIR, "matrix.jpg"),
+    "senhor_aneis": os.path.join(IMAGE_DIR, "o senhor dos anéis.jpg"),
     "matrix": os.path.join(IMAGE_DIR, "matrix.jpg"),
-    "interstellar": os.path.join(IMAGE_DIR, "matrix.jpg"),
-    "jumanji": os.path.join(IMAGE_DIR, "matrix.jpg"),
-    "demon_slayer": os.path.join(IMAGE_DIR, "matrix.jpg"),
-    "homem_aranha": os.path.join(IMAGE_DIR, "matrix.jpg"),
-    "invocacao_mal": os.path.join(IMAGE_DIR, "matrix.jpg")
+    "interstellar": os.path.join(IMAGE_DIR, "Interstellar.jpg"),
+    "jumanji": os.path.join(IMAGE_DIR, "jumanji.jpg"),
+    "demon_slayer": os.path.join(IMAGE_DIR, "Demon Slayer - castelo infinito.jpg"),
+    "homem_aranha": os.path.join(IMAGE_DIR, "Homem-aranha Sem volta para casa.jpg"),
+    "invocacao_mal": os.path.join(IMAGE_DIR, "invocação do mal.jpg")
 }
 print(FILME_IMAGES["matrix"])
 # Caminhos para as classificações indicativas
