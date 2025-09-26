@@ -4,10 +4,9 @@ from utilidades.ui_helpers import carregar_fundo, carregar_logo, carregar_icone,
 from telas.auth import fazer_login
 from telas.abrir_cadastro import abrir_cadastro
 from telas.seletor_assento import criar_tela_assentos
-from telas.catalogo import mostrar_catalogo_filmes
-from telas.sessao import criar_tela_sessoes
+from telas.catalogo import criar_tela_catalogo
 from telas.pagamentodocinema import mostrar_confirmacao_pagamento
-from telas.agradecimento import mostrar_tela_agradecimento  # Updated to accept callback
+from telas.agradecimento import mostrar_tela_agradecimento
 
 from PIL import Image, ImageTk
 
@@ -64,30 +63,14 @@ def mostrar_pagamento(filme, horario, qtd_ingressos=3, preco_unit=32.50):
     show_screen("pagamento")
 
 # --- Seats screen with navigation to payment ---
-def criar_tela_assentos_com_pagamento(filme, data, horario):
-    frame = criar_tela_assentos(app, lambda: show_screen("sessoes"))
+def criar_tela_assentos_com_pagamento(filme, horario):
+    frame = criar_tela_assentos(app, lambda: show_screen("catalogo"))
 
     def avancar_para_pagamento():
         mostrar_pagamento(filme, horario, qtd_ingressos=3, preco_unit=32.50)
 
-    criar_botao(frame, "Avançar", avancar_para_pagamento, width=200).pack(pady=20)
+    criar_botao(frame, "Avançar para Pagamento", avancar_para_pagamento, width=200).pack(pady=20)
     register_screen("assentos", frame)
-    return frame
-
-# --- Sessions screen ---
-def criar_sessoes(filme):
-    def on_sessao_selecionada(filme, data, horario):
-        criar_tela_assentos_com_pagamento(filme, data, horario)
-        show_screen("assentos")
-
-    frame = criar_tela_sessoes(
-        app,
-        filme,
-        lambda: show_screen("catalogo"),
-        on_sessao_selecionada
-    )
-    register_screen("sessoes", frame)
-    show_screen("sessoes")
     return frame
 
 # --- Initialize all screens ---
@@ -137,15 +120,27 @@ def inicializar_telas():
     btn_voltar_cadastro.configure(command=lambda: show_screen("main"))
     register_screen("cadastro", cadastro_frame)
 
-    # --- Catalog screen ---
-    catalogo_frame, btn_voltar_catalogo, btn_confirmar_catalogo = mostrar_catalogo_filmes(app)
-    btn_voltar_catalogo.configure(command=lambda: show_screen("main"))
-
-    def on_confirmar_catalogo():
-        filme_selecionado = {"titulo": "Filme Exemplo", "descricao": "Descrição", "imagem": ""}
-        criar_sessoes(filme_selecionado)
-
-    btn_confirmar_catalogo.configure(command=on_confirmar_catalogo)
+    # --- Catalog screen (MODIFICADO) ---
+    catalogo_frame = ctk.CTkFrame(app, fg_color="transparent")
+    
+    def on_voltar_catalogo():
+        show_screen("main")
+    
+    def on_confirmar_catalogo(filme_selecionado, horario_selecionado):
+        if filme_selecionado and horario_selecionado:
+            criar_tela_assentos_com_pagamento(filme_selecionado, horario_selecionado)
+            show_screen("assentos")
+        else:
+            print("Selecione um filme e um horário")
+    
+    # Cria o catálogo dentro do frame
+    catalogo_content, btn_voltar, btn_confirmar = criar_tela_catalogo(
+        catalogo_frame, 
+        voltar_callback=on_voltar_catalogo,
+        confirmar_callback=on_confirmar_catalogo
+    )
+    catalogo_content.pack(fill="both", expand=True)
+    
     register_screen("catalogo", catalogo_frame)
 
     # --- Payment and Thank You screens ---
