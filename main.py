@@ -1,4 +1,8 @@
+import os
 import customtkinter as ctk
+from PIL import Image
+
+# --- IMPORTA TODAS AS TELAS DO MENU --- #
 from utilidades.config import *
 from utilidades.ui_helpers import carregar_fundo, carregar_logo, carregar_icone, criar_botao, criar_footer
 from telas.auth import fazer_login
@@ -8,21 +12,15 @@ from telas.catalogo import criar_tela_catalogo
 from telas.pagamentodocinema import mostrar_confirmacao_pagamento
 from telas.agradecimento import mostrar_tela_agradecimento
 
-from PIL import Image, ImageTk
-
-# --- App setup ---
+# ============ CONFIGURAÇÃO GLOBAL ============ #
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
-app = ctk.CTk(fg_color=APP_BG)
-screen_width, screen_height = app.winfo_screenwidth(), app.winfo_screenheight()
-app.geometry(f"{screen_width+20}x{screen_height-80}-10+0")
-app.title("menu - Projeto Integrador")
-
-# --- Screen registry ---
+# ================== MENU PRINCIPAL ================== #
 screens = {}
 footer_main = None
 footer_secondary = None
+app = None
 
 def register_screen(name, frame):
     screens[name] = frame
@@ -38,7 +36,7 @@ def show_screen(name):
         else:
             frame.place(relx=0.5, rely=0.5, anchor="center")
 
-    # Footer handling
+    # Footers
     global footer_main, footer_secondary
     if footer_main and footer_secondary:
         if name == "main":
@@ -48,8 +46,6 @@ def show_screen(name):
             footer_main.place_forget()
             footer_secondary.place(relx=0.5, rely=1, relwidth=1, anchor="s")
 
-# --- Payment screen helper ---
-# --- Payment screen helper ---
 def mostrar_pagamento(dados_compra):
     """Recebe dados completos da compra e mostra tela de pagamento"""
     filme = dados_compra["filme"]
@@ -81,31 +77,7 @@ def mostrar_pagamento(dados_compra):
     )
     
     show_screen("pagamento")
-    """Recebe dados completos da compra e mostra tela de pagamento"""
-    filme = dados_compra["filme"]
-    horario = filme.get("horario_selecionado", "")
-    assentos = dados_compra["assentos"]
-    qtd_ingressos = len(assentos)
-    preco_unit = 32.50
-    total = dados_compra["total"]
-    
-    frame = screens["pagamento"]
-    # Limpa o frame antes de mostrar o pagamento
-    for widget in frame.winfo_children():
-        widget.destroy()
-    
-    mostrar_confirmacao_pagamento(frame, filme, horario, qtd_ingressos, preco_unit, assentos, total)
-    
-    # Override Finalizar button to show Thank You
-    for widget in frame.winfo_children():
-        if isinstance(widget, ctk.CTkButton) and widget.cget("text") == "Finalizar":
-            widget.configure(command=lambda: [
-                mostrar_tela_agradecimento(screens["thank_you"], voltar_callback=lambda: show_screen("main")),
-                show_screen("thank_you")
-            ])
-    show_screen("pagamento")
 
-# --- Seats screen with navigation to payment ---
 def criar_tela_assentos_com_pagamento(filme_completo):
     """Cria tela de assentos recebendo o filme completo com horário"""
     
@@ -134,7 +106,6 @@ def on_confirmar_catalogo(filme_selecionado):
     else:
         print("Selecione um filme e um horário")
 
-# --- Initialize all screens ---
 def inicializar_telas():
     global footer_main, footer_secondary
 
@@ -163,15 +134,7 @@ def inicializar_telas():
 
     botoes_frame = ctk.CTkFrame(login_container, fg_color="transparent")
     botoes_frame.pack(pady=5)
-    label_contato = ctk.CTkLabel(
-    right_frame,
-    text="Contato:\nFone: 3230-3003\nEndereço: R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010\nBelém Pa",
-    font=("Arial", 12),
-    text_color="white",
-    justify="center"
-    )
-    label_contato.pack(side="bottom", pady=100)
-    
+
     criar_botao(botoes_frame, "Entrar",
                 lambda: fazer_login(email_entry, senha_entry, resultado_label),
                 icone_user).pack(side="left", padx=5)
@@ -181,13 +144,12 @@ def inicializar_telas():
 
     # Extra buttons
     criar_botao(right_frame, "Filmes em cartaz", lambda: show_screen("catalogo"), icone_compra, width=250).pack(pady=15)
-    
+
     register_screen("main", tela_inicial)
 
     # --- Cadastro screen ---
     cadastro_frame, btn_voltar_cadastro = abrir_cadastro(app)
     btn_voltar_cadastro.configure(command=lambda: show_screen("main"))
-    
     register_screen("cadastro", cadastro_frame)
 
     # --- Catalog screen ---
@@ -213,12 +175,23 @@ def inicializar_telas():
     thank_you_frame = ctk.CTkFrame(app, fg_color="transparent")
     register_screen("thank_you", thank_you_frame)
     mostrar_tela_agradecimento(thank_you_frame, voltar_callback=lambda: show_screen("main"))
-    label_contato =  ctk.CTkLabel(login_container, text="Contato\n fone:3230-3003|endereço R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010", font=("Arial", 12))
 
     # --- Footers ---
     footer_main, footer_secondary = criar_footer(app)
 
-# --- Run app ---
-inicializar_telas()
-show_screen("main")
-app.mainloop()
+def inicializar_app():
+    """Função para inicializar a aplicação principal"""
+    global app
+    
+    app = ctk.CTk(fg_color=APP_BG)
+    screen_width, screen_height = app.winfo_screenwidth(), app.winfo_screenheight()
+    app.geometry(f"{screen_width+20}x{screen_height-80}-10+0")
+    app.title("CinePlus - Sistema de Cinema")
+
+    inicializar_telas()
+    show_screen("main")
+    app.mainloop()
+
+# Permite executar o main.py diretamente (sem splash)
+if __name__ == "__main__":
+    inicializar_app()
