@@ -55,6 +55,10 @@ texto_label.place(relx=0.5, rely=0.72, anchor="center")
 progress = ctk.CTkProgressBar(splash, width=largura - 40)
 progress.place(x=20, y=altura - 40)
 
+# Label de porcentagem
+percent_label = ctk.CTkLabel(splash, text="0%", text_color="white", font=("Arial", 14, "bold"), fg_color="black")
+percent_label.place(relx=0.5, y=altura - 60, anchor="center")
+
 # ================== MENU PRINCIPAL ================== #
 screens = {}
 footer_main = None
@@ -196,7 +200,7 @@ def abrir_menu():
     show_screen("main")
     app.mainloop()
 
-# ======== ANIMAÇÃO SPLASH ======== #
+# ======== ANIMAÇÃO SPLASH COM PORCENTAGEM ======== #
 def fade_in(alpha=0, value=0):
     alpha += 0.02
     value += 1
@@ -204,6 +208,7 @@ def fade_in(alpha=0, value=0):
     if value > 100: value = 100
     splash.attributes("-alpha", alpha)
     progress.set(value / 100)
+    percent_label.configure(text=f"{value}%")  # Atualiza a porcentagem
     if value < 100:
         splash.after(30, lambda: fade_in(alpha, value))
     else:
