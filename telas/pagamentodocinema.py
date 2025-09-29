@@ -1,10 +1,16 @@
+import sys
+import os
+
+# Adiciona o diretório pai ao Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import qrcode
 import customtkinter as ctk
 from PIL import Image, ImageTk
 from datetime import datetime
 from utilidades.config import *
 
-def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_unit):
+def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_unit, assentos=None, total=None, finalizar_callback=None):
     """
     Mostra a tela de confirmação de pagamento dentro de um frame existente
     Args:
@@ -13,12 +19,17 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
         horario: Data e hora da sessão
         qtd_ingressos: Quantidade de ingressos
         preco_unit: Preço unitário do ingresso
+        assentos: Lista de assentos selecionados
+        total: Valor total (opcional)
+        finalizar_callback: Função chamada ao clicar em Finalizar
     """
     # Limpar frame pai
     for widget in parent.winfo_children():
         widget.destroy()
 
-    total = qtd_ingressos * preco_unit
+    # Calcular total se não fornecido
+    if total is None:
+        total = qtd_ingressos * preco_unit
 
     # ====== Gera QR Code ======
     conteudo = (
@@ -52,6 +63,10 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
         ("💵 Total:", f"R$ {total:.2f}")
     ]
 
+    # Adicionar assentos se disponível
+    if assentos:
+        informacoes.insert(2, ("💺 Assentos:", ", ".join(assentos)))
+
     for label, valor in informacoes:
         linha_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
         linha_frame.pack(fill="x", pady=2)
@@ -84,7 +99,7 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
     ctk.CTkButton(
         parent,
         text="Finalizar",
-        command=lambda: show_screen("thank_you"),
+        command=finalizar_callback if finalizar_callback else lambda: print("Finalizar clicado"),
         font=("Arial", 14, "bold"),
         fg_color=COR_DESTAQUE,
         hover_color="#ffa94d",

@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from PIL import Image, ImageTk
 
-def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme_selecionado=None):
+def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme_selecionado=None):    
     """
     Cria e retorna o frame de seleção de assentos
     voltar_callback: função chamada ao clicar Voltar
@@ -39,10 +39,10 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     frame_cartaz.pack(side="left", fill="y", padx=(0, 15))
     frame_cartaz.pack_propagate(False)
     
-    if filme_selecionado and "cartaz" in filme_selecionado:
+    if filme_selecionado and "imagem" in filme_selecionado:
         try:
             # Carregar e redimensionar a imagem do cartaz
-            imagem_original = Image.open(filme_selecionado["cartaz"])
+            imagem_original = Image.open(filme_selecionado["imagem"])
             imagem_redimensionada = imagem_original.resize((220, 300), Image.LANCZOS)
             cartaz_img = ctk.CTkImage(imagem_redimensionada, size=(220, 300))
             
@@ -58,11 +58,23 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
             ctk.CTkLabel(info_frame, text=f"Gênero: {filme_selecionado.get('genero', '')}", 
                         font=("Arial", 12), text_color=COR_TEXTO).pack(pady=2)
             
-            ctk.CTkLabel(info_frame, text=f"Duração: {filme_selecionado.get('duracao', '')}", 
+            ctk.CTkLabel(info_frame, text=f"Duração: {filme_selecionado.get('teste', '')}", 
                         font=("Arial", 12), text_color=COR_TEXTO).pack(pady=2)
             
-            ctk.CTkLabel(info_frame, text=f"Classificação: {filme_selecionado.get('classificacao', '')}", 
-                        font=("Arial", 12), text_color=COR_TEXTO).pack(pady=2)
+            # Carregar classificação
+            if "classificacao" in filme_selecionado and os.path.isfile(filme_selecionado["classificacao"]):
+                try:
+                    img_class = Image.open(filme_selecionado["classificacao"])
+                    img_class = img_class.resize((30, 30), Image.LANCZOS)
+                    class_img = ctk.CTkImage(img_class, size=(30, 30))
+                    
+                    class_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+                    class_frame.pack(pady=2)
+                    ctk.CTkLabel(class_frame, text="Classificação: ", 
+                                font=("Arial", 12), text_color=COR_TEXTO).pack(side="left")
+                    ctk.CTkLabel(class_frame, image=class_img, text="").pack(side="left")
+                except Exception as e:
+                    print(f"Erro ao carregar classificação: {e}")
             
         except Exception as e:
             print(f"Erro ao carregar cartaz: {e}")
@@ -216,13 +228,20 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
         # Mensagem de confirmação
         lista_selecionados.configure(text=f"Assentos confirmados!\n{', '.join(selecionados)}")
         
-        # Chama a função de avançar para próxima tela (pagamento)
+        # Chama a função de avançar para próxima tela (pagamento) passando os dados
         if avancar_callback:
-            avancar_callback()
+            dados_compra = {
+                "filme": filme_selecionado,
+                "assentos": selecionados.copy(),
+                "total": len(selecionados) * preco
+            }
+            print(f"DEBUG: Chamando avancar_callback com {len(selecionados)} assentos")
+            avancar_callback(dados_compra)
+        else:
+            print("ERRO: avancar_callback não definido!")
         
         selecionados.clear()
         atualizar_resumo()
-    
     # APENAS 2 BOTÕES: Voltar e Confirmar
     if voltar_callback:
         btn_voltar = ctk.CTkButton(frame_botoes, text="Voltar", text_color="white", 

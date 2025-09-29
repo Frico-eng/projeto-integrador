@@ -49,9 +49,52 @@ def show_screen(name):
             footer_secondary.place(relx=0.5, rely=1, relwidth=1, anchor="s")
 
 # --- Payment screen helper ---
-def mostrar_pagamento(filme, horario, qtd_ingressos=3, preco_unit=32.50):
+# --- Payment screen helper ---
+def mostrar_pagamento(dados_compra):
+    """Recebe dados completos da compra e mostra tela de pagamento"""
+    filme = dados_compra["filme"]
+    horario = filme.get("horario_selecionado", "")
+    assentos = dados_compra["assentos"]
+    qtd_ingressos = len(assentos)
+    preco_unit = 32.50
+    total = dados_compra["total"]
+    
     frame = screens["pagamento"]
-    mostrar_confirmacao_pagamento(frame, filme, horario, qtd_ingressos, preco_unit)
+    # Limpa o frame antes de mostrar o pagamento
+    for widget in frame.winfo_children():
+        widget.destroy()
+    
+    # Define o callback para o botão Finalizar
+    def finalizar_callback():
+        mostrar_tela_agradecimento(screens["thank_you"], voltar_callback=lambda: show_screen("main"))
+        show_screen("thank_you")
+    
+    mostrar_confirmacao_pagamento(
+        frame, 
+        filme["titulo"], 
+        horario, 
+        qtd_ingressos, 
+        preco_unit, 
+        assentos, 
+        total,
+        finalizar_callback=finalizar_callback
+    )
+    
+    show_screen("pagamento")
+    """Recebe dados completos da compra e mostra tela de pagamento"""
+    filme = dados_compra["filme"]
+    horario = filme.get("horario_selecionado", "")
+    assentos = dados_compra["assentos"]
+    qtd_ingressos = len(assentos)
+    preco_unit = 32.50
+    total = dados_compra["total"]
+    
+    frame = screens["pagamento"]
+    # Limpa o frame antes de mostrar o pagamento
+    for widget in frame.winfo_children():
+        widget.destroy()
+    
+    mostrar_confirmacao_pagamento(frame, filme, horario, qtd_ingressos, preco_unit, assentos, total)
     
     # Override Finalizar button to show Thank You
     for widget in frame.winfo_children():
@@ -63,23 +106,33 @@ def mostrar_pagamento(filme, horario, qtd_ingressos=3, preco_unit=32.50):
     show_screen("pagamento")
 
 # --- Seats screen with navigation to payment ---
-# --- Seats screen with navigation to payment ---
-def criar_tela_assentos_com_pagamento(filme, horario):
-    def avancar_para_pagamento():
-        mostrar_pagamento(filme, horario, qtd_ingressos=3, preco_unit=32.50)
+def criar_tela_assentos_com_pagamento(filme_completo):
+    """Cria tela de assentos recebendo o filme completo com horário"""
     
-    # Adiciona o horário selecionado ao dicionário do filme
-    filme_com_horario = filme.copy()
-    filme_com_horario["horario_selecionado"] = horario
+    def avancar_para_pagamento(dados_compra):
+        """Callback que recebe os dados completos da compra"""
+        print(f"Indo para pagamento com dados: {dados_compra}")
+        mostrar_pagamento(dados_compra)
     
-    # Agora passa o filme selecionado para a tela de assentos
+    # Cria a tela de assentos passando o filme completo
     frame = criar_tela_assentos(app, 
                                voltar_callback=lambda: show_screen("catalogo"),
                                avancar_callback=avancar_para_pagamento,
-                               filme_selecionado=filme_com_horario)
+                               filme_selecionado=filme_completo)
     
     register_screen("assentos", frame)
     return frame
+
+# --- Catalog screen callback ---
+def on_confirmar_catalogo(filme_selecionado):
+    """Callback chamado quando usuário confirma filme e horário no catálogo"""
+    print(f"Filme selecionado no catálogo: {filme_selecionado['titulo']}")
+    if filme_selecionado and filme_selecionado.get("horario_selecionado"):
+        # Cria a tela de assentos passando o filme completo
+        criar_tela_assentos_com_pagamento(filme_selecionado)
+        show_screen("assentos")
+    else:
+        print("Selecione um filme e um horário")
 
 # --- Initialize all screens ---
 def inicializar_telas():
@@ -128,21 +181,14 @@ def inicializar_telas():
     btn_voltar_cadastro.configure(command=lambda: show_screen("main"))
     register_screen("cadastro", cadastro_frame)
 
-    # --- Catalog screen (MODIFICADO) ---
+    # --- Catalog screen ---
     catalogo_frame = ctk.CTkFrame(app, fg_color="transparent")
     
     def on_voltar_catalogo():
         show_screen("main")
     
-    def on_confirmar_catalogo(filme_selecionado, horario_selecionado):
-        if filme_selecionado and horario_selecionado:
-            criar_tela_assentos_com_pagamento(filme_selecionado, horario_selecionado)
-            show_screen("assentos")
-        else:
-            print("Selecione um filme e um horário")
-    
     # Cria o catálogo dentro do frame
-    catalogo_content, btn_voltar, btn_confirmar = criar_tela_catalogo(
+    catalogo_content = criar_tela_catalogo(
         catalogo_frame, 
         voltar_callback=on_voltar_catalogo,
         confirmar_callback=on_confirmar_catalogo
