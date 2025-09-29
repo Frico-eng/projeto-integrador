@@ -126,20 +126,20 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     """Cria e retorna o frame do catálogo de filmes com seleção de horário"""
     
     # Frame principal com tamanho fixo
-    frame = ctk.CTkFrame(parent, fg_color="transparent", width=1000, height=900)
+    frame = ctk.CTkFrame(parent, fg_color="transparent", width=1800, height=900)
     frame.pack_propagate(False)  # Impede redimensionamento automático
     
     # cache de imagens para evitar garbage collection
     frame.image_cache = {}
 
     # ----- frame esquerdo: lista (scrollable) -----
-    frame_esq = ctk.CTkFrame(frame, width=220, height=650)
+    frame_esq = ctk.CTkFrame(frame, width=320, height=650)
     frame_esq.pack(side="left", fill="y", padx=(12,6), pady=12)
     frame_esq.pack_propagate(False)
 
     ctk.CTkLabel(frame_esq, text="Filmes em Cartaz", font=("Arial", 16, "bold")).pack(pady=(8,6))
 
-    scroll = ctk.CTkScrollableFrame(frame_esq, width=200, height=580)
+    scroll = ctk.CTkScrollableFrame(frame_esq, width=100, height=580)
     scroll.pack(fill="both", expand=True, padx=8, pady=8)
     
     # Variáveis para os dados do filme
@@ -151,13 +151,13 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     classificacao_var = ctk.StringVar(value="")
 
     # ----- frame direito: detalhes -----
-    frame_dir = ctk.CTkFrame(frame, width=750, height=700)
+    frame_dir = ctk.CTkFrame(frame, width=1800, height=700)
     frame_dir.pack(side="right", fill="both", padx=(6,12), pady=12)
     frame_dir.pack_propagate(False)
 
     # Frame superior com imagem e textos
-    frame_top = ctk.CTkFrame(frame_dir, height=320)
-    frame_top.pack(fill="x", padx=12, pady=12)
+    frame_top = ctk.CTkFrame(frame_dir, height=400, width=1800)
+    frame_top.pack(fill="y", padx=12, pady=12)
     frame_top.pack_propagate(False)
 
     # Imagem do filme
@@ -171,34 +171,34 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     label_titulo = ctk.CTkLabel(frame_textos, textvariable=titulo_var, font=("Arial", 18, "bold"))
     label_titulo.pack(anchor="nw", pady=(0,6))
 
-    label_descricao = ctk.CTkLabel(frame_textos, textvariable=descricao_var, wraplength=400, justify="left")
-    label_descricao.pack(anchor="nw", pady=(0,12))
+    label_descricao = ctk.CTkLabel(frame_textos, textvariable=descricao_var, wraplength=1200, justify="left")
+    label_descricao.pack(anchor="nw", pady=(0,6))
 
     label_lancamento2 = ctk.CTkLabel(frame_textos, text="Data de lançamento", font=("Arial", 14, "bold"))
     label_lancamento2.pack(anchor="nw")
     label_lancamento = ctk.CTkLabel(frame_textos, textvariable=lancamento_var, wraplength=400, justify="left")
-    label_lancamento.pack(anchor="nw", pady=(0,12))
+    label_lancamento.pack(anchor="nw", pady=(0,6))
 
     label_genero2 = ctk.CTkLabel(frame_textos, text="Gênero", font=("Arial", 14, "bold"))
     label_genero2.pack(anchor="nw")
     label_genero = ctk.CTkLabel(frame_textos, textvariable=genero_var, wraplength=400, justify="left")
-    label_genero.pack(anchor="nw", pady=(0,12))
+    label_genero.pack(anchor="nw", pady=(0,6))
 
     label_direcao2 = ctk.CTkLabel(frame_textos, text="Direção", font=("Arial", 14, "bold"))
     label_direcao2.pack(anchor="nw")
     label_direcao = ctk.CTkLabel(frame_textos, textvariable=direcao_var, wraplength=400, justify="left")
-    label_direcao.pack(anchor="nw", pady=(0,12))
+    label_direcao.pack(anchor="nw", pady=(0,6))
 
     # Frame para classificação
     frame_classificacao = ctk.CTkFrame(frame_textos, fg_color="transparent")
-    frame_classificacao.pack(anchor="nw", pady=(0,12))
+    frame_classificacao.pack(anchor="nw", pady=(0,6))
     
     ctk.CTkLabel(frame_classificacao, text="Classificação:", font=("Arial", 14, "bold")).pack(side="left")
     label_classificacao = ctk.CTkLabel(frame_classificacao, text="", width=50, height=50)
     label_classificacao.pack(side="left", padx=10)
 
     # Frame para sessões com seleção de horário
-    frame_sessoes = ctk.CTkFrame(frame_dir, height=450, width=700)
+    frame_sessoes = ctk.CTkFrame(frame_dir, height=360, width=900)
     frame_sessoes.pack(fill="x", padx=12, pady=(6,12))
     frame_sessoes.pack_propagate(False)
 
