@@ -142,9 +142,9 @@ def mostrar_filme(index: int):
             img = None
 
     if img is None:
-        img = Image.new("RGB", (700, 600), (60, 60, 60))
+        img = Image.new("RGB", (200, 400), (60, 60, 60))
 
-    img.thumbnail((700, 600))
+    img.thumbnail((700, 700))
     foto = ImageTk.PhotoImage(img)
     label_imagem.configure(image=foto, text="")
     label_imagem.image = foto
