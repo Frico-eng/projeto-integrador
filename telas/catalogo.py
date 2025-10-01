@@ -12,53 +12,67 @@ BTN_TEXT = "#1C2732"
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # sobe uma pasta (pai de 'telas')
 IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
 
-# Caminhos para as imagens dos filmes
 FILME_IMAGES = {
-    "senhor_aneis": os.path.join(IMAGE_DIR, "o senhor dos anéis.jpg"),
+    "predador_terras_selvagens": os.path.join(IMAGE_DIR, "predador.jpg"),
+    "zootopia": os.path.join(IMAGE_DIR, "zootopia.jpg"),
     "matrix": os.path.join(IMAGE_DIR, "matrix.jpg"),
     "interstellar": os.path.join(IMAGE_DIR, "Interstellar.jpg"),
     "jumanji": os.path.join(IMAGE_DIR, "jumanji.jpg"),
     "demon_slayer": os.path.join(IMAGE_DIR, "Demon Slayer - castelo infinito.jpg"),
     "homem_aranha": os.path.join(IMAGE_DIR, "Homem-aranha Sem volta para casa.jpg"),
-    "invocacao_mal": os.path.join(IMAGE_DIR, "invocação do mal.jpg")
+    "invocacao_mal": os.path.join(IMAGE_DIR, "invocação do mal.jpg"),
 }
-
+print(FILME_IMAGES["matrix"])
 # Caminhos para as classificações indicativas
 CLASSIFICACOES = {
+    "LIVRE": os.path.join(IMAGE_DIR, "livre.png"),
     "12": os.path.join(IMAGE_DIR, "doze.png"),
-    "14": os.path.join(IMAGE_DIR, "catorze.png"),
+    "12": os.path.join(IMAGE_DIR, "doze.png"),
+    "14": os.path.join(IMAGE_DIR, "catorze.jpg"),
     "10": os.path.join(IMAGE_DIR, "dez.png"),
     "LIVRE": os.path.join(IMAGE_DIR, "livre.png"),
-    "18": os.path.join(IMAGE_DIR, "dezoito.png")
+    "18": os.path.join(IMAGE_DIR, "dezoito.png"),
 }
 
 # ================== DADOS DOS FILMES ==================
 filmes = [
-    {
-        "titulo": "O Senhor dos Anéis",
-        "descricao": "O Senhor dos Anéis conta a saga do hobbit Frodo Bolseiro em sua missão para destruir o Um Anel, uma joia maligna criada pelo Senhor das Trevas Sauron, antes que ele seja usado para dominar a Terra-média. Acompanhado pela Companhia do Anel, composta por elfos, anões, homens e hobbits, Frodo enfrenta perigos e as forças de Sauron, que se aliam a outros vilões como Saruman. A jornada termina com a destruição do Anel na Montanha da Perdição, vencendo o mal e assegurando a paz na Terra-média.",
-        "teste": "11 de setembro de 2025 | 1h 25min",
-        "genero": "Ficção de aventura, literatura fantástica, alta fantasia.",
-        "direçao": "Peter Jackson",
+    {"titulo": "predador terras selvagens",
+        "descricao": "O filme se passa no futuro, em um planeta remoto, onde um jovem Predador da raça Yautja, excluído de seu clã, encontra uma aliada improvável em Thia (Fanning) e embarca em uma jornada traiçoeira em busca de um monstro que supostamente não pode ser morto.",
+        "teste": "6 de novembro de 2025 | 1h 38min",
+        "genero": "terror, suspense, Aventura, Ficção científica.",
+        "direçao": "Dan Trachtenberg",
         "classificacao": CLASSIFICACOES["12"],
-        "imagem": FILME_IMAGES["senhor_aneis"],
-        "sessoes": {
-            "dublado": ["14:15", "18:00", "20:45", "21:15"],
+        "imagem": FILME_IMAGES["predador_terras_selvagens"],
+        "sessoes":{
+            "dublado": ["14:50", "17:00", "20:00", "22:15"],
+            "legendado": ["17:30", "20:45", "21:15"]
+            }
+        },
+    {
+        "titulo": "zootopia",
+        "descricao": "Em uma cidade de animais, uma raposa falante se torna uma fugitiva ao ser acusada de um crime que não cometeu. O principal policial do local, o incontestável coelho, sai em sua busca..",
+        "teste": "17 de março de 2025 | 1h 48min",
+        "genero": "Ficção policial, infantil, animação, Aventura, Animação.",
+        "direçao": "Rich Moore, Byron Howard",
+        "classificacao": CLASSIFICACOES["LIVRE"],
+        "imagem": FILME_IMAGES["zootopia"],
+        "sessoes":{
+            "dublado": ["14:15", "18:00", "20:30", "21:00"],
             "legendado": ["17:00", "20:45", "21:15"]
-        }
+            }
     },
     {
         "titulo": "Matrix",
-        "descricao": "O jovem programador Thomas Anderson é atormentado por estranhos pesadelos em que está sempre conectado por cabos a um imenso sistema de computadores do futuro. À medida que o sonho se repete, he começa a desconfiar da realidade. Thomas conhece os misteriosos Morpheus e Trinity e descobre que é vítima de um sistema inteligente e artificial chamado Matrix, que manipula a mente das pessoas e cria a ilusão de um mundo real enquanto usa os cérebros e corpos dos indivíduos para produzir energia.",
+        "descricao": "O jovem programador Thomas Anderson é atormentado por estranhos pesadelos em que está sempre conectado por cabos a um imenso sistema de computadores do futuro. À medida que o sonho se repete, ele começa a desconfiar da realidade. Thomas conhece os misteriosos Morpheus e Trinity e descobre que é vítima de um sistema inteligente e artificial chamado Matrix, que manipula a mente das pessoas e cria a ilusão de um mundo real enquanto usa os cérebros e corpos dos indivíduos para produzir energia.",
         "teste": "11 de setembro de 2025 | 1h 49min",
         "genero": "Ação, Aventura, Ficção científica, Cyberpunk.",
         "direçao": "Lana Wachowski e Lilly Wachowski",
         "classificacao": CLASSIFICACOES["14"],
         "imagem": FILME_IMAGES["matrix"],
-        "sessoes": {
-            "dublado": ["14:45", "17:30", "19:00", "21:30"],
+        "sessoes":{
+            "dublado": ["14:45", "17:30", "19:30", "22:30"],
             "legendado": ["16:50", "19:00", "21:30"]
-        }
+            }
     },
     {
         "titulo": "Interstellar",
@@ -68,10 +82,10 @@ filmes = [
         "direçao": "Christopher Nolan",
         "classificacao": CLASSIFICACOES["10"],
         "imagem": FILME_IMAGES["interstellar"],
-        "sessoes": {
-            "dublado": ["13:00", "16:45", "20:00"],
+        "sessoes":{
+            "dublado": ["13:00", "16:45", "20:30"],
             "legendado": ["17:00", "20:00", "22:30"]
-        }
+            }
     },
     {
         "titulo": "Jumanji",
@@ -81,10 +95,10 @@ filmes = [
         "direçao": "Jake Kasdan e Joe Johnston",
         "classificacao": CLASSIFICACOES["LIVRE"],
         "imagem": FILME_IMAGES["jumanji"],
-        "sessoes": {
-            "dublado": ["11:30", "15:00", "18:30", "21:30"],
-            "legendado": ["18:30", "21:30"]
-        }
+        "sessoes":{
+            "sessoes_dublado": ["11:30", "15:00", "18:00", "21:00"],
+            "sessoes_legendado": ["18:30", "21:30"]
+            }
     },
     {
         "titulo": "Demon Slayer - Castelo Infinito",
@@ -94,10 +108,10 @@ filmes = [
         "direçao": "Haruo Sotozaki",
         "classificacao": CLASSIFICACOES["18"],
         "imagem": FILME_IMAGES["demon_slayer"],
-        "sessoes": {
-            "dublado": ["12:00", "16:00", "19:45", "20:45"],
-            "legendado": ["19:45", "20:45"]
-        }
+        "sessoes":{
+            "dublado": ["12:00", "16:00", "19:45", "22:45"],
+            "legendado": ["19:00", "20:45"]
+            }
     },
     {
         "titulo": "Homem-Aranha Sem Volta Para Casa",
@@ -108,9 +122,9 @@ filmes = [
         "classificacao": CLASSIFICACOES["12"],
         "imagem": FILME_IMAGES["homem_aranha"],
         "sessoes": {
-            "dublado": ["13:30", "17:15", "21:00"],
+            "dublado":["13:30", "17:15", "21:00"],
             "legendado": ["16:20", "19:00", "22:30"]
-        }
+            }
     },
     {
         "titulo": "Invocação do Mal",
@@ -120,10 +134,10 @@ filmes = [
         "direçao": "Michael Chaves",
         "classificacao": CLASSIFICACOES["14"],
         "imagem": FILME_IMAGES["invocacao_mal"],
-        "sessoes": {
-            "dublado": ["13:00", "16:00", "22:00", "23:30"],
-            "legendado": ["17:00", "19:45", "23:30"]
-        }
+        "sessoes":{ 
+            "dublado" : ["13:00", "16:00", "22:00", "23:30"],
+            "legendado": ["17:00", "19:45", "23:00"]
+            }
     },
 ]
 
@@ -160,14 +174,19 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     frame_dir.pack(side="right", fill="both", padx=(6,12), pady=12)
     frame_dir.pack_propagate(False)
 
-    # Frame superior com imagem e textos
-    frame_top = ctk.CTkFrame(frame_dir, height=400, width=1800)
-    frame_top.pack(fill="y", padx=12, pady=12)
+    # Frame superior com imagem e textos - ALTURA REDUZIDA
+    frame_top = ctk.CTkFrame(frame_dir, height=450)  # Reduzido de 470 para 350
+    frame_top.pack(fill="x", padx=12, pady=(10,0))
     frame_top.pack_propagate(False)
 
-    # Imagem do filme
-    label_imagem = ctk.CTkLabel(frame_top, text="", width=200, height=300)
-    label_imagem.pack(side="left", padx=12, pady=6)
+    # Frame para a imagem do filme (container com tamanho adequado)
+    frame_imagem = ctk.CTkFrame(frame_top, width=300, height=450)
+    frame_imagem.pack(side="left", padx=12, pady=12)
+    frame_imagem.pack_propagate(False)
+
+    # Imagem do filme - agora dentro do frame_imagem
+    label_imagem = ctk.CTkLabel(frame_imagem, text="")
+    label_imagem.pack(expand=True, fill="both", padx=5, pady=5)
 
     # Frame de textos
     frame_textos = ctk.CTkFrame(frame_top, fg_color="transparent")
@@ -202,10 +221,15 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     label_classificacao = ctk.CTkLabel(frame_classificacao, text="", width=50, height=50)
     label_classificacao.pack(side="left", padx=10)
 
-    # Frame para sessões com seleção de horário
-    frame_sessoes = ctk.CTkFrame(frame_dir, height=360, width=900)
-    frame_sessoes.pack(fill="x", padx=12, pady=(6,12))
+    # Frame para sessões com seleção de horário - ALTURA REDUZIDA
+    frame_sessoes = ctk.CTkFrame(frame_dir, height=350)  # Reduzido de 450 para 280
+    frame_sessoes.pack(fill="x", padx=12, pady=(10,0))  # Adicionado espaço abaixo
     frame_sessoes.pack_propagate(False)
+
+    # Botões de navegação - AGORA VISÍVEIS
+    botoes_frame = ctk.CTkFrame(frame_dir, height=50)
+    botoes_frame.pack(side="bottom", fill="x", padx=20, pady=10)
+    botoes_frame.pack_propagate(False)
 
     # Variáveis para armazenar seleções
     dia_selecionado = ctk.StringVar(value="")
@@ -353,7 +377,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
         
         # Título das sessões
         ctk.CTkLabel(frame_sessoes, text="Selecione a Sessão:", 
-                     font=("Arial", 16, "bold")).pack(anchor="w", pady=(10, 5))
+                     font=("Arial", 16, "bold")).pack(anchor="w", pady=(10,5))
         
         # Frame para dias
         frame_dias = ctk.CTkFrame(frame_sessoes, fg_color="transparent")
@@ -443,7 +467,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
             img = Image.new("RGB", (200, 300), (40, 40, 40))
         
         img = img.resize((200, 300), Image.LANCZOS)
-        foto = ctk.CTkImage(img, size=(200, 300))
+        foto = ctk.CTkImage(img, size=(300, 450))  # Tamanho corrigido para 200x300
         label_imagem.configure(image=foto, text="")
         label_imagem.image = foto
 
@@ -473,10 +497,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
                            command=lambda i=idx: mostrar_filme(i))
         btn.pack(pady=4, padx=6, fill="x")
 
-    # Botões de navegação
-    botoes_frame = ctk.CTkFrame(frame_dir)
-    botoes_frame.pack(side="bottom", fill="x", padx=20, pady=10)
-
+    # Botões de navegação - AGORA DENTRO DO FRAME CORRETO
     btn_voltar = ctk.CTkButton(botoes_frame, text="Voltar", 
                               fg_color=BTN_COLOR,
                               hover_color=BTN_HOVER,
