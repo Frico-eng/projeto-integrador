@@ -131,10 +131,8 @@ def inicializar_telas():
     senha_entry.pack(pady=5)
     resultado_label = ctk.CTkLabel(login_container, text="", font=("Arial", 12))
     resultado_label.pack(pady=5)
-
     botoes_frame = ctk.CTkFrame(login_container, fg_color="transparent")
     botoes_frame.pack(pady=5)
-
     criar_botao(botoes_frame, "Entrar",
                 lambda: fazer_login(email_entry, senha_entry, resultado_label),
                 icone_user).pack(side="left", padx=5)
@@ -144,7 +142,10 @@ def inicializar_telas():
 
     # Extra buttons
     criar_botao(right_frame, "Filmes em cartaz", lambda: show_screen("catalogo"), icone_compra, width=250).pack(pady=15)
-
+    contato_fone_label = ctk.CTkLabel(right_frame, text="Contato\nTelefone: 3022-2002", font=("Arial", 12))
+    contato_fone_label.pack(pady=5)
+    contato_endereco_label = ctk.CTkLabel(right_frame, text="Endereço: R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010", font=("Arial", 12))
+    contato_endereco_label.pack(pady=5)
     register_screen("main", tela_inicial)
 
     # --- Cadastro screen ---

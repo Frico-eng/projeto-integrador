@@ -3,6 +3,11 @@ from PIL import Image, ImageTk
 import os
 from datetime import datetime, timedelta
 
+# ================== CONSTANTES DE CORES ==================
+BTN_COLOR = "#F6C148"
+BTN_HOVER = "#E2952D"
+BTN_TEXT = "#1C2732"
+
 # ================== CONSTANTES DE CAMINHOS ==================
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # sobe uma pasta (pai de 'telas')
 IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
@@ -226,18 +231,27 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     def criar_botao_dia(parent, dia_info):
         btn = ctk.CTkButton(parent, text=f"{dia_info['nome']}\n{dia_info['label']}", 
                            width=100, height=60, corner_radius=10,
+                           fg_color=BTN_COLOR,
+                           hover_color=BTN_HOVER,
+                           text_color=BTN_TEXT,
                            command=lambda: selecionar_dia(dia_info))
         btn.pack(side="left", padx=5, pady=5)
         return btn
 
     def criar_botao_tipo(parent, tipo, label):
         btn = ctk.CTkButton(parent, text=label, width=100, height=40, corner_radius=10,
+                           fg_color=BTN_COLOR,
+                           hover_color=BTN_HOVER,
+                           text_color=BTN_TEXT,
                            command=lambda: selecionar_tipo(tipo))
         btn.pack(side="left", padx=5, pady=5)
         return btn
 
     def criar_botao_horario(parent, horario):
         btn = ctk.CTkButton(parent, text=horario, width=80, height=35, corner_radius=8,
+                           fg_color=BTN_COLOR,
+                           hover_color=BTN_HOVER,
+                           text_color=BTN_TEXT,
                            command=lambda: selecionar_horario(horario))
         btn.pack(side="left", padx=3, pady=3)
         return btn
@@ -249,7 +263,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
             if btn.cget("text").split('\n')[1] == dia_info['label']:
                 btn.configure(fg_color="#1f6aa5")
             else:
-                btn.configure(fg_color="#2b2b2b")
+                btn.configure(fg_color=BTN_COLOR)
         
         # Resetar seleções de tipo e horário
         tipo_selecionado.set("")
@@ -267,7 +281,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
             if btn_tipo.cget("text").lower() == tipo:
                 btn_tipo.configure(fg_color="#1f6aa5")
             else:
-                btn_tipo.configure(fg_color="#2b2b2b")
+                btn_tipo.configure(fg_color=BTN_COLOR)
         
         # Resetar seleção de horário
         horario_selecionado.set("")
@@ -283,7 +297,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
             if btn_horario.cget("text") == horario:
                 btn_horario.configure(fg_color="#1f6aa5")
             else:
-                btn_horario.configure(fg_color="#2b2b2b")
+                btn_horario.configure(fg_color=BTN_COLOR)
 
     def atualizar_botoes_tipo():
         # Limpar botões de tipo existentes
@@ -453,6 +467,9 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     # Cria botões para cada filme
     for idx, filme in enumerate(filmes):
         btn = ctk.CTkButton(scroll, text=filme["titulo"], width=180, height=36, 
+                           fg_color=BTN_COLOR,
+                           hover_color=BTN_HOVER,
+                           text_color=BTN_TEXT,
                            command=lambda i=idx: mostrar_filme(i))
         btn.pack(pady=4, padx=6, fill="x")
 
@@ -460,7 +477,11 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     botoes_frame = ctk.CTkFrame(frame_dir)
     botoes_frame.pack(side="bottom", fill="x", padx=20, pady=10)
 
-    btn_voltar = ctk.CTkButton(botoes_frame, text="Voltar", command=voltar_callback)
+    btn_voltar = ctk.CTkButton(botoes_frame, text="Voltar", 
+                              fg_color=BTN_COLOR,
+                              hover_color=BTN_HOVER,
+                              text_color=BTN_TEXT,
+                              command=voltar_callback)
     btn_voltar.pack(side="left", padx=10)
 
     def on_confirmar():
@@ -479,6 +500,9 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
             print("Selecione um filme, dia, tipo e horário")
 
     btn_confirmar = ctk.CTkButton(botoes_frame, text="Selecionar Assentos", 
+                                 fg_color=BTN_COLOR,
+                                 hover_color=BTN_HOVER,
+                                 text_color=BTN_TEXT,
                                  command=on_confirmar)
     btn_confirmar.pack(side="left", padx=20)
 
