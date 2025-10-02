@@ -142,10 +142,22 @@ def inicializar_telas():
 
     # Extra buttons
     criar_botao(right_frame, "Filmes em cartaz", lambda: show_screen("catalogo"), icone_compra, width=250).pack(pady=15)
-    contato_fone_label = ctk.CTkLabel(right_frame, text="Contato\nTelefone: 3022-2002", font=("Arial", 12))
-    contato_fone_label.pack(pady=5)
-    contato_endereco_label = ctk.CTkLabel(right_frame, text="Endereço: R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010", font=("Arial", 12))
-    contato_endereco_label.pack(pady=5)
+    # Frame para agrupar os contatos no rodapé
+    # Frame para agrupar os contatos no rodapé
+    # Frame para os contatos fixo no rodapé
+    contato_frame = ctk.CTkFrame(right_frame, fg_color="transparent")
+    contato_frame.place(relx=0.5, rely=0.80, anchor="center")
+
+    contato_label = ctk.CTkLabel(contato_frame, text="Entre em contato", font=("Arial", 12))
+    contato_label.pack(pady=2)
+    
+    contato_fone_label = ctk.CTkLabel(contato_frame, text="Telefone: 3022-2002", font=("Arial", 12))
+    contato_fone_label.pack(pady=2)
+
+    contato_endereco_label = ctk.CTkLabel(contato_frame, text="Endereço: R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010", font=("Arial", 12))
+    contato_endereco_label.pack(pady=2)
+    contato_email = ctk.CTkLabel(contato_frame, text="E-mail: sistema@cineplus.com.br", font=("Arial", 12))
+    contato_email.pack(pady=2)
     register_screen("main", tela_inicial)
 
     # --- Cadastro screen ---
