@@ -11,6 +11,7 @@ from telas.seletor_assento import criar_tela_assentos
 from telas.catalogo import criar_tela_catalogo
 from telas.pagamentodocinema import mostrar_confirmacao_pagamento
 from telas.agradecimento import mostrar_tela_agradecimento
+from telas.feedback import criar_tela_feedback
 
 # ============ CONFIGURAÇÃO GLOBAL ============ #
 ctk.set_appearance_mode("dark")
@@ -145,6 +146,9 @@ def inicializar_telas():
     # Frame para agrupar os contatos no rodapé
     # Frame para agrupar os contatos no rodapé
     # Frame para os contatos fixo no rodapé
+    criar_botao(right_frame, "Feedback", 
+           lambda: show_screen("feedback"), 
+           width=250).pack(pady=15)
     contato_frame = ctk.CTkFrame(right_frame, fg_color="transparent")
     contato_frame.place(relx=0.5, rely=0.80, anchor="center")
 
@@ -160,6 +164,9 @@ def inicializar_telas():
     contato_email.pack(pady=2)
     register_screen("main", tela_inicial)
 
+    
+    feedback_frame = criar_tela_feedback(app, voltar_callback=lambda: show_screen("main"))
+    register_screen("feedback", feedback_frame)
     # --- Cadastro screen ---
     cadastro_frame, btn_voltar_cadastro = abrir_cadastro(app)
     btn_voltar_cadastro.configure(command=lambda: show_screen("main"))
