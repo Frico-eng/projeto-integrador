@@ -29,11 +29,9 @@ filmes = [
         "direçao": "Dan Trachtenberg",
         "classificacao": CLASSIFICACOES["12"],
         "imagem": FILME_IMAGES["predador_terras_selvagens"],
-        "sessoes":{ 
-            "dublado":["14:50", "17:00", "20:00", "22:15"],
-            "legendado": ["17:30", "20:45", "21:15"]
-            },
-        }
+        "sessoes_dublado": ["14:50", "17:00", "20:00", "22:15"],
+        "sessoes_legendado": ["17:30", "20:45", "21:15"]
+        },
     {
         "titulo": "zootopia",
         "descricao": "Em uma cidade de animais, uma raposa falante se torna uma fugitiva ao ser acusada de um crime que não cometeu. O principal policial do local, o incontestável coelho, sai em sua busca..",
@@ -42,10 +40,8 @@ filmes = [
         "direçao": "Rich Moore, Byron Howard",
         "classificacao": CLASSIFICACOES["LIVRE"],
         "imagem": FILME_IMAGES["zootopia"],
-        "sessoes": {
-            "dublado":["14:15", "18:00", "20:30", "21:00"],
-            "legendado": ["17:00", "20:45", "21:15"]
-        }
+        "sessoes_dublado": ["14:15", "18:00", "20:30", "21:00"],
+        "sessoes_legendado": ["17:00", "20:45", "21:15"]
     },
     {
         "titulo": "Matrix",
@@ -55,10 +51,8 @@ filmes = [
         "direçao": "Lana Wachowski e Lilly Wachowski",
         "classificacao": CLASSIFICACOES["14"],
         "imagem": FILME_IMAGES["matrix"],
-        "sessoes": {
-            "dublado": ["14:15", "18:00", "20:45", "21:15"],
-            "legendado": ["17:00", "20:45", "21:15"]
-        }
+        "sessoes_dublado": ["14:45", "17:30", "19:30", "22:30"],
+        "sessoes_legendado": ["16:50", "19:00", "21:30"]
     },
     {
         "titulo": "Interstellar",
@@ -68,10 +62,8 @@ filmes = [
         "direçao": "Christopher Nolan",
         "classificacao": CLASSIFICACOES["10"],
         "imagem": FILME_IMAGES["interstellar"],
-        "sessoes": {
-            "dublado": ["14:45", "17:30", "19:00", "21:30"],
-            "legendado": ["16:50", "19:00", "21:30"]
-        }
+        "sessoes_dublado": ["13:00", "16:45", "20:30"],
+        "sessoes_legendado": ["17:00", "20:00", "22:30"]
     },
     {
         "titulo": "Jumanji",
@@ -81,10 +73,8 @@ filmes = [
         "direçao": "Jake Kasdan e Joe Johnston",
         "classificacao": CLASSIFICACOES["LIVRE"],
         "imagem": FILME_IMAGES["jumanji"],
-        "sessoes": {
-            "dublado": ["13:00", "16:45", "20:00"],
-            "legendado": ["17:00", "20:00", "22:30"]
-        }
+        "sessoes_dublado": ["11:30", "15:00", "18:00", "21:00"],
+        "sessoes_legendado": ["18:30", "21:30"]
     },
     {
         "titulo": "Demon Slayer - Castelo Infinito",
@@ -94,9 +84,8 @@ filmes = [
         "direçao": "Haruo Sotozaki",
         "classificacao": CLASSIFICACOES["18"],
         "imagem": FILME_IMAGES["demon_slayer"],
-        "sessoes": {
-            "dublado": ["11:30", "15:00", "18:30", "21:30"],
-            "legendado": ["18:30", "21:30"]
+        "sessoes_dublado": ["12:00", "16:00", "19:45", "22:45"],
+        "sessoes_legendado": ["19:00", "20:45"]
     },
     {
         "titulo": "Homem-Aranha Sem Volta Para Casa",
@@ -106,9 +95,8 @@ filmes = [
         "direçao": "Jon Watts",
         "classificacao": CLASSIFICACOES["12"],
         "imagem": FILME_IMAGES["homem_aranha"],
-        "sessoes": {
-            "dublado": ["12:00", "16:00", "19:45", "20:45"],
-            "legendado": ["19:45", "20:45"]
+        "sessoes_dublado": ["13:30", "17:15", "21:00"],
+        "sessoes_legendado": ["16:20", "19:00", "22:30"]
     },
     {
         "titulo": "Invocação do Mal",
@@ -118,9 +106,7 @@ filmes = [
         "direçao": "Michael Chaves",
         "classificacao": CLASSIFICACOES["14"],
         "imagem": FILME_IMAGES["invocacao_mal"],
-        "sessoes": {
-            "dublado": ["13:00", "16:00", "22:00", "23:30"],
-            "legendado": ["17:00", "19:45", "23:30"]
-        }
+        "sessoes_dublado": ["13:00", "16:00", "22:00", "23:30"],
+        "sessoes_legendado": ["17:00", "19:45", "23:00"]
     },
 ]

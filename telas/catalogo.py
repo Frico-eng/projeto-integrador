@@ -96,8 +96,8 @@ filmes = [
         "classificacao": CLASSIFICACOES["LIVRE"],
         "imagem": FILME_IMAGES["jumanji"],
         "sessoes":{
-            "sessoes_dublado": ["11:30", "15:00", "18:00", "21:00"],
-            "sessoes_legendado": ["18:30", "21:30"]
+            "dublado": ["11:30", "15:00", "18:00", "21:00"],
+            "legendado": ["18:30", "21:30"]
             }
     },
     {
@@ -254,7 +254,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
 
     def criar_botao_dia(parent, dia_info):
         btn = ctk.CTkButton(parent, text=f"{dia_info['nome']}\n{dia_info['label']}", 
-                           width=100, height=60, corner_radius=10,
+                           width=80, height=30, corner_radius=10,
                            fg_color=BTN_COLOR,
                            hover_color=BTN_HOVER,
                            text_color=BTN_TEXT,
@@ -263,7 +263,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
         return btn
 
     def criar_botao_tipo(parent, tipo, label):
-        btn = ctk.CTkButton(parent, text=label, width=100, height=40, corner_radius=10,
+        btn = ctk.CTkButton(parent, text=label, width=80, height=30, corner_radius=10,
                            fg_color=BTN_COLOR,
                            hover_color=BTN_HOVER,
                            text_color=BTN_TEXT,
@@ -272,7 +272,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
         return btn
 
     def criar_botao_horario(parent, horario):
-        btn = ctk.CTkButton(parent, text=horario, width=80, height=35, corner_radius=8,
+        btn = ctk.CTkButton(parent, text=horario, width=80, height=30, corner_radius=8,
                            fg_color=BTN_COLOR,
                            hover_color=BTN_HOVER,
                            text_color=BTN_TEXT,
@@ -490,18 +490,61 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
 
     # Cria botões para cada filme
     for idx, filme in enumerate(filmes):
-        btn = ctk.CTkButton(scroll, text=filme["titulo"], width=180, height=36, 
-                           fg_color=BTN_COLOR,
-                           hover_color=BTN_HOVER,
-                           text_color=BTN_TEXT,
-                           command=lambda i=idx: mostrar_filme(i))
-        btn.pack(pady=4, padx=6, fill="x")
+        # Frame para cada item do filme
+        item_frame = ctk.CTkFrame(scroll, fg_color=BTN_COLOR, height=300,width=60, corner_radius=8)
+        item_frame.pack(pady=4, padx=6, fill="x")
+        item_frame.pack_propagate(False)
+        
+        # Carrega a imagem do cartaz
+        caminho_imagem = filme.get("imagem", "")
+        img = None
+        
+        if caminho_imagem and os.path.isfile(caminho_imagem):
+            try:
+                img = Image.open(caminho_imagem)
+                # Redimensiona para thumbnail pequena
+                img = img.resize((180, 210), Image.LANCZOS)
+                foto = ctk.CTkImage(img, size=(180, 210))
+            except Exception as e:
+                print(f"Erro ao carregar imagem {caminho_imagem}: {e}")
+                img = None
+
+        # Frame principal que contém imagem e botão
+        content_frame = ctk.CTkFrame(item_frame, fg_color="transparent", height=500)
+        content_frame.pack(fill="both", expand=True, padx=8, pady=2)
+        content_frame.pack_propagate(False)
+
+        # BOTÃO com a imagem (no lugar da label)
+        btn_imagem = ctk.CTkButton(
+            content_frame,
+            image=foto,
+            text="",  # Texto vazio
+            fg_color="transparent",
+            hover_color=BTN_HOVER,
+            command=lambda i=idx: mostrar_filme(i),  # Mesma função do botão original
+            height=210,  # Altura adequada para a imagem
+            width=180    # Largura adequada para a imagem
+        )
+        btn_imagem.pack(pady=(10, 10))
+
+        # LABEL com o título (no lugar do botão)
+        label_titulo = ctk.CTkLabel(
+            content_frame,
+            text=filme["titulo"].title(),
+            anchor="center",
+            text_color=BTN_TEXT,
+            font=("Arial", 14, "bold"),
+            height=50,  # Mesma altura do botão anterior
+            wraplength=180  # Para quebrar texto longo em múltiplas linhas
+        )
+        label_titulo.pack(fill="x", expand=False, padx=20)
+    
 
     # Botões de navegação - AGORA DENTRO DO FRAME CORRETO
     btn_voltar = ctk.CTkButton(botoes_frame, text="Voltar", 
-                              fg_color=BTN_COLOR,
+                              fg_color=BTN_COLOR,font=("Arial", 14, "bold"),
                               hover_color=BTN_HOVER,
-                              text_color=BTN_TEXT,
+                              text_color=BTN_TEXT,height=40,width=150,
                               command=voltar_callback)
     btn_voltar.pack(side="left", padx=10)
 
@@ -521,9 +564,9 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
             print("Selecione um filme, dia, tipo e horário")
 
     btn_confirmar = ctk.CTkButton(botoes_frame, text="Selecionar Assentos", 
-                                 fg_color=BTN_COLOR,
+                                 fg_color=BTN_COLOR,font=("Arial", 14, "bold"),
                                  hover_color=BTN_HOVER,
-                                 text_color=BTN_TEXT,
+                                 text_color=BTN_TEXT,height=40,width=150,
                                  command=on_confirmar)
     btn_confirmar.pack(side="left", padx=20)
 

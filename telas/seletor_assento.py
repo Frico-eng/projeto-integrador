@@ -233,7 +233,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
         
         for j in range(colunas):
             codigo = f"{linha}{j+1}"
-            botao = ctk.CTkButton(linha_frame, text=codigo, width=50, height=45, 
+            botao = ctk.CTkButton(linha_frame, text=codigo, width=65, height=65, 
                                  fg_color=COR_LIVRE, text_color=COR_TEXTO, 
                                  font=("Arial", 11, "bold"), corner_radius=8,
                                  command=lambda c=codigo: toggle_assento(c))
@@ -248,20 +248,49 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
             botao.configure(fg_color=COR_OCUPADO, state="disabled")
             assentos[codigo] = (botao, "ocupado")
     
-    # ================== LEGENDA ==================
-    frame_legenda = ctk.CTkFrame(container_assentos, fg_color="transparent")
-    frame_legenda.pack(pady=20)
+    # ================== LEGENDA COM FRAME DESTACADO ==================
+    frame_legenda = ctk.CTkFrame(container_assentos, 
+                                fg_color="#2b2b2b", 
+                                border_width=2,
+                                border_color="#444444",
+                                corner_radius=12)
+    frame_legenda.pack(pady=20, padx=20, fill="x")
     
-    ctk.CTkLabel(frame_legenda, text="Legenda:", font=("Arial", 12, "bold")).pack(side="left", padx=(0, 15))
+    # Título da legenda
+    ctk.CTkLabel(frame_legenda, text="Legenda dos Assentos", 
+                font=("Arial", 14, "bold"),
+                text_color=COR_TEXTO).pack(pady=(10, 8))
     
-    ctk.CTkLabel(frame_legenda, text="● Disponível", font=("Arial", 11), 
-                text_color=COR_LIVRE).pack(side="left", padx=10)
+    # Container para os itens da legenda
+    legenda_itens_frame = ctk.CTkFrame(frame_legenda, fg_color="transparent")
+    legenda_itens_frame.pack(fill="x", padx=15, pady=(0, 10))
     
-    ctk.CTkLabel(frame_legenda, text="● Selecionado", font=("Arial", 11), 
-                text_color=COR_SELECIONADO).pack(side="left", padx=10)
+    # Item 1 - Disponível
+    item1_frame = ctk.CTkFrame(legenda_itens_frame, fg_color="transparent")
+    item1_frame.pack(side="left", expand=True, padx=10)
     
-    ctk.CTkLabel(frame_legenda, text="● Ocupado", font=("Arial", 11), 
-                text_color=COR_OCUPADO).pack(side="left", padx=10)
+    ctk.CTkLabel(item1_frame, text="●", font=("Arial", 16), 
+                text_color=COR_LIVRE).pack(side="left", padx=(0, 5))
+    ctk.CTkLabel(item1_frame, text="Disponível", font=("Arial", 12), 
+                text_color=COR_TEXTO).pack(side="left")
+    
+    # Item 2 - Selecionado
+    item2_frame = ctk.CTkFrame(legenda_itens_frame, fg_color="transparent")
+    item2_frame.pack(side="left", expand=True, padx=10)
+    
+    ctk.CTkLabel(item2_frame, text="●", font=("Arial", 16), 
+                text_color=COR_SELECIONADO).pack(side="left", padx=(0, 5))
+    ctk.CTkLabel(item2_frame, text="Selecionado", font=("Arial", 12), 
+                text_color=COR_TEXTO).pack(side="left")
+    
+    # Item 3 - Ocupado
+    item3_frame = ctk.CTkFrame(legenda_itens_frame, fg_color="transparent")
+    item3_frame.pack(side="left", expand=True, padx=10)
+    
+    ctk.CTkLabel(item3_frame, text="●", font=("Arial", 16), 
+                text_color=COR_OCUPADO).pack(side="left", padx=(0, 5))
+    ctk.CTkLabel(item3_frame, text="Ocupado", font=("Arial", 12), 
+                text_color=COR_TEXTO).pack(side="left")
     
     # ================== BOTÕES ==================
     frame_botoes = ctk.CTkFrame(frame_dir)
