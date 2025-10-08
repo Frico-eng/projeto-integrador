@@ -1,5 +1,7 @@
 import sys
 import os
+import threading
+import time
 
 # Adiciona o diretório pai ao Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -9,6 +11,10 @@ import customtkinter as ctk
 from PIL import Image, ImageTk
 from datetime import datetime
 from utilidades.config import *
+from tkinter import messagebox
+from reportlab.lib.pagesizes import A5, landscape
+from reportlab.pdfgen import canvas
+from datetime import datetime
 
 # Definir diretórios
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -21,6 +27,132 @@ COR_DESTAQUE = "#F6C148" # Amarelo/laranja para destaque
 COR_BOTAO = "#F6C148"
 COR_BOTAO_HOVER = "#E2952D"
 COR_TEXTO_BOTAO = "#1C2732"
+
+def gerar_comprovante(filme, horario, assentos, preco_por_assento=25.00, logo_path="logo.png"):
+    total = len(assentos) * preco_por_assento
+    nome_arquivo = f"Comprovante_{filme.replace(' ', '_')}_{datetime.now().strftime('%H%M%S')}.pdf"
+
+    # Usar A5 landscape (420 x 297 pontos)
+    c = canvas.Canvas(nome_arquivo, pagesize=landscape(A5))
+    width, height = landscape(A5)  # 420 x 297
+
+    # Margens
+    margem_esq = 30
+    margem_dir = 30
+    largura_util = width - margem_esq - margem_dir
+
+    # === LOGO DO CINEPLUS ===
+    if os.path.exists(logo_path):
+        # Posicionar logo no topo esquerdo, menor
+        c.drawImage(logo_path, margem_esq, height - 80, width=50, height=50, mask='auto')
+
+    # === TÍTULO DO CINEMA === (centralizado)
+    c.setFont("Helvetica-Bold", 16)  # Reduzido de 22 para 16
+    titulo = "🎬 CinePlus - Comprovante de Ingresso 🎬"
+    c.drawCentredString(width/2, height - 60, titulo)
+    
+    # Linha divisória
+    c.line(margem_esq, height - 75, width - margem_dir, height - 75)
+
+    # === DADOS DO FILME ===
+    y_pos = height - 110  # Começar mais abaixo
+    
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(margem_esq, y_pos, "Detalhes da Compra:")
+    y_pos -= 25
+
+    # Função para quebrar texto longo
+    def quebrar_texto(texto, largura_max):
+        lines = []
+        words = texto.split()
+        current_line = []
+        
+        for word in words:
+            test_line = ' '.join(current_line + [word])
+            if c.stringWidth(test_line, "Helvetica", 10) <= largura_max:
+                current_line.append(word)
+            else:
+                if current_line:
+                    lines.append(' '.join(current_line))
+                current_line = [word]
+        
+        if current_line:
+            lines.append(' '.join(current_line))
+        
+        return lines
+
+    # Filme (com quebra de linha se necessário)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(margem_esq, y_pos, "Filme:")
+    c.setFont("Helvetica", 10)
+    filme_lines = quebrar_texto(filme, largura_util - 80)
+    for line in filme_lines:
+        c.drawString(margem_esq + 50, y_pos, line)
+        y_pos -= 15
+    y_pos -= 5
+
+    # Horário
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(margem_esq, y_pos, "Horário:")
+    c.setFont("Helvetica", 10)
+    c.drawString(margem_esq + 50, y_pos, horario)
+    y_pos -= 20
+
+    # Assentos
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(margem_esq, y_pos, "Assentos:")
+    c.setFont("Helvetica", 10)
+    assentos_str = ', '.join(assentos)
+    assentos_lines = quebrar_texto(assentos_str, largura_util - 80)
+    for line in assentos_lines:
+        c.drawString(margem_esq + 50, y_pos, line)
+        y_pos -= 15
+    y_pos -= 5
+
+    # Preço por assento
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(margem_esq, y_pos, "Preço unitário:")
+    c.setFont("Helvetica", 10)
+    c.drawString(margem_esq + 70, y_pos, f"R$ {preco_por_assento:.2f}")
+    y_pos -= 20
+
+    # Total
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(margem_esq, y_pos, "Total:")
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(margem_esq + 70, y_pos, f"R$ {total:.2f}")
+    y_pos -= 25
+
+    # Data da compra
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(margem_esq, y_pos, "Data da compra:")
+    c.setFont("Helvetica", 10)
+    c.drawString(margem_esq + 70, y_pos, datetime.now().strftime('%d/%m/%Y %H:%M'))
+    y_pos -= 30
+
+    # === QR CODE INFO ===
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(margem_esq, y_pos, "💡 Apresente o QR Code na entrada")
+    y_pos -= 15
+
+    # === RODAPÉ ===
+    rodape_y = 60
+    c.setFont("Helvetica-Oblique", 9)
+    
+    rodape_lines = [
+        "Apresente este comprovante na entrada da sessão.",
+        "Agradecemos sua preferência! Bom filme! 🍿"
+    ]
+    
+    for line in rodape_lines:
+        c.drawCentredString(width/2, rodape_y, line)
+        rodape_y -= 15
+
+    # === LINHA FINAL ===
+    c.line(margem_esq, 30, width - margem_dir, 30)
+
+    c.save()
+    return nome_arquivo
 
 def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_unit, assentos=None, total=None, finalizar_callback=None):
     """
@@ -191,10 +323,19 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
     btn_frame = ctk.CTkFrame(container_principal, fg_color="transparent")
     btn_frame.pack(fill="x", pady=30, padx=40)
 
+    def finalizar_com_compravante():
+        # Gerar comprovante apenas quando o usuário clicar em finalizar
+        nome_arquivo = gerar_comprovante(filme, horario, assentos, preco_por_assento=preco_unit, logo_path="logo.png")
+        messagebox.showinfo("Sucesso", f"Comprovante gerado com sucesso!\nArquivo: {nome_arquivo}")
+        
+        # Chamar o callback original se existir
+        if finalizar_callback:
+            finalizar_callback()
+
     ctk.CTkButton(
         btn_frame,
         text="Finalizar Compra",
-        command=finalizar_callback if finalizar_callback else lambda: print("Finalizar clicado"),
+        command=finalizar_com_compravante,
         font=("Arial", 16, "bold"),
         fg_color=COR_BOTAO,
         hover_color=COR_BOTAO_HOVER,
@@ -206,5 +347,5 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
 
     # Configurar fullscreen
     parent.master.attributes('-fullscreen', True)
-
+    
     return frame
