@@ -22,17 +22,17 @@ def gerar_comprovante(filme, horario, assentos, preco_por_assento=25.00, logo_pa
 
     # === TÍTULO DO CINEMA ===
     c.setFont("Helvetica-Bold", 22)
-    c.drawCentredString(420, 350, "🎬 CinePlus - Comprovante de Ingresso 🎬")
+    c.drawCentredString(100, 350, "🎬 CinePlus - Comprovante de Ingresso 🎬")
     c.line(50, 340, 550, 340)
 
     # === DADOS DO FILME ===
     c.setFont("Helvetica", 14)
-    c.drawString(200, 290, f"Filme: {filme}")
-    c.drawString(200, 260, f"Horário: {horario}")
-    c.drawString(200, 230, f"Assentos: {', '.join(assentos)}")
-    c.drawString(200, 200, f"Preço por assento: R$ {preco_por_assento:.2f}")
-    c.drawString(200, 170, f"Total: R$ {total:.2f}")
-    c.drawString(200, 140, f"Data da compra: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    c.drawString(100, 290, f"Filme: {filme}")
+    c.drawString(100, 260, f"Horário: {horario}")
+    c.drawString(100, 230, f"Assentos: {', '.join(assentos)}")
+    c.drawString(100, 200, f"Preço por assento: R$ {preco_por_assento:.2f}")
+    c.drawString(100, 170, f"Total: R$ {total:.2f}")
+    c.drawString(100, 140, f"Data da compra: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
     # === RODAPÉ ===
     c.setFont("Helvetica-Oblique", 12)
