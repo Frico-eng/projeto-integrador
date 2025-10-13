@@ -11,13 +11,17 @@ def abrir_cadastro(root):
     # Frame principal (layout dividido)
     frame_principal = ctk.CTkFrame(frame, fg_color="#1C1C1C")
     frame_principal.pack(fill="both", expand=True, padx=0, pady=0)
+    
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    IMAGE_DIR = os.path.join(BASE_DIR, "images")
+    IMG_PATH = os.path.join(IMAGE_DIR, "funcionariodocinema.jpg")
 
     # ======== LADO ESQUERDO (IMAGEM) ========
     try:
         # Tente carregar a imagem, se não encontrar use um fundo colorido
         img = ctk.CTkImage(
-            light_image=Image.open("C:\\Users\\58682496\\Downloads\\githubteste\\funcionariodocinema.jpg"),
-            dark_image=Image.open("C:\\Users\\58682496\\Downloads\\githubteste\\funcionariodocinema.jpg"),
+            light_image=Image.open(IMG_PATH),
+            dark_image=Image.open(IMG_PATH),
             size=(450, 600)
         )
         label_imagem = ctk.CTkLabel(frame_principal, image=img, text="")
