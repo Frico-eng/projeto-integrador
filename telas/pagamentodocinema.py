@@ -30,7 +30,7 @@ COR_TEXTO_BOTAO = "#1C2732"
 
 def gerar_comprovante(filme, horario, assentos, preco_por_assento=25.00, logo_path="logo.png"):
     total = len(assentos) * preco_por_assento
-    nome_arquivo = f"Comprovante_{filme.replace(' ', '_')}_{datetime.now().strftime('%H%M%S')}.pdf"
+    nome_arquivo = f"Comprovante_{filme.replace(' ', '')}{datetime.now().strftime('%H%M%S')}.pdf"
 
     # Usar A5 landscape (420 x 297 pontos)
     c = canvas.Canvas(nome_arquivo, pagesize=landscape(A5))
@@ -43,30 +43,26 @@ def gerar_comprovante(filme, horario, assentos, preco_por_assento=25.00, logo_pa
 
     # === LOGO DO CINEPLUS ===
     if os.path.exists(logo_path):
-        # Posicionar logo no topo esquerdo, menor
         c.drawImage(logo_path, margem_esq, height - 80, width=50, height=50, mask='auto')
 
-    # === TÍTULO DO CINEMA === (centralizado)
-    c.setFont("Helvetica-Bold", 16)  # Reduzido de 22 para 16
+    # === TÍTULO DO CINEMA ===
+    c.setFont("Helvetica-Bold", 16)
     titulo = "🎬 CinePlus - Comprovante de Ingresso 🎬"
-    c.drawCentredString(width/2, height - 60, titulo)
-    
+    c.drawCentredString(width / 2, height - 60, titulo)
+
     # Linha divisória
     c.line(margem_esq, height - 75, width - margem_dir, height - 75)
 
     # === DADOS DO FILME ===
-    y_pos = height - 110  # Começar mais abaixo
-    
+    y_pos = height - 110
     c.setFont("Helvetica-Bold", 12)
     c.drawString(margem_esq, y_pos, "Detalhes da Compra:")
     y_pos -= 25
 
-    # Função para quebrar texto longo
     def quebrar_texto(texto, largura_max):
         lines = []
         words = texto.split()
         current_line = []
-        
         for word in words:
             test_line = ' '.join(current_line + [word])
             if c.stringWidth(test_line, "Helvetica", 10) <= largura_max:
@@ -75,18 +71,15 @@ def gerar_comprovante(filme, horario, assentos, preco_por_assento=25.00, logo_pa
                 if current_line:
                     lines.append(' '.join(current_line))
                 current_line = [word]
-        
         if current_line:
             lines.append(' '.join(current_line))
-        
         return lines
 
-    # Filme (com quebra de linha se necessário)
+    # Filme
     c.setFont("Helvetica-Bold", 10)
     c.drawString(margem_esq, y_pos, "Filme:")
     c.setFont("Helvetica", 10)
-    filme_lines = quebrar_texto(filme, largura_util - 80)
-    for line in filme_lines:
+    for line in quebrar_texto(filme, largura_util - 80):
         c.drawString(margem_esq + 50, y_pos, line)
         y_pos -= 15
     y_pos -= 5
@@ -102,57 +95,65 @@ def gerar_comprovante(filme, horario, assentos, preco_por_assento=25.00, logo_pa
     c.setFont("Helvetica-Bold", 10)
     c.drawString(margem_esq, y_pos, "Assentos:")
     c.setFont("Helvetica", 10)
-    assentos_str = ', '.join(assentos)
-    assentos_lines = quebrar_texto(assentos_str, largura_util - 80)
-    for line in assentos_lines:
+    for line in quebrar_texto(', '.join(assentos), largura_util - 80):
         c.drawString(margem_esq + 50, y_pos, line)
         y_pos -= 15
     y_pos -= 5
 
-    # Preço por assento
+    # Preço e total
     c.setFont("Helvetica-Bold", 10)
     c.drawString(margem_esq, y_pos, "Preço unitário:")
     c.setFont("Helvetica", 10)
     c.drawString(margem_esq + 70, y_pos, f"R$ {preco_por_assento:.2f}")
     y_pos -= 20
 
-    # Total
     c.setFont("Helvetica-Bold", 11)
     c.drawString(margem_esq, y_pos, "Total:")
     c.setFont("Helvetica-Bold", 11)
     c.drawString(margem_esq + 70, y_pos, f"R$ {total:.2f}")
     y_pos -= 25
 
-    # Data da compra
     c.setFont("Helvetica-Bold", 10)
     c.drawString(margem_esq, y_pos, "Data da compra:")
     c.setFont("Helvetica", 10)
     c.drawString(margem_esq + 70, y_pos, datetime.now().strftime('%d/%m/%Y %H:%M'))
     y_pos -= 30
 
-    # === QR CODE INFO ===
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(margem_esq, y_pos, "💡 Apresente o QR Code na entrada")
-    y_pos -= 15
+    # === QR CODE ===
+    conteudo_qr = (
+        f"CinePlus\nFilme: {filme}\nHorário: {horario}\n"
+        f"Assentos: {', '.join(assentos)}\nTotal: R$ {total:.2f}\n"
+        f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+    )
+    try:
+        qr_img = qrcode.make(conteudo_qr)
+        temp_qr_path = "temp_qr_code_pdf.png"
+        qr_img.save(temp_qr_path)
+
+        # Inserir o QR code no canto direito do PDF
+        qr_size = 100
+        c.drawImage(temp_qr_path, width - margem_dir - qr_size, 60, width=qr_size, height=qr_size, mask='auto')
+
+        # Mensagem sob o QR
+        c.setFont("Helvetica-Oblique", 9)
+        c.drawCentredString(width - margem_dir - qr_size/2, 50, "Apresente este QR Code na entrada")
+
+        # Excluir QR temporário após salvar
+        os.remove(temp_qr_path)
+    except Exception as e:
+        print(f"Erro ao gerar QR code: {e}")
 
     # === RODAPÉ ===
-    rodape_y = 60
+    rodape_y = 40
     c.setFont("Helvetica-Oblique", 9)
-    
-    rodape_lines = [
-        "Apresente este comprovante na entrada da sessão.",
-        "Agradecemos sua preferência! Bom filme! 🍿"
-    ]
-    
-    for line in rodape_lines:
-        c.drawCentredString(width/2, rodape_y, line)
-        rodape_y -= 15
+    c.drawCentredString(width / 2, rodape_y, "Agradecemos sua preferência! Bom filme! 🍿")
 
-    # === LINHA FINAL ===
+    # Linha final
     c.line(margem_esq, 30, width - margem_dir, 30)
 
     c.save()
     return nome_arquivo
+
 
 def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_unit, assentos=None, total=None, finalizar_callback=None):
     """
@@ -278,9 +279,14 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
         wraplength=400
     ).pack(anchor="w", pady=10)
 
-    # ====== LADO DIREITO: QR CODE ======
-    qr_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+        # ====== LADO DIREITO: QR CODE ======
+    qr_frame = ctk.CTkFrame(content_frame, fg_color="transparent", width=300)
     qr_frame.pack(side="right", fill="y", padx=(20, 0))
+    qr_frame.pack_propagate(False)
+
+    # Subframe centralizado para QR code e textos
+    qr_inner_frame = ctk.CTkFrame(qr_frame, fg_color="transparent")
+    qr_inner_frame.place(relx=0.5, rely=0.5, anchor="center")
 
     # Gerar QR Code
     conteudo = (
@@ -290,7 +296,7 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
         f"Total: R$ {total:.2f}\n"
         f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
     )
-    
+
     try:
         qr_img = qrcode.make(conteudo)
         qr_img_path = "temp_qr_code.png"
@@ -299,12 +305,12 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
         img = Image.open(qr_img_path).resize((280, 280))
         qr_photo = ctk.CTkImage(img, size=(280, 280))
         
-        qr_label = ctk.CTkLabel(qr_frame, image=qr_photo, text="")
+        qr_label = ctk.CTkLabel(qr_inner_frame, image=qr_photo, text="")
         qr_label.image = qr_photo
         qr_label.pack(pady=10)
 
         ctk.CTkLabel(
-            qr_frame,
+            qr_inner_frame,
             text="QR Code do Ingresso",
             font=("Arial", 16, "bold"),
             text_color=COR_TEXTO
@@ -313,11 +319,12 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
     except Exception as e:
         print(f"Erro ao carregar QR code: {e}")
         ctk.CTkLabel(
-            qr_frame,
+            qr_inner_frame,
             text="Erro ao gerar QR Code",
             font=("Arial", 14),
             text_color="#e74c3c"
         ).pack(pady=50)
+
 
     # ====== BOTÃO FINALIZAR ======
     btn_frame = ctk.CTkFrame(container_principal, fg_color="transparent")

@@ -12,6 +12,7 @@ from telas.catalogo import criar_tela_catalogo
 from telas.pagamentodocinema import mostrar_confirmacao_pagamento
 from telas.agradecimento import mostrar_tela_agradecimento
 from telas.feedback import criar_tela_feedback
+from telas.funcionario import criar_tela_funcionario
 
 # ============ CONFIGURAÇÃO GLOBAL ============ #
 ctk.set_appearance_mode("dark")
@@ -149,6 +150,9 @@ def inicializar_telas():
     criar_botao(right_frame, "Feedback", 
            lambda: show_screen("feedback"), 
            width=250).pack(pady=15)
+    criar_botao(right_frame, "Área do Funcionário", 
+               lambda: show_screen("funcionario"), 
+               width=250).pack(pady=15)
     contato_frame = ctk.CTkFrame(right_frame, fg_color="transparent")
     contato_frame.place(relx=0.5, rely=0.80, anchor="center")
 
@@ -187,6 +191,19 @@ def inicializar_telas():
     catalogo_content.pack(fill="both", expand=True)
     
     register_screen("catalogo", catalogo_frame)
+
+    funcionario_frame = ctk.CTkFrame(app, fg_color="transparent")
+    def on_voltar_funcionario():
+        show_screen("main")
+    
+    # Cria a tela de funcionário
+    funcionario_content = criar_tela_funcionario(
+        funcionario_frame,
+        voltar_callback=on_voltar_funcionario
+    )
+    funcionario_content.pack(fill="both", expand=True)
+    
+    register_screen("funcionario", funcionario_frame)
 
     # --- Payment and Thank You screens ---
     pagamento_frame = ctk.CTkFrame(app, fg_color="transparent")
