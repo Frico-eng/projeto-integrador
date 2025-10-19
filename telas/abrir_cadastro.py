@@ -6,19 +6,19 @@ import os
 def abrir_cadastro(root):
     """Cria e retorna o frame de cadastro dentro da janela root"""
 
-    frame = ctk.CTkFrame(root, width=950, height=600, corner_radius=15, fg_color="#1C1C1C")
-    
-    # Frame principal (layout dividido)
+    # Criamos o frame principal, sem usar pack (porque o main usa place)
+    frame = ctk.CTkFrame(root, fg_color="#1C1C1C")
+
+    # Frame interno principal (divisão esquerda/direita)
     frame_principal = ctk.CTkFrame(frame, fg_color="#1C1C1C")
-    frame_principal.pack(fill="both", expand=True, padx=0, pady=0)
-    
+    frame_principal.pack(fill="both", expand=True)
+
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     IMAGE_DIR = os.path.join(BASE_DIR, "images")
     IMG_PATH = os.path.join(IMAGE_DIR, "funcionariodocinema.jpg")
 
     # ======== LADO ESQUERDO (IMAGEM) ========
     try:
-        # Tente carregar a imagem, se não encontrar use um fundo colorido
         img = ctk.CTkImage(
             light_image=Image.open(IMG_PATH),
             dark_image=Image.open(IMG_PATH),
@@ -26,12 +26,15 @@ def abrir_cadastro(root):
         )
         label_imagem = ctk.CTkLabel(frame_principal, image=img, text="")
     except:
-        # Fallback se a imagem não for encontrada
-        label_imagem = ctk.CTkLabel(frame_principal, text="🎬 CinePlus", 
-                                  font=("Arial", 32, "bold"), 
-                                  fg_color="#2B2B2B", 
-                                  width=450, height=600)
-    label_imagem.pack(side="left", padx=0, pady=0)
+        label_imagem = ctk.CTkLabel(
+            frame_principal,
+            text="🎬 CinePlus",
+            font=("Arial", 32, "bold"),
+            fg_color="#2B2B2B",
+            width=450, height=600
+        )
+
+    label_imagem.pack(side="left", fill="both", expand=True)
 
     # ======== LADO DIREITO (FORMULÁRIO) ========
     frame_direito = ctk.CTkFrame(frame_principal, fg_color="#1C1C1C")
@@ -66,7 +69,7 @@ def abrir_cadastro(root):
 
     # Campos do formulário
     campos_frame = ctk.CTkFrame(frame_direito, fg_color="transparent")
-    campos_frame.pack(expand=True, fill="both", padx=0, pady=10)
+    campos_frame.pack(fill="both", expand=True, pady=10)
 
     entry_nome = ctk.CTkEntry(campos_frame, placeholder_text="Nome completo", width=300, height=45)
     entry_cpf = ctk.CTkEntry(campos_frame, placeholder_text="CPF", width=300, height=45)
