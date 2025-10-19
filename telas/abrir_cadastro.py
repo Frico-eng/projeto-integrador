@@ -16,8 +16,6 @@ def abrir_cadastro(root):
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     IMAGE_DIR = os.path.join(BASE_DIR, "images")
     IMG_PATH = os.path.join(IMAGE_DIR, "funcionariodocinema.jpg")
-
-    # ======== LADO ESQUERDO (IMAGEM) ========
     try:
         img = ctk.CTkImage(
             light_image=Image.open(IMG_PATH),
