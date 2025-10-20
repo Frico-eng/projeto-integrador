@@ -2,12 +2,9 @@ import os
 import customtkinter as ctk
 from PIL import Image, ImageTk
 
-# ================== CONSTANTES DE CORES ==================
 BTN_COLOR = "#F6C148"
 BTN_HOVER = "#E2952D"
 BTN_TEXT = "#1C2732"
-
-# ================== CONFIGURAÇÃO DE DIRETÓRIOS ==================
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # sobe uma pasta (pai de 'telas')
 IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
 
