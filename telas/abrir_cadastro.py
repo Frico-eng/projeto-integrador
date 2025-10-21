@@ -10,17 +10,18 @@ def abrir_cadastro(root):
     frame = ctk.CTkFrame(root, fg_color="#1C1C1C")
 
     # Frame interno principal (divisão esquerda/direita)
-    frame_principal = ctk.CTkFrame(frame, fg_color="#1C1C1C")
-    frame_principal.pack(fill="both", expand=True)
+    frame_principal = ctk.CTkFrame(frame, fg_color="#1C1C1C", width=1200, height=900)
+    frame_principal.pack(anchor="w")
 
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    IMAGE_DIR = os.path.join(BASE_DIR, "images")
-    IMG_PATH = os.path.join(IMAGE_DIR, "funcionariodocinema.jpg")
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
+    IMG_PATH = os.path.join(IMAGE_DIR, "cadastro.png")
+
     try:
         img = ctk.CTkImage(
             light_image=Image.open(IMG_PATH),
             dark_image=Image.open(IMG_PATH),
-            size=(450, 600)
+            size=(1200, 1200)
         )
         label_imagem = ctk.CTkLabel(frame_principal, image=img, text="")
     except:
@@ -32,7 +33,7 @@ def abrir_cadastro(root):
             width=450, height=600
         )
 
-    label_imagem.pack(side="left", fill="both", expand=True)
+    label_imagem.pack(side="left", fill="y", expand=False, anchor="w")
 
     # ======== LADO DIREITO (FORMULÁRIO) ========
     frame_direito = ctk.CTkFrame(frame_principal, fg_color="#1C1C1C")

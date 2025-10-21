@@ -11,7 +11,6 @@ BTN_TEXT = "#1C2732"
 # ================== CONSTANTES DE CAMINHOS ==================
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # sobe uma pasta (pai de 'telas')
 IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
-
 FILME_IMAGES = {
     "predador_terras_selvagens": os.path.join(IMAGE_DIR, "predador.jpg"),
     "zootopia": os.path.join(IMAGE_DIR, "zootopia.jpg"),
