@@ -151,7 +151,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     frame.image_cache = {}
 
     # ----- frame esquerdo: lista (scrollable) -----
-    frame_esq = ctk.CTkFrame(frame, width=320, height=650)
+    frame_esq = ctk.CTkFrame(frame, width=240, height=600)
     frame_esq.pack(side="left", fill="y", padx=(12,6), pady=12)
     frame_esq.pack_propagate(False)
 
