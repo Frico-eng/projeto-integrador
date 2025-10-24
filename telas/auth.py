@@ -1,5 +1,5 @@
 from crud.crud_usuario import verificar_login
-from utilidades.gerenciador_telas import show_screen  # import seguro agora
+from utilidades.gerenciador_telas import show_screen
 
 def fazer_login(email_entry, senha_entry, resultado_label):
     email = email_entry.get().strip()
@@ -12,9 +12,14 @@ def fazer_login(email_entry, senha_entry, resultado_label):
     usuario = verificar_login(email, senha)
     if usuario:
         nome = usuario["Nome_Usuario"]
+        tipo_usuario = usuario.get("Tipo_Usuario", "cliente")  # Assume "cliente" como padrão se não existir
+        
         resultado_label.configure(text=f"Bem-vindo, {nome}!", text_color="green")
 
-        # Sempre vai para catálogo
-        show_screen("catalogo")
+        # Lógica de redirecionamento baseada no tipo de usuário
+        if tipo_usuario.lower() == "funcionario":
+            show_screen("funcionario")
+        else:
+            show_screen("catalogo")
     else:
         resultado_label.configure(text="Email ou senha incorretos.", text_color="red")
