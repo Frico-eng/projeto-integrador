@@ -239,20 +239,24 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
         # Mensagem de confirmação
         lista_selecionados.configure(text=f"Assentos confirmados!\n{', '.join(selecionados)}")
         
-        # Chama a função de avançar para próxima tela (pagamento) passando os dados
+        # Chama a função de avançar para próxima tela (pagamento) passando os dados COMPLETOS
         if avancar_callback:
             dados_compra = {
                 "filme": filme_selecionado,
                 "assentos": selecionados.copy(),
+                "quantidade": len(selecionados),  # ADICIONE ESTA LINHA
+                "preco_unitario": preco,          # ADICIONE ESTA LINHA
                 "total": len(selecionados) * preco
             }
             print(f"DEBUG: Chamando avancar_callback com {len(selecionados)} assentos")
+            print(f"DEBUG: Dados completos: {dados_compra}")
             avancar_callback(dados_compra)
         else:
             print("ERRO: avancar_callback não definido!")
         
         selecionados.clear()
         atualizar_resumo()
+
     
     # Criar grade de assentos
     for i, linha in enumerate(linhas):

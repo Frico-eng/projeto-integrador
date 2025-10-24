@@ -32,24 +32,38 @@ footer_secondary = None
 
 def mostrar_pagamento(dados_compra):
     """Recebe dados completos da compra e mostra tela de pagamento"""
-    filme = dados_compra["filme"]
+    print(f"DEBUG: Mostrando pagamento com dados: {dados_compra}")
+    
+    # Extrai dados com valores padrão caso alguma chave esteja faltando
+    filme = dados_compra.get("filme", {})
     horario = filme.get("horario_selecionado", "")
-    assentos = dados_compra["assentos"]
-    qtd_ingressos = len(assentos)
-    preco_unit = 32.50
-    total = dados_compra["total"]
-   
+    assentos = dados_compra.get("assentos", [])
+    qtd_ingressos = dados_compra.get("quantidade", len(assentos))
+    preco_unit = dados_compra.get("preco_unitario", 25.00)
+    total = dados_compra.get("total", qtd_ingressos * preco_unit)
+    
+    print(f"DEBUG: Dados extraídos:")
+    print(f"  - Filme: {filme.get('titulo', 'N/A')}")
+    print(f"  - Horário: {horario}")
+    print(f"  - Assentos: {assentos}")
+    print(f"  - Quantidade: {qtd_ingressos}")
+    print(f"  - Preço unitário: R$ {preco_unit:.2f}")
+    print(f"  - Total: R$ {total:.2f}")
+    
+    # Limpa o frame de pagamento - usa screens do contexto global
+    from utilidades.gerenciador_telas import screens  # Importa o gerenciador
     frame = screens["pagamento"]
     for widget in frame.winfo_children():
         widget.destroy()
-   
+    
     def finalizar_callback():
         mostrar_tela_agradecimento(screens["thank_you"], voltar_callback=lambda: show_screen("main"))
         show_screen("thank_you")
-   
+    
+    # Chama a função de pagamento com todos os dados
     mostrar_confirmacao_pagamento(
         frame,
-        filme["titulo"],
+        filme.get("titulo", "Filme não especificado"),
         horario,
         qtd_ingressos,
         preco_unit,
@@ -57,23 +71,28 @@ def mostrar_pagamento(dados_compra):
         total,
         finalizar_callback=finalizar_callback
     )
-   
+    
     show_screen("pagamento")
-
+    
 def criar_tela_assentos_com_pagamento(filme_completo):
     """Cria tela de assentos recebendo o filme completo com horário"""
-   
+    
     def avancar_para_pagamento(dados_compra):
         """Callback que recebe os dados completos da compra"""
-        print(f"Indo para pagamento com dados: {dados_compra}")
+        print(f"DEBUG: Indo para pagamento com dados completos:")
+        print(f"  - Filme: {dados_compra.get('filme', {}).get('titulo', 'N/A')}")
+        print(f"  - Assentos: {dados_compra.get('assentos', [])}")
+        print(f"  - Quantidade: {dados_compra.get('quantidade', len(dados_compra.get('assentos', [])))}")
+        print(f"  - Preço unitário: R$ {dados_compra.get('preco_unitario', 0):.2f}")
+        print(f"  - Total: R$ {dados_compra.get('total', 0):.2f}")
         mostrar_pagamento(dados_compra)
-   
+    
     # Cria a tela de assentos passando o filme completo
     frame = criar_tela_assentos(app,
                                voltar_callback=lambda: show_screen("catalogo"),
                                avancar_callback=avancar_para_pagamento,
                                filme_selecionado=filme_completo)
-   
+    
     register_screen("assentos", frame)
     return frame
 
