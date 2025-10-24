@@ -24,13 +24,36 @@ def inserir_usuario(nome, nome_login, senha, email=None, telefone=None, genero=N
         con.close()
 
 def verificar_login(email, senha):
-    con = conectar()
-    if con is None:
+    """
+    Verifica as credenciais de login e retorna os dados do usuário incluindo o tipo
+    """
+    try:
+        conn = conectar()
+        if conn is None:
+            print("Erro: Não foi possível conectar ao banco de dados")
+            return None
+            
+        cursor = conn.cursor(dictionary=True)  # Para retornar dicionários
+        
+        cursor.execute('''
+            SELECT ID_Usuario, Nome_Usuario, Email, Tipo_Usuario 
+            FROM Usuarios 
+            WHERE Email = %s AND Senha = %s
+        ''', (email, senha))
+        
+        usuario = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if usuario:
+            return {
+                "ID_Usuario": usuario["ID_Usuario"],
+                "Nome_Usuario": usuario["Nome_Usuario"],
+                "Email": usuario["Email"],
+                "Tipo_Usuario": usuario["Tipo_Usuario"]  # "cliente" ou "funcionario"
+            }
         return None
-    
-    cursor = con.cursor(dictionary=True)
-    comando = "SELECT * FROM Usuarios WHERE Email = %s AND Senha = %s"
-    cursor.execute(comando, (email, senha))
-    usuario = cursor.fetchone()
-    con.close()
-    return usuario
+        
+    except Exception as e:
+        print(f"Erro ao verificar login: {e}")
+        return None

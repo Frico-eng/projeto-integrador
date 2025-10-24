@@ -173,3 +173,6 @@ INSERT INTO Sessoes (ID_Filme, ID_Sala, Data_Sessao, Hora_Sessao, Tipo_Sessao) V
 
 -- Limpar a procedure após uso
 DROP PROCEDURE InserirAssentos;
+
+INSERT INTO Usuarios(Nome_Usuario,Nome_Login,Senha,Email,telefone,Genero,Data_Nascimento,Tipo_Usuario) VALUES
+("Frederico Lopes","frico_admin","@Caligula10","fhrl@cineplus.com","(91)981731270","M","1996-08-19","funcionario");
