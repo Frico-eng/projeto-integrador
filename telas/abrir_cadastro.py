@@ -2,14 +2,13 @@ import customtkinter as ctk
 from tkinter import messagebox
 from PIL import Image
 import os
+from crud.crud_usuario import inserir_usuario
 
 def abrir_cadastro(root):
     """Cria e retorna o frame de cadastro dentro da janela root"""
 
-    # Criamos o frame principal, sem usar pack (porque o main usa place)
     frame = ctk.CTkFrame(root, fg_color="#1C1C1C")
 
-    # Frame interno principal (divisão esquerda/direita)
     frame_principal = ctk.CTkFrame(frame, fg_color="#1C1C1C", width=1200, height=900)
     frame_principal.pack(anchor="w")
 
@@ -35,11 +34,9 @@ def abrir_cadastro(root):
 
     label_imagem.pack(side="left", fill="y", expand=False, anchor="w")
 
-    # ======== LADO DIREITO (FORMULÁRIO) ========
     frame_direito = ctk.CTkFrame(frame_principal, fg_color="#1C1C1C")
     frame_direito.pack(side="right", fill="both", expand=True, padx=40, pady=20)
 
-    # Título
     titulo = ctk.CTkLabel(
         frame_direito,
         text="Cadastro - CinePlus 🎬",
@@ -47,38 +44,64 @@ def abrir_cadastro(root):
     )
     titulo.pack(pady=20)
 
-    # Função de registro
+    # ======== FUNÇÃO REGISTRAR ========
     def registrar():
-        nome = entry_nome.get()
-        cpf = entry_cpf.get()
-        telefone = entry_tel.get()
-        usuario = entry_user.get()
-        senha = entry_senha.get()
-        nascimento = f"{combo_dia.get()}/{combo_mes.get()}/{combo_ano.get()}"
+        nome = entry_nome.get().strip()
+        telefone = entry_tel.get().strip()
+        usuario = entry_user.get().strip()
+        senha = entry_senha.get().strip()
+        email = entry_email.get().strip()
         genero = var_genero.get()
+        dia = combo_dia.get()
+        mes = combo_mes.get()
+        ano = combo_ano.get()
 
-        if not (nome and cpf and telefone and usuario and senha):
-            messagebox.showwarning("Aviso", "Preencha todos os campos!")
+        if not (nome and usuario and senha):
+            messagebox.showwarning("Aviso", "Preencha todos os campos obrigatórios!")
             return
 
-        messagebox.showinfo(
-            "Sucesso",
-            f"Bem-vindo ao CinePlus, {usuario}!\nCadastro realizado com sucesso!\nGênero: {genero}\nNascimento: {nascimento}"
+        # Converter data para formato SQL (YYYY-MM-DD)
+        meses_map = {
+            "Janeiro": "01", "Fevereiro": "02", "Março": "03", "Abril": "04", "Maio": "05", "Junho": "06",
+            "Julho": "07", "Agosto": "08", "Setembro": "09", "Outubro": "10", "Novembro": "11", "Dezembro": "12"
+        }
+        mes_num = meses_map.get(mes, "01")
+        data_nasc_sql = f"{ano}-{mes_num}-{dia}"
+
+        sucesso = inserir_usuario(
+            nome=nome,
+            nome_login=usuario,
+            senha=senha,
+            email=email,
+            telefone=telefone,
+            genero=genero,
+            data_nascimento=data_nasc_sql,
+            tipo_usuario="cliente"
         )
 
-    # Campos do formulário
+        if sucesso:
+            messagebox.showinfo("Sucesso", f"Usuário {usuario} cadastrado com sucesso!")
+            entry_nome.delete(0, "end")
+            entry_tel.delete(0, "end")
+            entry_email.delete(0, "end")
+            entry_user.delete(0, "end")
+            entry_senha.delete(0, "end")
+        else:
+            messagebox.showerror("Erro", "Não foi possível cadastrar o usuário. Verifique o console.")
+
+    # ======== CAMPOS DO FORMULÁRIO ========
     campos_frame = ctk.CTkFrame(frame_direito, fg_color="transparent")
     campos_frame.pack(fill="both", expand=True, pady=10)
 
     entry_nome = ctk.CTkEntry(campos_frame, placeholder_text="Nome completo", width=300, height=45)
-    entry_cpf = ctk.CTkEntry(campos_frame, placeholder_text="CPF", width=300, height=45)
     entry_tel = ctk.CTkEntry(campos_frame, placeholder_text="Telefone", width=300, height=45)
-    entry_user = ctk.CTkEntry(campos_frame, placeholder_text="Usuário", width=300, height=45)
+    entry_email = ctk.CTkEntry(campos_frame, placeholder_text="Email", width=300, height=45)
+    entry_user = ctk.CTkEntry(campos_frame, placeholder_text="Usuário (login)", width=300, height=45)
     entry_senha = ctk.CTkEntry(campos_frame, placeholder_text="Senha", show="*", width=300, height=45)
 
     entry_nome.pack(pady=8)
-    entry_cpf.pack(pady=8)
     entry_tel.pack(pady=8)
+    entry_email.pack(pady=8)
     entry_user.pack(pady=8)
     entry_senha.pack(pady=8)
 
@@ -110,8 +133,8 @@ def abrir_cadastro(root):
     frame_genero = ctk.CTkFrame(campos_frame, fg_color="transparent")
     frame_genero.pack(pady=5)
 
-    ctk.CTkRadioButton(frame_genero, text="Feminino", variable=var_genero, value="Feminino").grid(row=0, column=0, padx=10)
-    ctk.CTkRadioButton(frame_genero, text="Masculino", variable=var_genero, value="Masculino").grid(row=0, column=1, padx=10)
+    ctk.CTkRadioButton(frame_genero, text="Feminino", variable=var_genero, value="F").grid(row=0, column=0, padx=10)
+    ctk.CTkRadioButton(frame_genero, text="Masculino", variable=var_genero, value="M").grid(row=0, column=1, padx=10)
     ctk.CTkRadioButton(frame_genero, text="Outro", variable=var_genero, value="Outro").grid(row=0, column=2, padx=10)
 
     # Botões
@@ -132,7 +155,7 @@ def abrir_cadastro(root):
         border_width=2, 
         border_color="#E2952D"
     )
-    
+
     btn_voltar = ctk.CTkButton(
         frame_botoes, 
         text="Voltar", 
