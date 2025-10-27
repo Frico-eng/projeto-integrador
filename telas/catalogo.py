@@ -1,7 +1,11 @@
 import customtkinter as ctk
+import tkinter as tk
+from tkinter import messagebox
 from PIL import Image, ImageTk
 import os
 from datetime import datetime, timedelta
+from crud.crud_filme import listar_filmes
+from crud.crud_sessao import listar_sessoes_por_filme
 
 # ================== CONSTANTES DE CORES ==================
 BTN_COLOR = "#F6C148"
@@ -11,134 +15,71 @@ BTN_TEXT = "#1C2732"
 # ================== CONSTANTES DE CAMINHOS ==================
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # sobe uma pasta (pai de 'telas')
 IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
-FILME_IMAGES = {
-    "predador_terras_selvagens": os.path.join(IMAGE_DIR, "predador.jpg"),
-    "zootopia": os.path.join(IMAGE_DIR, "zootopia.jpg"),
-    "matrix": os.path.join(IMAGE_DIR, "matrix.jpg"),
-    "interstellar": os.path.join(IMAGE_DIR, "Interstellar.jpg"),
-    "jumanji": os.path.join(IMAGE_DIR, "jumanji.jpg"),
-    "demon_slayer": os.path.join(IMAGE_DIR, "Demon Slayer - castelo infinito.jpg"),
-    "homem_aranha": os.path.join(IMAGE_DIR, "Homem-aranha Sem volta para casa.jpg"),
-    "invocacao_mal": os.path.join(IMAGE_DIR, "invocação do mal.jpg"),
-}
-print(FILME_IMAGES["matrix"])
+
 # Caminhos para as classificações indicativas
 CLASSIFICACOES = {
     "LIVRE": os.path.join(IMAGE_DIR, "livre.png"),
-    "12": os.path.join(IMAGE_DIR, "doze.png"),
+    "10": os.path.join(IMAGE_DIR, "dez.png"),
     "12": os.path.join(IMAGE_DIR, "doze.png"),
     "14": os.path.join(IMAGE_DIR, "catorze.jpg"),
-    "10": os.path.join(IMAGE_DIR, "dez.png"),
-    "LIVRE": os.path.join(IMAGE_DIR, "livre.png"),
+    "16": os.path.join(IMAGE_DIR, "dezesseis.png"),
     "18": os.path.join(IMAGE_DIR, "dezoito.png"),
 }
 
-# ================== DADOS DOS FILMES ==================
-filmes = [
-    {"titulo": "predador terras selvagens",
-        "descricao": "O filme se passa no futuro, em um planeta remoto, onde um jovem Predador da raça Yautja, excluído de seu clã, encontra uma aliada improvável em Thia (Fanning) e embarca em uma jornada traiçoeira em busca de um monstro que supostamente não pode ser morto.",
-        "teste": "6 de novembro de 2025 | 1h 38min",
-        "genero": "terror, suspense, Aventura, Ficção científica.",
-        "direçao": "Dan Trachtenberg",
-        "classificacao": CLASSIFICACOES["12"],
-        "imagem": FILME_IMAGES["predador_terras_selvagens"],
-        "sessoes":{
-            "dublado": ["14:50", "17:00", "20:00", "22:15"],
-            "legendado": ["17:30", "20:45", "21:15"]
+# Carregar filmes do banco de dados
+def carregar_filmes_do_banco():
+    try:
+        filmes_db = listar_filmes()
+        filmes_formatados = []
+        
+        for filme in filmes_db:
+            # Formatar dados do filme
+            filme_formatado = {
+                "ID_Filme": filme["ID_Filme"],
+                "titulo": filme["Titulo_Filme"],
+                "genero": filme["Genero"],
+                "duracao": f"{filme['Duracao']} min",
+                "classificacao": CLASSIFICACOES.get(filme["Classificacao"], ""),
+                "cartaz_path": filme.get("Cartaz_Path", ""),
+                # Campos que podem não existir no banco (mantidos para compatibilidade)
+                "descricao": f"Assista {filme['Titulo_Filme']} nos melhores cinemas.",
+                "teste": f"Duração: {filme['Duracao']} minutos",
+                "direçao": "Vários diretores"
             }
-        },
-    {
-        "titulo": "zootopia",
-        "descricao": "Em uma cidade de animais, uma raposa falante se torna uma fugitiva ao ser acusada de um crime que não cometeu. O principal policial do local, o incontestável coelho, sai em sua busca..",
-        "teste": "17 de março de 2025 | 1h 48min",
-        "genero": "Ficção policial, infantil, animação, Aventura, Animação.",
-        "direçao": "Rich Moore, Byron Howard",
-        "classificacao": CLASSIFICACOES["LIVRE"],
-        "imagem": FILME_IMAGES["zootopia"],
-        "sessoes":{
-            "dublado": ["14:15", "18:00", "20:30", "21:00"],
-            "legendado": ["17:00", "20:45", "21:15"]
-            }
-    },
-    {
-        "titulo": "Matrix",
-        "descricao": "O jovem programador Thomas Anderson é atormentado por estranhos pesadelos em que está sempre conectado por cabos a um imenso sistema de computadores do futuro. À medida que o sonho se repete, ele começa a desconfiar da realidade. Thomas conhece os misteriosos Morpheus e Trinity e descobre que é vítima de um sistema inteligente e artificial chamado Matrix, que manipula a mente das pessoas e cria a ilusão de um mundo real enquanto usa os cérebros e corpos dos indivíduos para produzir energia.",
-        "teste": "11 de setembro de 2025 | 1h 49min",
-        "genero": "Ação, Aventura, Ficção científica, Cyberpunk.",
-        "direçao": "Lana Wachowski e Lilly Wachowski",
-        "classificacao": CLASSIFICACOES["14"],
-        "imagem": FILME_IMAGES["matrix"],
-        "sessoes":{
-            "dublado": ["14:45", "17:30", "19:30", "22:30"],
-            "legendado": ["16:50", "19:00", "21:30"]
-            }
-    },
-    {
-        "titulo": "Interstellar",
-        "descricao": "As reservas naturais da Terra estão chegando ao fim e um grupo de astronautas recebe a missão de verificar possíveis planetas para receberem a população mundial, possibilitando a continuação da espécie. Cooper é chamado para liderar o grupo e aceita a missão sabendo que pode nunca mais ver os filhos. Ao lado de Brand, Jenkins e Doyle, ele seguirá em busca de um novo lar.",
-        "teste": "4 de setembro de 2025 | 1h 27min",
-        "genero": "Ficção científica, Ação, Suspense, Aventura.",
-        "direçao": "Christopher Nolan",
-        "classificacao": CLASSIFICACOES["10"],
-        "imagem": FILME_IMAGES["interstellar"],
-        "sessoes":{
-            "dublado": ["13:00", "16:45", "20:30"],
-            "legendado": ["17:00", "20:00", "22:30"]
-            }
-    },
-    {
-        "titulo": "Jumanji",
-        "descricao": "Quatro adolescentes encontram um videogame cuja ação se passa em uma floresta tropical. Empolgados com o jogo, eles escolhem seus avatares para o desafio, mas um evento inesperado faz com que eles sejam transportados para dentro do universo fictício, transformando-os nos personagens da aventura.",
-        "teste": "11 de setembro de 2025 | 1h 30min",
-        "genero": "Comédia, Infantil, Aventura, Ação.",
-        "direçao": "Jake Kasdan e Joe Johnston",
-        "classificacao": CLASSIFICACOES["LIVRE"],
-        "imagem": FILME_IMAGES["jumanji"],
-        "sessoes":{
-            "dublado": ["11:30", "15:00", "18:00", "21:00"],
-            "legendado": ["18:30", "21:30"]
-            }
-    },
-    {
-        "titulo": "Demon Slayer - Castelo Infinito",
-        "descricao": "Os Pilares agora enfrentam Muzan e decidem atacá-lo juntos. No entanto, eles são transportados para a Fortaleza Infinita antes que possam desferir um único golpe e, portanto, são separados.",
-        "teste": "11 de setembro de 2025 | 2h 36min",
-        "genero": "Ação, Aventura, Fantasia Sombria e Artes Marciais.",
-        "direçao": "Haruo Sotozaki",
-        "classificacao": CLASSIFICACOES["18"],
-        "imagem": FILME_IMAGES["demon_slayer"],
-        "sessoes":{
-            "dublado": ["12:00", "16:00", "19:45", "22:45"],
-            "legendado": ["19:00", "20:45"]
-            }
-    },
-    {
-        "titulo": "Homem-Aranha Sem Volta Para Casa",
-        "descricao": "Peter Parker tem a sua identidade secreta revelada e pede ajuda ao Doutor Estranho. Quando o feitiço para reverter o evento não sai como esperado, o Homem-Aranha e o seu companheiro dos Vingadores precisam enfrentar inimigos de todo o multiverso.",
-        "teste": "18 de setembro de 2025 | 1h 38min",
-        "genero": "Filme super-herói, Ação, Aventura, Comédia, Suspense",
-        "direçao": "Jon Watts",
-        "classificacao": CLASSIFICACOES["12"],
-        "imagem": FILME_IMAGES["homem_aranha"],
-        "sessoes": {
-            "dublado":["13:30", "17:15", "21:00"],
-            "legendado": ["16:20", "19:00", "22:30"]
-            }
-    },
-    {
-        "titulo": "Invocação do Mal",
-        "descricao": "Invocação do Mal acompanha os investigadores paranormais Ed e Lorraine Warren, chamados para ajudar uma família aterrorizada por uma presença demoníaca em sua nova casa, nos anos 70. O casal luta para confrontar a entidade maligna que se alimenta do medo e busca controlar os membros da família, especialmente a mãe, em um caso que se torna o mais difícil de suas carreiras, tudo baseado em um caso real.",
-        "teste": "4 de setembro de 2025 | 2h 15min",
-        "genero": "Terror, Sobrenatural, Mistério, Suspense.",
-        "direçao": "Michael Chaves",
-        "classificacao": CLASSIFICACOES["14"],
-        "imagem": FILME_IMAGES["invocacao_mal"],
-        "sessoes":{ 
-            "dublado" : ["13:00", "16:00", "22:00", "23:30"],
-            "legendado": ["17:00", "19:45", "23:00"]
-            }
-    },
-]
+            filmes_formatados.append(filme_formatado)
+        
+        return filmes_formatados
+    except Exception as e:
+        print(f"Erro ao carregar filmes do banco: {e}")
+        return []
+
+# Carregar sessões do banco de dados
+def carregar_sessoes_do_banco(id_filme):
+    try:
+        sessoes_db = listar_sessoes_por_filme(id_filme)
+        sessoes_formatadas = {
+            "dublado": [],
+            "legendado": []
+        }
+        
+        for sessao in sessoes_db:
+            # Usar o campo formatado
+            hora = sessao.get("Hora_Formatada", "")
+            tipo = sessao["Tipo_Sessao"]
+            
+            if tipo == "dublado" and hora:
+                sessoes_formatadas["dublado"].append(hora)
+            elif tipo == "legendado" and hora:
+                sessoes_formatadas["legendado"].append(hora)
+        
+        # Ordenar horários
+        sessoes_formatadas["dublado"].sort()
+        sessoes_formatadas["legendado"].sort()
+        
+        return sessoes_formatadas
+    except Exception as e:
+        print(f"Erro ao carregar sessões do banco: {e}")
+        return {"dublado": [], "legendado": []}
 
 def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     """Cria e retorna o frame do catálogo de filmes com seleção de horário"""
@@ -165,7 +106,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     descricao_var = ctk.StringVar(value="Descrição do filme aparecerá aqui.")
     lancamento_var = ctk.StringVar(value="Lançamento do filme aparecerá aqui.")
     genero_var = ctk.StringVar(value="Gênero do filme aparecerá aqui.")
-    direcao_var = ctk.StringVar(value="Direção do filme aparecerá aqui.")
+    duracao_var = ctk.StringVar(value="Duração do filme aparecerá aqui.")
     classificacao_var = ctk.StringVar(value="")
 
     # ----- frame direito: detalhes -----
@@ -174,7 +115,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     frame_dir.pack_propagate(False)
 
     # Frame superior com imagem e textos - ALTURA REDUZIDA
-    frame_top = ctk.CTkFrame(frame_dir, height=450)  # Reduzido de 470 para 350
+    frame_top = ctk.CTkFrame(frame_dir, height=450)
     frame_top.pack(fill="x", padx=12, pady=(10,0))
     frame_top.pack_propagate(False)
 
@@ -197,20 +138,15 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     label_descricao = ctk.CTkLabel(frame_textos, textvariable=descricao_var, wraplength=1200, justify="left")
     label_descricao.pack(anchor="nw", pady=(0,6))
 
-    label_lancamento2 = ctk.CTkLabel(frame_textos, text="Data de lançamento", font=("Arial", 14, "bold"))
+    label_lancamento2 = ctk.CTkLabel(frame_textos, text="Duração", font=("Arial", 14, "bold"))
     label_lancamento2.pack(anchor="nw")
-    label_lancamento = ctk.CTkLabel(frame_textos, textvariable=lancamento_var, wraplength=400, justify="left")
+    label_lancamento = ctk.CTkLabel(frame_textos, textvariable=duracao_var, wraplength=400, justify="left")
     label_lancamento.pack(anchor="nw", pady=(0,6))
 
     label_genero2 = ctk.CTkLabel(frame_textos, text="Gênero", font=("Arial", 14, "bold"))
     label_genero2.pack(anchor="nw")
     label_genero = ctk.CTkLabel(frame_textos, textvariable=genero_var, wraplength=400, justify="left")
     label_genero.pack(anchor="nw", pady=(0,6))
-
-    label_direcao2 = ctk.CTkLabel(frame_textos, text="Direção", font=("Arial", 14, "bold"))
-    label_direcao2.pack(anchor="nw")
-    label_direcao = ctk.CTkLabel(frame_textos, textvariable=direcao_var, wraplength=400, justify="left")
-    label_direcao.pack(anchor="nw", pady=(0,6))
 
     # Frame para classificação
     frame_classificacao = ctk.CTkFrame(frame_textos, fg_color="transparent")
@@ -220,12 +156,12 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     label_classificacao = ctk.CTkLabel(frame_classificacao, text="", width=50, height=50)
     label_classificacao.pack(side="left", padx=10)
 
-    # Frame para sessões com seleção de horário - ALTURA REDUZIDA
-    frame_sessoes = ctk.CTkFrame(frame_dir, height=350)  # Reduzido de 450 para 280
-    frame_sessoes.pack(fill="x", padx=12, pady=(10,0))  # Adicionado espaço abaixo
+    # Frame para sessões com seleção de horário
+    frame_sessoes = ctk.CTkFrame(frame_dir, height=350)
+    frame_sessoes.pack(fill="x", padx=12, pady=(10,0))
     frame_sessoes.pack_propagate(False)
 
-    # Botões de navegação - AGORA VISÍVEIS
+    # Botões de navegação
     botoes_frame = ctk.CTkFrame(frame_dir, height=50)
     botoes_frame.pack(side="bottom", fill="x", padx=20, pady=10)
     botoes_frame.pack_propagate(False)
@@ -418,13 +354,19 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
         label_selecao = ctk.CTkLabel(frame_sessoes, text="", font=("Arial", 14, "bold"))
         label_selecao.pack(anchor="w", pady=10)
         
+        # NO ARQUIVO catalogo.py - FUNÇÃO atualizar_selecao
         def atualizar_selecao(*args):
             dia = dia_selecionado.get()
             tipo = tipo_selecionado.get()
             horario = horario_selecionado.get()
             
+            # CORREÇÃO: Verificar se dia é um dicionário antes de acessar
             if dia and tipo and horario:
-                selecao_texto = f"Sessão selecionada: {dia['nome']} ({dia['label']}) - {tipo.capitalize()} - {horario}"
+                if isinstance(dia, dict):
+                    selecao_texto = f"Sessão selecionada: {dia['nome']} ({dia['label']}) - {tipo.capitalize()} - {horario}"
+                else:
+                    # Se for string, tentar extrair informações básicas
+                    selecao_texto = f"Sessão selecionada: {tipo.capitalize()} - {horario}"
                 label_selecao.configure(text=selecao_texto)
             else:
                 label_selecao.configure(text="")
@@ -442,18 +384,17 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     # Variável para armazenar o filme selecionado
     filme_selecionado = [None]
 
-    def mostrar_filme(index: int):
-        filme = filmes[index]
+    def mostrar_filme(filme):
         filme_selecionado[0] = filme
         
         titulo_var.set(filme.get("titulo", ""))
         descricao_var.set(filme.get("descricao", ""))
-        lancamento_var.set(filme.get("teste", ""))
+        duracao_var.set(filme.get("duracao", ""))
         genero_var.set(filme.get("genero", ""))
-        direcao_var.set(filme.get("direçao", ""))
+        lancamento_var.set(filme.get("teste", ""))
 
         # Carregar imagem do filme
-        caminho = filme.get("imagem", "")
+        caminho = filme.get("cartaz_path", "")
         img = None
         if caminho and os.path.isfile(caminho):
             try:
@@ -466,7 +407,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
             img = Image.new("RGB", (200, 300), (40, 40, 40))
         
         img = img.resize((200, 300), Image.LANCZOS)
-        foto = ctk.CTkImage(img, size=(300, 450))  # Tamanho corrigido para 200x300
+        foto = ctk.CTkImage(img, size=(300, 450))
         label_imagem.configure(image=foto, text="")
         label_imagem.image = foto
 
@@ -485,17 +426,25 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
         else:
             label_classificacao.configure(image=None, text="N/A")
 
-        mostrar_sessoes(filme)
+        # Carregar sessões do banco de dados
+        id_filme = filme.get("ID_Filme")
+        if id_filme:
+            sessoes = carregar_sessoes_do_banco(id_filme)
+            filme["sessoes"] = sessoes
+            mostrar_sessoes(filme)
+
+    # Carregar filmes do banco
+    filmes = carregar_filmes_do_banco()
 
     # Cria botões para cada filme
-    for idx, filme in enumerate(filmes):
+    for filme in filmes:
         # Frame para cada item do filme
-        item_frame = ctk.CTkFrame(scroll, fg_color=BTN_COLOR, height=300,width=60, corner_radius=8)
+        item_frame = ctk.CTkFrame(scroll, fg_color=BTN_COLOR, height=300, width=60, corner_radius=8)
         item_frame.pack(pady=4, padx=6, fill="x")
         item_frame.pack_propagate(False)
         
         # Carrega a imagem do cartaz
-        caminho_imagem = filme.get("imagem", "")
+        caminho_imagem = filme.get("cartaz_path", "")
         img = None
         
         if caminho_imagem and os.path.isfile(caminho_imagem):
@@ -520,9 +469,9 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
             text="",  # Texto vazio
             fg_color="transparent",
             hover_color=BTN_HOVER,
-            command=lambda i=idx: mostrar_filme(i),  # Mesma função do botão original
-            height=210,  # Altura adequada para a imagem
-            width=180    # Largura adequada para a imagem
+            command=lambda f=filme: mostrar_filme(f),
+            height=210,
+            width=180
         )
         btn_imagem.pack(pady=(10, 10))
 
@@ -533,17 +482,16 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
             anchor="center",
             text_color=BTN_TEXT,
             font=("Arial", 14, "bold"),
-            height=50,  # Mesma altura do botão anterior
-            wraplength=180  # Para quebrar texto longo em múltiplas linhas
+            height=50,
+            wraplength=180
         )
         label_titulo.pack(fill="x", expand=False, padx=20)
-    
 
-    # Botões de navegação - AGORA DENTRO DO FRAME CORRETO
+    # Botões de navegação
     btn_voltar = ctk.CTkButton(botoes_frame, text="Voltar", 
-                              fg_color=BTN_COLOR,font=("Arial", 14, "bold"),
+                              fg_color=BTN_COLOR, font=("Arial", 14, "bold"),
                               hover_color=BTN_HOVER,
-                              text_color=BTN_TEXT,height=40,width=150,
+                              text_color=BTN_TEXT, height=40, width=150,
                               command=voltar_callback)
     btn_voltar.pack(side="left", padx=10)
 
@@ -560,18 +508,18 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
             filme_completo["horario_selecionado"] = horario
             confirmar_callback(filme_completo)
         else:
-            print("Selecione um filme, dia, tipo e horário")
+            messagebox.showwarning("Seleção Incompleta", "Selecione um filme, dia, tipo e horário")
 
     btn_confirmar = ctk.CTkButton(botoes_frame, text="Selecionar Assentos", 
-                                 fg_color=BTN_COLOR,font=("Arial", 14, "bold"),
+                                 fg_color=BTN_COLOR, font=("Arial", 14, "bold"),
                                  hover_color=BTN_HOVER,
-                                 text_color=BTN_TEXT,height=40,width=150,
+                                 text_color=BTN_TEXT, height=40, width=150,
                                  command=on_confirmar)
     btn_confirmar.pack(side="left", padx=20)
 
     # Seleciona o primeiro filme por padrão
     if filmes:
-        mostrar_filme(0)
+        mostrar_filme(filmes[0])
 
     return frame
 
@@ -582,7 +530,7 @@ def mostrar_catalogo_filmes(parent, voltar_callback=None, confirmar_callback=Non
 if __name__ == "__main__":
     app = ctk.CTk()
     app.title("Catálogo de Filmes")
-    app.geometry("1000x700")  # Tamanho fixo da janela
+    app.geometry("1000x700")
     
     def voltar():
         print("Voltando...")
