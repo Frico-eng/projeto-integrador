@@ -1,22 +1,30 @@
+# cineplus_crud.py (parte atualizada)
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import messagebox, filedialog
 from PIL import Image, ImageTk
+from crud.crud_filme import inserir_filme, listar_filmes, editar_filme, excluir_filme
 
 def criar_tela_funcionario(parent, voltar_callback):
     """Cria a tela de gerenciamento de filmes para funcionários"""
     
-    # ================== DADOS ==================
+    # ================== VARIÁVEIS ==================
     filmes = []
     imagem_atual = None
+    filme_selecionado_id = None
 
     # ================== FUNÇÕES ==================
+    def carregar_filmes():
+        nonlocal filmes
+        filmes = listar_filmes()
+        atualizar_lista()
+
     def atualizar_lista():
         listbox.delete(0, "end")
-        for i, filme in enumerate(filmes, start=1):
+        for filme in filmes:
             listbox.insert(
                 "end",
-                f"{i}. {filme['titulo']} - {filme['genero']} ({filme['duracao']} min)"
+                f"{filme['ID_Filme']}. {filme['Titulo_Filme']} - {filme['Genero']} ({filme['Duracao']} min)"
             )
 
     def selecionar_imagem():
@@ -27,11 +35,14 @@ def criar_tela_funcionario(parent, voltar_callback):
         )
         if caminho:
             imagem_atual = caminho
-            img = Image.open(caminho)
-            img = img.resize((120, 180))
-            img_preview = ImageTk.PhotoImage(img)
-            label_imagem.configure(image=img_preview, text="")
-            label_imagem.image = img_preview
+            try:
+                img = Image.open(caminho)
+                img = img.resize((120, 180))
+                img_preview = ImageTk.PhotoImage(img)
+                label_imagem.configure(image=img_preview, text="")
+                label_imagem.image = img_preview
+            except Exception as e:
+                messagebox.showerror("Erro", f"Erro ao carregar imagem: {e}")
 
     def cadastrar_filme():
         nonlocal imagem_atual
@@ -39,109 +50,108 @@ def criar_tela_funcionario(parent, voltar_callback):
         genero = entry_genero.get().strip()
         duracao = entry_duracao.get().strip()
         classificacao = entry_classificacao.get().strip()
-        direcao = entry_direcao.get().strip()
-        lancamento = entry_lancamento.get().strip()
 
-        if not all([titulo, genero, duracao, classificacao, direcao, lancamento]):
+        if not all([titulo, genero, duracao, classificacao]):
             messagebox.showwarning("Campos obrigatórios", "Preencha todos os campos!")
             return
 
-        filmes.append({
-            "titulo": titulo,
-            "genero": genero,
-            "duracao": duracao,
-            "classificacao": classificacao,
-            "direcao": direcao,
-            "lancamento": lancamento,
-            "imagem": imagem_atual
-        })
+        # Definir o caminho da imagem
+        cartaz_path = None
+        if imagem_atual:
+            # Aqui você pode implementar a lógica para copiar a imagem para a pasta do projeto
+            # Por enquanto, vamos apenas salvar o caminho original
+            cartaz_path = imagem_atual
 
-        atualizar_lista()
-        limpar_campos()
-        messagebox.showinfo("Sucesso", f"Filme '{titulo}' cadastrado com sucesso!")
+        if inserir_filme(titulo, genero, int(duracao), classificacao, cartaz_path):
+            messagebox.showinfo("Sucesso", f"Filme '{titulo}' cadastrado com sucesso!")
+            carregar_filmes()
+            limpar_campos()
+        else:
+            messagebox.showerror("Erro", "Erro ao cadastrar filme!")
 
     def limpar_campos():
-        nonlocal imagem_atual
+        nonlocal imagem_atual, filme_selecionado_id
         for entry in [
             entry_titulo, entry_genero, entry_duracao,
-            entry_classificacao, entry_direcao, entry_lancamento
+            entry_classificacao
         ]:
             entry.delete(0, "end")
         imagem_atual = None
+        filme_selecionado_id = None
         label_imagem.configure(image=None, text="(sem imagem)")
 
     def selecionar_filme(event=None):
+        nonlocal filme_selecionado_id
         try:
             indice = listbox.curselection()[0]
             filme = filmes[indice]
+            filme_selecionado_id = filme['ID_Filme']
 
             entry_titulo.delete(0, "end")
             entry_genero.delete(0, "end")
             entry_duracao.delete(0, "end")
             entry_classificacao.delete(0, "end")
-            entry_direcao.delete(0, "end")
-            entry_lancamento.delete(0, "end")
 
-            entry_titulo.insert(0, filme["titulo"])
-            entry_genero.insert(0, filme["genero"])
-            entry_duracao.insert(0, filme["duracao"])
-            entry_classificacao.insert(0, filme["classificacao"])
-            entry_direcao.insert(0, filme["direcao"])
-            entry_lancamento.insert(0, filme["lancamento"])
+            entry_titulo.insert(0, filme["Titulo_Filme"])
+            entry_genero.insert(0, filme["Genero"])
+            entry_duracao.insert(0, str(filme["Duracao"]))
+            entry_classificacao.insert(0, filme["Classificacao"])
 
-            if filme.get("imagem"):
-                img = Image.open(filme["imagem"])
-                img = img.resize((120, 180))
-                img_preview = ImageTk.PhotoImage(img)
-                label_imagem.configure(image=img_preview, text="")
-                label_imagem.image = img_preview
+            # Carregar imagem se existir
+            if filme.get("Cartaz_Path"):
+                try:
+                    img = Image.open(filme["Cartaz_Path"])
+                    img = img.resize((120, 180))
+                    img_preview = ImageTk.PhotoImage(img)
+                    label_imagem.configure(image=img_preview, text="")
+                    label_imagem.image = img_preview
+                except Exception as e:
+                    label_imagem.configure(image=None, text="(erro ao carregar)")
             else:
                 label_imagem.configure(image=None, text="(sem imagem)")
         except IndexError:
             pass
 
     def editar_filme():
-        nonlocal imagem_atual
-        try:
-            indice = listbox.curselection()[0]
-        except IndexError:
+        nonlocal imagem_atual, filme_selecionado_id
+        
+        if not filme_selecionado_id:
             messagebox.showwarning("Atenção", "Selecione um filme para editar.")
             return
 
-        novo_titulo = entry_titulo.get().strip()
-        novo_genero = entry_genero.get().strip()
-        nova_duracao = entry_duracao.get().strip()
-        nova_classificacao = entry_classificacao.get().strip()
-        nova_direcao = entry_direcao.get().strip()
-        novo_lancamento = entry_lancamento.get().strip()
+        titulo = entry_titulo.get().strip()
+        genero = entry_genero.get().strip()
+        duracao = entry_duracao.get().strip()
+        classificacao = entry_classificacao.get().strip()
 
-        if not all([novo_titulo, novo_genero, nova_duracao, nova_classificacao, nova_direcao, novo_lancamento]):
+        if not all([titulo, genero, duracao, classificacao]):
             messagebox.showwarning("Campos obrigatórios", "Preencha todos os campos!")
             return
 
-        filmes[indice] = {
-            "titulo": novo_titulo,
-            "genero": novo_genero,
-            "duracao": nova_duracao,
-            "classificacao": nova_classificacao,
-            "direcao": nova_direcao,
-            "lancamento": novo_lancamento,
-            "imagem": imagem_atual
-        }
+        # Usar o caminho da imagem atual (se foi selecionada uma nova)
+        cartaz_path = imagem_atual if imagem_atual else None
 
-        atualizar_lista()
-        limpar_campos()
-        messagebox.showinfo("Sucesso", "Filme atualizado com sucesso!")
+        if editar_filme(filme_selecionado_id, titulo, genero, int(duracao), classificacao, cartaz_path):
+            messagebox.showinfo("Sucesso", "Filme atualizado com sucesso!")
+            carregar_filmes()
+            limpar_campos()
+        else:
+            messagebox.showerror("Erro", "Erro ao atualizar filme!")
 
     def remover_filme():
-        try:
-            indice = listbox.curselection()[0]
-            removido = filmes.pop(indice)
-            atualizar_lista()
-            limpar_campos()
-            messagebox.showinfo("Removido", f"Filme '{removido['titulo']}' foi removido!")
-        except IndexError:
+        nonlocal filme_selecionado_id
+        
+        if not filme_selecionado_id:
             messagebox.showwarning("Atenção", "Selecione um filme para remover.")
+            return
+
+        if messagebox.askyesno("Confirmar", "Tem certeza que deseja remover este filme?"):
+            if excluir_filme(filme_selecionado_id):
+                messagebox.showinfo("Removido", "Filme removido com sucesso!")
+                carregar_filmes()
+                limpar_campos()
+            else:
+                messagebox.showerror("Erro", "Erro ao remover filme!")
 
     # ================== INTERFACE ==================
     frame = ctk.CTkFrame(parent, fg_color="transparent")
@@ -184,17 +194,9 @@ def criar_tela_funcionario(parent, voltar_callback):
     entry_classificacao = ctk.CTkEntry(frame_form, width=300)
     entry_classificacao.grid(row=3, column=1, padx=10, pady=5)
 
-    ctk.CTkLabel(frame_form, text="Direção:").grid(row=4, column=0, padx=10, pady=5, sticky="e")
-    entry_direcao = ctk.CTkEntry(frame_form, width=300)
-    entry_direcao.grid(row=4, column=1, padx=10, pady=5)
-
-    ctk.CTkLabel(frame_form, text="Data de Lançamento:").grid(row=5, column=0, padx=10, pady=5, sticky="e")
-    entry_lancamento = ctk.CTkEntry(frame_form, width=300)
-    entry_lancamento.grid(row=5, column=1, padx=10, pady=5)
-
     # ==== IMAGEM ====
     frame_imagem = ctk.CTkFrame(frame_form)
-    frame_imagem.grid(row=0, column=2, rowspan=6, padx=30, pady=5)
+    frame_imagem.grid(row=0, column=2, rowspan=4, padx=30, pady=5)
 
     label_imagem = ctk.CTkLabel(frame_imagem, text="(sem imagem)", width=120, height=180)
     label_imagem.pack(pady=5)
@@ -208,9 +210,10 @@ def criar_tela_funcionario(parent, voltar_callback):
     ctk.CTkButton(frame_botoes, text="Editar", command=editar_filme).grid(row=0, column=1, padx=10)
     ctk.CTkButton(frame_botoes, text="Remover", command=remover_filme).grid(row=0, column=2, padx=10)
     ctk.CTkButton(frame_botoes, text="Limpar Campos", command=limpar_campos).grid(row=0, column=3, padx=10)
+    ctk.CTkButton(frame_botoes, text="Atualizar Lista", command=carregar_filmes).grid(row=0, column=4, padx=10)
 
     # Botão voltar
-    ctk.CTkButton(frame_botoes, text="Voltar ao Menu", command=voltar_callback).grid(row=0, column=4, padx=10)
+    ctk.CTkButton(frame_botoes, text="Voltar ao Menu", command=voltar_callback).grid(row=0, column=5, padx=10)
 
     # ==== LISTA DE FILMES ====
     frame_lista = ctk.CTkFrame(frame)
@@ -222,5 +225,8 @@ def criar_tela_funcionario(parent, voltar_callback):
                         selectbackground="#1f6aa5", font=("Arial", 12))
     listbox.pack(fill="both", expand=True, padx=10, pady=10)
     listbox.bind("<<ListboxSelect>>", selecionar_filme)
+
+    # Carregar filmes ao iniciar
+    carregar_filmes()
 
     return frame

@@ -1,9 +1,8 @@
-# cineplus_crud.py
+# crud_filmes.py
 import os
-import customtkinter as ctk
-from tkinter import ttk
 import mysql.connector
 from mysql.connector import Error
+
 # ========================= CONEXÃO MYSQL =========================
 def conectar():
     try:
@@ -18,42 +17,96 @@ def conectar():
         print("Erro ao conectar ao MySQL:", e)
         return None
 
-
-def inserir_filme(titulo, ano, genero, duracao):
+# ========================= CRUD FILMES =========================
+def inserir_filme(titulo, genero, duracao, classificacao, cartaz_path=None):
     con = conectar()
-    if con is None: return False
-    cursor = con.cursor()
-    cursor.execute("INSERT INTO filmes (titulo, ano, genero, duracao) VALUES (%s,%s,%s,%s)",
-                   (titulo, ano, genero, duracao))
-    con.commit()
-    con.close()
-    return True
+    if con is None: 
+        return False
+    try:
+        cursor = con.cursor()
+        cursor.execute("""
+            INSERT INTO Filmes (Titulo_Filme, Genero, Duracao, Classificacao, Cartaz_Path) 
+            VALUES (%s, %s, %s, %s, %s)
+        """, (titulo, genero, duracao, classificacao, cartaz_path))
+        con.commit()
+        return True
+    except Error as e:
+        print("Erro ao inserir filme:", e)
+        return False
+    finally:
+        con.close()
 
 def listar_filmes():
     con = conectar()
-    if con is None: return []
-    cursor = con.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM filmes ORDER BY titulo ASC")
-    resultado = cursor.fetchall()
-    con.close()
-    return resultado
+    if con is None: 
+        return []
+    try:
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT ID_Filme, Titulo_Filme, Genero, Duracao, Classificacao, Cartaz_Path 
+            FROM Filmes 
+            ORDER BY Titulo_Filme ASC
+        """)
+        resultado = cursor.fetchall()
+        return resultado
+    except Error as e:
+        print("Erro ao listar filmes:", e)
+        return []
+    finally:
+        con.close()
 
-def editar_filme(id_filme, titulo, ano, genero, duracao):
+def editar_filme(id_filme, titulo, genero, duracao, classificacao, cartaz_path=None):
     con = conectar()
-    if con is None: return False
-    cursor = con.cursor()
-    cursor.execute("UPDATE filmes SET titulo=%s, ano=%s, genero=%s, duracao=%s WHERE id=%s",
-                   (titulo, ano, genero, duracao, id_filme))
-    con.commit()
-    con.close()
-    return True
+    if con is None: 
+        return False
+    try:
+        cursor = con.cursor()
+        if cartaz_path:
+            cursor.execute("""
+                UPDATE Filmes 
+                SET Titulo_Filme=%s, Genero=%s, Duracao=%s, Classificacao=%s, Cartaz_Path=%s 
+                WHERE ID_Filme=%s
+            """, (titulo, genero, duracao, classificacao, cartaz_path, id_filme))
+        else:
+            cursor.execute("""
+                UPDATE Filmes 
+                SET Titulo_Filme=%s, Genero=%s, Duracao=%s, Classificacao=%s 
+                WHERE ID_Filme=%s
+            """, (titulo, genero, duracao, classificacao, id_filme))
+        con.commit()
+        return True
+    except Error as e:
+        print("Erro ao editar filme:", e)
+        return False
+    finally:
+        con.close()
 
 def excluir_filme(id_filme):
     con = conectar()
-    if con is None: return False
-    cursor = con.cursor()
-    cursor.execute("DELETE FROM filmes WHERE id=%s", (id_filme,))
-    con.commit()
-    con.close()
-    return True
+    if con is None: 
+        return False
+    try:
+        cursor = con.cursor()
+        cursor.execute("DELETE FROM Filmes WHERE ID_Filme=%s", (id_filme,))
+        con.commit()
+        return True
+    except Error as e:
+        print("Erro ao excluir filme:", e)
+        return False
+    finally:
+        con.close()
 
+def buscar_filme_por_id(id_filme):
+    con = conectar()
+    if con is None: 
+        return None
+    try:
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM Filmes WHERE ID_Filme=%s", (id_filme,))
+        resultado = cursor.fetchone()
+        return resultado
+    except Error as e:
+        print("Erro ao buscar filme:", e)
+        return None
+    finally:
+        con.close()

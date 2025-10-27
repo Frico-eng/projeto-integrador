@@ -1,6 +1,5 @@
 from conexao import conectar
 
-# 🟢 INSERIR INGRESSO
 def inserir_ingresso(id_sessao, id_cliente, assento, valor):
     con = conectar()
     if con is None:
@@ -15,8 +14,6 @@ def inserir_ingresso(id_sessao, id_cliente, assento, valor):
     con.close()
     return True
 
-
-# 🔵 LISTAR INGRESSOS
 def listar_ingressos():
     con = conectar()
     if con is None:
@@ -46,7 +43,6 @@ def listar_ingressos():
     return resultado
 
 
-# 🟠 ATUALIZAR INGRESSO
 def atualizar_ingresso(id_ingresso, id_sessao, id_cliente, assento, valor):
     con = conectar()
     if con is None:
@@ -65,8 +61,6 @@ def atualizar_ingresso(id_ingresso, id_sessao, id_cliente, assento, valor):
     con.close()
     return True
 
-
-# 🔴 EXCLUIR INGRESSO
 def excluir_ingresso(id_ingresso):
     con = conectar()
     if con is None:
@@ -77,18 +71,3 @@ def excluir_ingresso(id_ingresso):
     con.commit()
     con.close()
     return True
-
-import mysql.connector
-
-def conectar():
-    try:
-        con = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="",
-            database="cinema"
-        )
-        return con
-    except mysql.connector.Error as erro:
-        print(f"Erro de conexão: {erro}")
-        return None

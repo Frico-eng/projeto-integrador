@@ -1,13 +1,26 @@
 CREATE DATABASE IF NOT EXISTS cineplus;
 USE cineplus;
+DROP TABLE IF EXISTS Filmes;
 
 CREATE TABLE Filmes (
     ID_Filme INT AUTO_INCREMENT PRIMARY KEY,
     Titulo_Filme VARCHAR(255) NOT NULL,
     Genero VARCHAR(50),
     Duracao INT,
-    Classificacao VARCHAR(10)
+    Classificacao VARCHAR(10),
+    Cartaz_Path VARCHAR(500)
 );
+
+-- Inserir os filmes com os caminhos dos cartazes
+INSERT INTO Filmes (Titulo_Filme, Genero, Duracao, Classificacao, Cartaz_Path) VALUES
+('predador terras selvagens', 'terror, suspense, Aventura, Ficção científica', 98, '12', 'utilidades/images/predador.jpg'),
+('zootopia', 'Ficção policial, infantil, animação, Aventura, Animação', 108, 'LIVRE', 'utilidades/images/zootopia.jpg'),
+('Matrix', 'Ação, Aventura, Ficção científica, Cyberpunk', 109, '14', 'utilidades/images/matrix.jpg'),
+('Interstellar', 'Ficção científica, Ação, Suspense, Aventura', 87, '10', 'utilidades/images/interstellar.jpg'),
+('Jumanji', 'Comédia, Infantil, Aventura, Ação', 90, 'LIVRE', 'utilidades/images/jumanji.jpg'),
+('Demon Slayer - Castelo Infinito', 'Ação, Aventura, Fantasia Sombria e Artes Marciais', 156, '18', 'utilidades/images/Demon Slayer.jpg'),
+('Homem-Aranha Sem Volta Para Casa', 'Filme super-herói, Ação, Aventura, Comédia, Suspense', 98, '12', 'utilidades/images/Homem-aranha Sem volta para casa.jpg'),
+('Invocação do Mal', 'Terror, Sobrenatural, Mistério, Suspense', 135, '14', 'utilidades/images/invocação do mal.jpg');
 
 CREATE TABLE Salas (
     ID_Sala INT AUTO_INCREMENT PRIMARY KEY,
@@ -56,17 +69,6 @@ CREATE TABLE IF NOT EXISTS Assentos (
     Status ENUM('disponivel', 'ocupado') DEFAULT 'disponivel',
     FOREIGN KEY (ID_Sala) REFERENCES Salas(ID_Sala)
 );
-
--- Inserir os filmes
-INSERT INTO Filmes (Titulo_Filme, Genero, Duracao, Classificacao) VALUES
-('predador terras selvagens', 'terror, suspense, Aventura, Ficção científica', 98, '12'),
-('zootopia', 'Ficção policial, infantil, animação, Aventura, Animação', 108, 'LIVRE'),
-('Matrix', 'Ação, Aventura, Ficção científica, Cyberpunk', 109, '14'),
-('Interstellar', 'Ficção científica, Ação, Suspense, Aventura', 87, '10'),
-('Jumanji', 'Comédia, Infantil, Aventura, Ação', 90, 'LIVRE'),
-('Demon Slayer - Castelo Infinito', 'Ação, Aventura, Fantasia Sombria e Artes Marciais', 156, '18'),
-('Homem-Aranha Sem Volta Para Casa', 'Filme super-herói, Ação, Aventura, Comédia, Suspense', 98, '12'),
-('Invocação do Mal', 'Terror, Sobrenatural, Mistério, Suspense', 135, '14');
 
 -- Criar salas
 INSERT INTO Salas (Nome_Sala, Capacidade) VALUES
@@ -176,3 +178,4 @@ DROP PROCEDURE InserirAssentos;
 
 INSERT INTO Usuarios(Nome_Usuario,Nome_Login,Senha,Email,telefone,Genero,Data_Nascimento,Tipo_Usuario) VALUES
 ("Frederico Lopes","frico_admin","@Caligula10","fhrl@cineplus.com","(91)981731270","M","1996-08-19","funcionario");
+
