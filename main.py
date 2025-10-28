@@ -34,24 +34,31 @@ def mostrar_pagamento(dados_compra):
     """Recebe dados completos da compra e mostra tela de pagamento"""
     print(f"DEBUG: Mostrando pagamento com dados: {dados_compra}")
     
-    # Extrai dados com valores padrão caso alguma chave esteja faltando
-    filme = dados_compra.get("filme", {})
-    horario = filme.get("horario_selecionado", "")
+    # CORREÇÃO: Extrair dados corretamente da estrutura
+    filme_obj = dados_compra.get("filme", {})
+    sessao_obj = dados_compra.get("sessao", {})
+    
+    # Obter título do filme
+    titulo_filme = filme_obj.get("Titulo_Filme") or filme_obj.get("titulo") or "Filme não especificado"
+    
+    # Obter horário - priorizar da sessão, depois do filme
+    horario = sessao_obj.get("horario_selecionado") or filme_obj.get("horario_selecionado") or "Horário não especificado"
+    
     assentos = dados_compra.get("assentos", [])
     qtd_ingressos = dados_compra.get("quantidade", len(assentos))
     preco_unit = dados_compra.get("preco_unitario", 25.00)
     total = dados_compra.get("total", qtd_ingressos * preco_unit)
     
-    print(f"DEBUG: Dados extraídos:")
-    print(f"  - Filme: {filme.get('titulo', 'N/A')}")
+    print(f"DEBUG: Dados extraídos para pagamento:")
+    print(f"  - Título: {titulo_filme}")
     print(f"  - Horário: {horario}")
     print(f"  - Assentos: {assentos}")
     print(f"  - Quantidade: {qtd_ingressos}")
     print(f"  - Preço unitário: R$ {preco_unit:.2f}")
     print(f"  - Total: R$ {total:.2f}")
     
-    # Limpa o frame de pagamento - usa screens do contexto global
-    from utilidades.gerenciador_telas import screens  # Importa o gerenciador
+    # Limpa o frame de pagamento
+    from utilidades.gerenciador_telas import screens
     frame = screens["pagamento"]
     for widget in frame.winfo_children():
         widget.destroy()
@@ -60,15 +67,15 @@ def mostrar_pagamento(dados_compra):
         mostrar_tela_agradecimento(screens["thank_you"], voltar_callback=lambda: show_screen("main"))
         show_screen("thank_you")
     
-    # Chama a função de pagamento com todos os dados
+    # Chama a função de pagamento com dados corretos
     mostrar_confirmacao_pagamento(
         frame,
-        filme.get("titulo", "Filme não especificado"),
-        horario,
-        qtd_ingressos,
-        preco_unit,
-        assentos,
-        total,
+        filme=titulo_filme,
+        horario=horario,
+        qtd_ingressos=qtd_ingressos,
+        preco_unit=preco_unit,
+        assentos=assentos,
+        total=total,
         finalizar_callback=finalizar_callback
     )
     
@@ -80,11 +87,17 @@ def criar_tela_assentos_com_pagamento(filme_completo):
     def avancar_para_pagamento(dados_compra):
         """Callback que recebe os dados completos da compra"""
         print(f"DEBUG: Indo para pagamento com dados completos:")
-        print(f"  - Filme: {dados_compra.get('filme', {}).get('titulo', 'N/A')}")
+        print(f"  - Filme objeto: {dados_compra.get('filme', {})}")
+        print(f"  - Sessao objeto: {dados_compra.get('sessao', {})}")
         print(f"  - Assentos: {dados_compra.get('assentos', [])}")
-        print(f"  - Quantidade: {dados_compra.get('quantidade', len(dados_compra.get('assentos', [])))}")
+        print(f"  - Quantidade: {dados_compra.get('quantidade', 0)}")
         print(f"  - Preço unitário: R$ {dados_compra.get('preco_unitario', 0):.2f}")
         print(f"  - Total: R$ {dados_compra.get('total', 0):.2f}")
+        
+        # CORREÇÃO: Garantir que temos o horário
+        if 'sessao' not in dados_compra:
+            dados_compra['sessao'] = filme_completo
+            
         mostrar_pagamento(dados_compra)
     
     # Cria a tela de assentos passando o filme completo

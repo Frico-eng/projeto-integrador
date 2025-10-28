@@ -1,359 +1,482 @@
 import os
 import customtkinter as ctk
 from PIL import Image, ImageTk
+from crud.crud_filme import buscar_filme_por_id
+from crud.crud_sessao import buscar_sessao_por_dados
+from crud.crud_sala import buscar_sala_por_id
+from crud.crud_assento import listar_assentos_por_sala, atualizar_status_assento
 
 BTN_COLOR = "#F6C148"
 BTN_HOVER = "#E2952D"
 BTN_TEXT = "#1C2732"
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # sobe uma pasta (pai de 'telas')
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
 
 def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme_selecionado=None):    
     """
     Cria e retorna o frame de seleção de assentos
-    voltar_callback: função chamada ao clicar Voltar
-    avancar_callback: função chamada ao clicar em Confirmar
-    filme_selecionado: dicionário com informações do filme (titulo, cartaz, etc.)
     """
     
     # ================== CORES DOS ASSENTOS ==================
-    COR_LIVRE       = "#BDC3C7"
+    COR_LIVRE = "#BDC3C7"
     COR_SELECIONADO = "#27AE60"
-    COR_OCUPADO     = "#C0392B"
-    COR_TEXTO       = "#ECF0F1"
+    COR_OCUPADO = "#C0392B"
+    COR_TEXTO = "#ECF0F1"
     
-    # Frame principal grande - igual ao do catálogo
+    # Frame principal
     frame = ctk.CTkFrame(root, fg_color="transparent", width=1800, height=900)
     frame.pack_propagate(False)
     
-    # ----- frame esquerdo: cartaz do filme -----
-    frame_esq = ctk.CTkFrame(frame, width=320, height=650,fg_color="#F6C148")
+    # ================== VARIÁVEIS ==================
+    filme_info = None
+    sala_info = None
+    assentos_info = []
+    assentos = {}
+    selecionados = []
+    preco = 25.00
+
+    # ================== FUNÇÕES PRINCIPAIS (DEFINIDAS PRIMEIRO) ==================
+    
+    def confirmar():
+        """Confirma a seleção"""
+        print(f"DEBUG: Confirmando {len(selecionados)} assentos...")
+        
+        if not selecionados:
+            lista_selecionados.configure(text="Selecione pelo menos um assento!")
+            print("DEBUG: Nenhum assento selecionado para confirmar")
+            return
+            
+        try:
+            print("DEBUG: Atualizando assentos no banco...")
+            for assento in selecionados:
+                sucesso = atualizar_status_assento(assento["id"], "ocupado")
+                if sucesso:
+                    print(f"DEBUG: Assento {assento['codigo']} atualizado para ocupado")
+                else:
+                    print(f"DEBUG: Erro ao atualizar assento {assento['codigo']}")
+            
+            # EXTRAIR APENAS OS CÓDIGOS DOS ASSENTOS
+            assentos_codigos = [item["codigo"] for item in selecionados]
+            
+            lista_selecionados.configure(text=f"Assentos confirmados!\n{', '.join(assentos_codigos)}")
+            print(f"DEBUG: Assentos confirmados: {assentos_codigos}")
+            
+            if avancar_callback:
+                # CORREÇÃO: Estruturar dados de forma consistente
+                dados_compra = {
+                    "filme": filme_info,  # Informações completas do filme
+                    "sala": sala_info,    # Informações da sala
+                    "sessao": filme_selecionado,  # Sessão com horário
+                    "assentos": assentos_codigos,  # Lista de strings com códigos
+                    "quantidade": len(selecionados),
+                    "preco_unitario": preco,
+                    "total": len(selecionados) * preco
+                }
+                
+                print(f"DEBUG: Estrutura de dados enviada:")
+                print(f"  - Filme titulo: {filme_info.get('Titulo_Filme') if filme_info else 'N/A'}")
+                print(f"  - Sessao horario: {filme_selecionado.get('horario_selecionado') if filme_selecionado else 'N/A'}")
+                print(f"  - Assentos: {assentos_codigos}")
+                
+                avancar_callback(dados_compra)
+            else:
+                print("ERRO: avancar_callback não definido!")
+            
+            # Atualizar interface para refletir assentos ocupados
+            print("DEBUG: Atualizando interface após confirmação...")
+            for assento in selecionados:
+                codigo = assento["codigo"]
+                if codigo in assentos:
+                    botao, _, id_assento = assentos[codigo]
+                    botao.configure(fg_color=COR_OCUPADO, state="disabled")
+                    assentos[codigo] = (botao, "ocupado", id_assento)
+            
+            selecionados.clear()
+            atualizar_resumo()
+            print("DEBUG: Confirmação concluída com sucesso")
+            
+        except Exception as e:
+            print(f"Erro ao confirmar: {e}")
+            lista_selecionados.configure(text="Erro ao confirmar assentos!")
+            import traceback
+            traceback.print_exc()
+
+    def toggle_assento(codigo, id_assento):
+        """Alterna seleção do assento"""
+        nonlocal selecionados  # ← CORREÇÃO IMPORTANTE: usar nonlocal
+        
+        if codigo not in assentos:
+            return
+            
+        botao, status, id_assento = assentos[codigo]
+        if status == "ocupado":
+            return
+            
+        if status == "livre":
+            botao.configure(fg_color=COR_SELECIONADO)
+            assentos[codigo] = (botao, "selecionado", id_assento)
+            selecionados.append({"codigo": codigo, "id": id_assento})
+            print(f"DEBUG: Assento {codigo} selecionado")
+        else:
+            botao.configure(fg_color=COR_LIVRE)
+            assentos[codigo] = (botao, "livre", id_assento)
+            selecionados = [item for item in selecionados if item["codigo"] != codigo]
+            print(f"DEBUG: Assento {codigo} desselecionado")
+            
+        atualizar_resumo()
+
+    def atualizar_resumo():
+        """Atualiza o resumo"""
+        print(f"DEBUG: Atualizando resumo - {len(selecionados)} assentos selecionados")
+        
+        if not selecionados:
+            lista_selecionados.configure(text="Nenhum assento selecionado")
+        else:
+            assentos_str = ", ".join([item["codigo"] for item in selecionados])
+            lista_selecionados.configure(text=f"Assentos selecionados:\n{assentos_str}")
+        
+        total = len(selecionados) * preco
+        label_total.configure(text=f"Total: R$ {total:.2f}")
+        
+        # Forçar atualização da interface
+        frame_dir.update()
+
+    # ================== CARREGAR DADOS DO BANCO ==================
+    def carregar_dados_banco():
+        nonlocal filme_info, sala_info, assentos_info
+        
+        try:
+            print("=" * 50)
+            print("DEBUG: Iniciando carregamento de dados do banco...")
+            
+            if not filme_selecionado:
+                print("DEBUG: Nenhum filme selecionado")
+                return
+            
+            # Buscar filme no banco
+            if "ID_Filme" in filme_selecionado:
+                filme_info = buscar_filme_por_id(filme_selecionado["ID_Filme"])
+                print(f"DEBUG: Filme encontrado - {filme_info.get('Titulo_Filme') if filme_info else 'Nenhum'}")
+            
+            # Para TESTE: usar dados fixos se não conseguir encontrar sessão
+            tipo_sessao = filme_selecionado.get('tipo_selecionado', 'dublado')
+            horario_sessao = filme_selecionado.get('horario_selecionado', '16:00')
+            
+            print(f"DEBUG: Usando sessão - Tipo: {tipo_sessao}, Horário: {horario_sessao}")
+            
+            # Buscar qualquer sessão disponível para este filme
+            from crud.crud_sessao import listar_sessoes_por_filme
+            sessoes = listar_sessoes_por_filme(filme_selecionado["ID_Filme"])
+            
+            if sessoes:
+                # Pegar a primeira sessão disponível
+                sessao_info = sessoes[0]
+                print(f"DEBUG: Usando primeira sessão disponível: {sessao_info}")
+                
+                if "ID_Sala" in sessao_info:
+                    sala_info = buscar_sala_por_id(sessao_info["ID_Sala"])
+                    print(f"DEBUG: Sala encontrada - {sala_info}")
+                    
+                    if sala_info:
+                        assentos_info = listar_assentos_por_sala(sala_info["ID_Sala"])
+                        print(f"DEBUG: {len(assentos_info)} assentos encontrados")
+            else:
+                print("DEBUG: Nenhuma sessão encontrada, usando dados de teste")
+                # Dados de teste
+                sala_info = {"ID_Sala": 1, "Nome_Sala": "Sala 1", "Capacidade": 56}
+                assentos_info = criar_assentos_teste()
+            
+            # Atualizar interface
+            atualizar_interface()
+            criar_grade_assentos()
+            
+        except Exception as e:
+            print(f"Erro ao carregar dados do banco: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Em caso de erro, usar dados de teste
+            print("DEBUG: Usando dados de teste devido a erro")
+            filme_info = filme_selecionado
+            sala_info = {"ID_Sala": 1, "Nome_Sala": "Sala 1", "Capacidade": 56}
+            assentos_info = criar_assentos_teste()
+            atualizar_interface()
+            criar_grade_assentos()
+
+    def criar_assentos_teste():
+        """Cria assentos de teste para desenvolvimento"""
+        assentos = []
+        linhas = ["A", "B", "C", "D", "E", "F", "G"]
+        colunas = 8
+        
+        for i, linha in enumerate(linhas):
+            for coluna in range(1, colunas + 1):
+                assentos.append({
+                    "ID_Assento": i * colunas + coluna,
+                    "ID_Sala": 1,
+                    "Linha": linha,
+                    "Coluna": coluna,
+                    "Status": "disponivel"
+                })
+        
+        # Marcar alguns como ocupados
+        assentos[0]["Status"] = "ocupado"  # A1
+        assentos[5]["Status"] = "ocupado"  # A6
+        assentos[10]["Status"] = "ocupado" # B2
+        
+        return assentos
+
+    # ================== INTERFACE ==================
+    
+    # Frame esquerdo - Detalhes do filme
+    frame_esq = ctk.CTkFrame(frame, width=320, height=650, fg_color="#F6C148")
     frame_esq.pack(side="left", fill="y", padx=(12,6), pady=12)
     frame_esq.pack_propagate(False)
 
-    ctk.CTkLabel(frame_esq, text="Detalhes do Filme", font=("Arial", 16, "bold"),text_color="black").pack(pady=(8,6))
+    ctk.CTkLabel(frame_esq, text="Detalhes do Filme", font=("Arial", 16, "bold"), text_color="black").pack(pady=(8,6))
 
-    if filme_selecionado and "imagem" in filme_selecionado:
-        try:
-            # Carregar e redimensionar a imagem do cartaz
-            imagem_original = Image.open(filme_selecionado["imagem"])
-            imagem_redimensionada = imagem_original.resize((280, 350), Image.LANCZOS)
-            cartaz_img = ctk.CTkImage(imagem_redimensionada, size=(280, 350))
-            
-            ctk.CTkLabel(frame_esq, image=cartaz_img, text="").pack(pady=10)
-            
-           # Informações do filme
-            info_frame = ctk.CTkFrame(frame_esq, fg_color="transparent")
-            info_frame.pack(fill="x", padx=10, pady=10)
-
-            ctk.CTkLabel(
-                info_frame,
-                text=filme_selecionado.get("titulo", ""),
-                font=("Arial", 16, "bold"),
-                wraplength=280,
-                text_color="black"
-            ).pack(pady=5)
-
-            ctk.CTkLabel(
-                info_frame,
-                text=f"Gênero: {filme_selecionado.get('genero', '')}",
-                font=("Arial", 12),
-                wraplength=280,
-                text_color="black"
-            ).pack(pady=2)
-
-            ctk.CTkLabel(
-                info_frame,
-                text=f"Duração: {filme_selecionado.get('teste', '')}",
-                font=("Arial", 12),
-                text_color="black"
-            ).pack(pady=2)
-
-            
-            # Informações da sessão selecionada
-            sessao_frame = ctk.CTkFrame(frame_esq, fg_color="transparent")
-            sessao_frame.pack(fill="x", padx=10, pady=10)
-            
-            if filme_selecionado.get('dia_selecionado'):
-                dia_info = filme_selecionado['dia_selecionado']
-                ctk.CTkLabel(sessao_frame, text=f"Data: {dia_info['nome']} ({dia_info['label']})", 
-                            font=("Arial", 12, "bold")).pack(pady=2)
-            
-            if filme_selecionado.get('tipo_selecionado'):
-                ctk.CTkLabel(sessao_frame, text=f"Tipo: {filme_selecionado['tipo_selecionado'].capitalize()}", 
-                            font=("Arial", 12)).pack(pady=2)
-            
-            if filme_selecionado.get('horario_selecionado'):
-                ctk.CTkLabel(sessao_frame, text=f"Horário: {filme_selecionado['horario_selecionado']}", 
-                            font=("Arial", 12)).pack(pady=2)
-            
-            # Carregar classificação
-            if "classificacao" in filme_selecionado and os.path.isfile(filme_selecionado["classificacao"]):
-                try:
-                    img_class = Image.open(filme_selecionado["classificacao"])
-                    img_class = img_class.resize((30, 30), Image.LANCZOS)
-                    class_img = ctk.CTkImage(img_class, size=(30, 30))
-                    
-                    class_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
-                    class_frame.pack(pady=2)
-                    ctk.CTkLabel(class_frame, text="Classificação: ", 
-                                font=("Arial", 12)).pack(side="left")
-                    ctk.CTkLabel(class_frame, image=class_img, text="").pack(side="left")
-                except Exception as e:
-                    print(f"Erro ao carregar classificação: {e}")
-            
-        except Exception as e:
-            print(f"Erro ao carregar cartaz: {e}")
-            ctk.CTkLabel(frame_esq, text="", 
-                        font=("Arial", 14)).pack(pady=50)
-    else:
-        ctk.CTkLabel(frame_esq, text="Nenhum filme selecionado", 
-                    font=("Arial", 14)).pack(pady=50)
-    
-    # ----- frame direito: assentos e resumo -----
+    # Frame direito - Assentos e resumo
     frame_dir = ctk.CTkFrame(frame, width=1800, height=700)
     frame_dir.pack(side="right", fill="both", padx=(6,12), pady=12)
     frame_dir.pack_propagate(False)
 
-    # Título
-    titulo_filme = filme_selecionado.get("titulo", "Selecione seu assento") if filme_selecionado else "Selecione seu assento"
-    ctk.CTkLabel(frame_dir, text="Seleção de Assentos", 
-                font=("Arial", 24, "bold")).pack(pady=(10, 10))
+    ctk.CTkLabel(frame_dir, text="Seleção de Assentos", font=("Arial", 24, "bold")).pack(pady=(10, 10))
 
-    # Container para assentos e resumo
+    # Container principal
     container_conteudo = ctk.CTkFrame(frame_dir, fg_color="transparent")
     container_conteudo.pack(fill="both", expand=True, pady=10)
     
-    # ================== COLUNA ASSENTOS ==================
+    # Coluna assentos
     frame_assentos_container = ctk.CTkFrame(container_conteudo, fg_color="transparent")
     frame_assentos_container.pack(side="left", fill="both", expand=True, padx=(0, 15))
     
-    # Frame de assentos
     frame_assentos = ctk.CTkFrame(frame_assentos_container, fg_color="transparent")
     frame_assentos.pack(fill="both", expand=True)
     
-    # ================== COLUNA RESUMO ==================
+    container_assentos = ctk.CTkFrame(frame_assentos, fg_color="transparent")
+    container_assentos.pack(expand=True, pady=20)
+    
+    # TELA (sempre visível)
+    ctk.CTkLabel(container_assentos, text="TELA", font=("Arial", 16, "bold"), 
+                fg_color="#2b2b2b", corner_radius=5, width=400, height=30).pack(pady=(0, 30))
+    
+    # Coluna resumo
     painel_resumo = ctk.CTkFrame(container_conteudo, width=300, fg_color="transparent")
     painel_resumo.pack(side="right", fill="y", padx=(15, 0))
     painel_resumo.pack_propagate(False)
     
-    # Título do painel
-    ctk.CTkLabel(painel_resumo, text="Resumo da Compra", 
-                font=("Arial", 18, "bold")).pack(pady=20)
+    ctk.CTkLabel(painel_resumo, text="Resumo da Compra", font=("Arial", 18, "bold")).pack(pady=20)
     
-    # Informações do filme no resumo
     info_compra_frame = ctk.CTkFrame(painel_resumo, fg_color="transparent")
     info_compra_frame.pack(fill="x", padx=15, pady=10)
     
-    if filme_selecionado:
-        ctk.CTkLabel(info_compra_frame, text=filme_selecionado.get("titulo", ""), 
-                    font=("Arial", 14, "bold"), wraplength=250).pack(anchor="w")
-        
-        if filme_selecionado.get('horario_selecionado'):
-            ctk.CTkLabel(info_compra_frame, text=f"Horário: {filme_selecionado['horario_selecionado']}", 
-                        font=("Arial", 12)).pack(anchor="w", pady=2)
+    # Labels para informações do filme no resumo (agora são variáveis)
+    label_titulo_resumo = ctk.CTkLabel(info_compra_frame, text="", 
+                                      font=("Arial", 14, "bold"), wraplength=250, justify="left")
+    label_titulo_resumo.pack(anchor="w")
     
-    # Área para lista de assentos selecionados
+    label_horario_resumo = ctk.CTkLabel(info_compra_frame, text="", 
+                                       font=("Arial", 12), justify="left")
+    label_horario_resumo.pack(anchor="w", pady=2)
+    
+    label_sala_resumo = ctk.CTkLabel(info_compra_frame, text="", 
+                                    font=("Arial", 12), justify="left")
+    label_sala_resumo.pack(anchor="w", pady=2)
+    
     frame_lista = ctk.CTkScrollableFrame(painel_resumo, fg_color="transparent", height=120)
     frame_lista.pack(fill="both", expand=True, padx=15, pady=10)
     
     lista_selecionados = ctk.CTkLabel(frame_lista, text="Nenhum assento selecionado", 
-                                     font=("Arial", 14), 
-                                     justify="left", wraplength=250)
+                                     font=("Arial", 14), justify="left", wraplength=250)
     lista_selecionados.pack(anchor="w")
     
-    # Informações de preço
     preco_info_frame = ctk.CTkFrame(painel_resumo, fg_color="transparent")
     preco_info_frame.pack(fill="x", padx=15, pady=10)
     
-    ctk.CTkLabel(preco_info_frame, text="Preço por assento: R$ 25,00", 
-                font=("Arial", 12)).pack(anchor="w", pady=2)
+    ctk.CTkLabel(preco_info_frame, text="Preço por assento: R$ 25,00", font=("Arial", 12)).pack(anchor="w", pady=2)
     
-    label_total = ctk.CTkLabel(painel_resumo, text="Total: R$ 0,00", 
-                              font=("Arial", 20, "bold"))
+    label_total = ctk.CTkLabel(painel_resumo, text="Total: R$ 0,00", font=("Arial", 20, "bold"))
     label_total.pack(pady=15)
     
-    # ================== CONFIGURAÇÃO DOS ASSENTOS ==================
-    linhas = ["A", "B", "C", "D", "E", "F", "G"]
-    colunas = 8
-    preco = 25.00
-    assentos = {}
-    selecionados = []
-    
-    # Carregar imagem do assento - USANDO BASE_DIR E IMAGE_DIR
-    caminho_assento = os.path.join(IMAGE_DIR, "assento.png")
-    try:
-        img_assento = Image.open(caminho_assento)
-        # Redimensionar para caber no botão
-        img_assento = img_assento.resize((30, 30), Image.LANCZOS)
-        foto_assento = ctk.CTkImage(img_assento, size=(40, 40))
-        print(f"Imagem do assento carregada: {caminho_assento}")
-    except Exception as e:
-        print(f"Erro ao carregar imagem do assento {caminho_assento}: {e}")
-        foto_assento = None
-    
-    # Container para centralizar a grade de assentos
-    container_assentos = ctk.CTkFrame(frame_assentos, fg_color="transparent")
-    container_assentos.pack(expand=True, pady=20)
-    
-    # Título da tela de assentos
-    ctk.CTkLabel(container_assentos, text="TELA", font=("Arial", 16, "bold"), 
-                fg_color="#2b2b2b", corner_radius=5,
-                width=400, height=30).pack(pady=(0, 30))
-    
-    def toggle_assento(codigo):
-        botao, status = assentos[codigo]
-        if status == "ocupado":
-            return
-        if status == "livre":
-            botao.configure(fg_color=COR_SELECIONADO)
-            assentos[codigo] = (botao, "selecionado")
-            selecionados.append(codigo)
-        elif status == "selecionado":
-            botao.configure(fg_color=COR_LIVRE)
-            assentos[codigo] = (botao, "livre")
-            selecionados.remove(codigo)
-        atualizar_resumo()
-    
-    def atualizar_resumo():
-        if not selecionados:
-            lista_selecionados.configure(text="Nenhum assento selecionado")
-        else:
-            assentos_formatados = ", ".join(selecionados)
-            lista_selecionados.configure(text=f"Assentos:\n{assentos_formatados}")
-        
-        total = len(selecionados) * preco
-        label_total.configure(text=f"Total: R$ {total:.2f}")
-
-    def confirmar():
-        if not selecionados:
-            lista_selecionados.configure(text="Selecione pelo menos um assento!")
-            return
-            
-        # Marca os selecionados como ocupados
-        for codigo in selecionados:
-            botao, _ = assentos[codigo]
-            botao.configure(fg_color=COR_OCUPADO, state="disabled")
-            assentos[codigo] = (botao, "ocupado")
-        
-        # Mensagem de confirmação
-        lista_selecionados.configure(text=f"Assentos confirmados!\n{', '.join(selecionados)}")
-        
-        # Chama a função de avançar para próxima tela (pagamento) passando os dados COMPLETOS
-        if avancar_callback:
-            dados_compra = {
-                "filme": filme_selecionado,
-                "assentos": selecionados.copy(),
-                "quantidade": len(selecionados),  # ADICIONE ESTA LINHA
-                "preco_unitario": preco,          # ADICIONE ESTA LINHA
-                "total": len(selecionados) * preco
-            }
-            print(f"DEBUG: Chamando avancar_callback com {len(selecionados)} assentos")
-            print(f"DEBUG: Dados completos: {dados_compra}")
-            avancar_callback(dados_compra)
-        else:
-            print("ERRO: avancar_callback não definido!")
-        
-        selecionados.clear()
-        atualizar_resumo()
-
-    
-    # Criar grade de assentos
-    for i, linha in enumerate(linhas):
-        linha_frame = ctk.CTkFrame(container_assentos, fg_color="transparent")
-        linha_frame.pack(pady=3)
-        
-        for j in range(colunas):
-            codigo = f"{linha}{j+1}"
-            botao = ctk.CTkButton(
-                linha_frame, 
-                text=codigo, 
-                width=70, 
-                height=70, 
-                fg_color=COR_LIVRE, 
-                text_color=COR_TEXTO, 
-                font=("Arial", 11, "bold"), 
-                corner_radius=8,
-                image=foto_assento,  # Adiciona a imagem do assento
-                compound="top",      # Imagem acima do texto
-                command=lambda c=codigo: toggle_assento(c)
-            )
-            botao.pack(side="left", padx=2)
-            assentos[codigo] = (botao, "livre")
-    
-    # Marcar alguns assentos como ocupados para exemplo
-    exemplos_ocupados = ["A1", "B3", "C5", "D2", "E7", "F4", "G6"]
-    for codigo in exemplos_ocupados:
-        if codigo in assentos:
-            botao, _ = assentos[codigo]
-            botao.configure(fg_color=COR_OCUPADO, state="disabled")
-            assentos[codigo] = (botao, "ocupado")
-    
-    # ================== LEGENDA COM FRAME DESTACADO ==================
-    frame_legenda = ctk.CTkFrame(container_assentos, 
-                                fg_color="#2b2b2b", 
-                                border_width=2,
-                                border_color="#444444",
-                                corner_radius=12,height=45)
-    frame_legenda.pack(pady=20, padx=20, fill="x")
-    
-    # Título da legenda
-    ctk.CTkLabel(frame_legenda, text="Legenda dos Assentos", 
-                font=("Arial", 14, "bold"),
-                text_color=COR_TEXTO).pack(pady=(10, 8))
-    
-    # Container para os itens da legenda
-    legenda_itens_frame = ctk.CTkFrame(frame_legenda, fg_color="transparent",height=40)
-    legenda_itens_frame.pack(fill="x", padx=15, pady=(0, 10))
-    
-    # Item 1 - Disponível
-    item1_frame = ctk.CTkFrame(legenda_itens_frame, fg_color="transparent")
-    item1_frame.pack(side="left", expand=True, padx=10)
-    
-    ctk.CTkLabel(item1_frame, text="●", font=("Arial", 20), 
-                text_color=COR_LIVRE).pack(side="left", padx=(0, 5))
-    ctk.CTkLabel(item1_frame, text="Disponível", font=("Arial", 16), 
-                text_color=COR_TEXTO).pack(side="left")
-    
-    # Item 2 - Selecionado
-    item2_frame = ctk.CTkFrame(legenda_itens_frame, fg_color="transparent")
-    item2_frame.pack(side="left", expand=True, padx=10)
-    
-    ctk.CTkLabel(item2_frame, text="●", font=("Arial", 20), 
-                text_color=COR_SELECIONADO).pack(side="left", padx=(0, 5))
-    ctk.CTkLabel(item2_frame, text="Selecionado", font=("Arial", 16), 
-                text_color=COR_TEXTO).pack(side="left")
-    
-    # Item 3 - Ocupado
-    item3_frame = ctk.CTkFrame(legenda_itens_frame, fg_color="transparent")
-    item3_frame.pack(side="left", expand=True, padx=10)
-    
-    ctk.CTkLabel(item3_frame, text="●", font=("Arial", 20), 
-                text_color=COR_OCUPADO).pack(side="left", padx=(0, 5))
-    ctk.CTkLabel(item3_frame, text="Ocupado", font=("Arial", 16), 
-                text_color=COR_TEXTO).pack(side="left")
-    
-    # ================== BOTÕES ==================
-    frame_botoes = ctk.CTkFrame(frame_dir,height=100)
+    # Botões
+    frame_botoes = ctk.CTkFrame(frame_dir, height=100)
     frame_botoes.pack(side="bottom", fill="x", padx=20, pady=0)
 
-    # APENAS 2 BOTÕES: Voltar e Confirmar
     if voltar_callback:
-        btn_voltar = ctk.CTkButton(frame_botoes, text="Voltar",
-                                  font=("Arial", 14, "bold"), width=150, height=40, 
-                                  command=voltar_callback, 
-                                  fg_color=BTN_COLOR,
-                                  hover_color=BTN_HOVER,
-                                  text_color=BTN_TEXT)
+        btn_voltar = ctk.CTkButton(frame_botoes, text="Voltar", font=("Arial", 14, "bold"), 
+                                  width=150, height=40, command=voltar_callback, 
+                                  fg_color=BTN_COLOR, hover_color=BTN_HOVER, text_color=BTN_TEXT)
         btn_voltar.pack(side="left", padx=10)
 
-    # Botão Confirmar que também avança para pagamento
-    btn_confirmar = ctk.CTkButton(frame_botoes, text="Confirmar", 
-                                 width=150, height=40, font=("Arial", 14, "bold"), 
-                                 command=confirmar, 
-                                 fg_color=BTN_COLOR,
-                                 hover_color=BTN_HOVER,
-                                 text_color=BTN_TEXT)
+    # AGORA a função confirmar já está definida, pode ser usada
+    btn_confirmar = ctk.CTkButton(frame_botoes, text="Confirmar", width=150, height=40, 
+                                 font=("Arial", 14, "bold"), command=confirmar, 
+                                 fg_color=BTN_COLOR, hover_color=BTN_HOVER, text_color=BTN_TEXT)
     btn_confirmar.pack(side="left", padx=20)
+
+    # ================== FUNÇÕES RESTANTES DA INTERFACE ==================
+    def atualizar_interface():
+        """Atualiza a interface com os dados carregados"""
+        print("DEBUG: Atualizando interface...")
+        
+        # Limpar apenas o conteúdo, não os labels do resumo
+        for widget in frame_esq.winfo_children()[1:]:
+            widget.destroy()
+        
+        if filme_info:
+            try:
+                # Carregar cartaz
+                caminho_cartaz = filme_info.get("Cartaz_Path", "")
+                if caminho_cartaz and os.path.isfile(caminho_cartaz):
+                    img = Image.open(caminho_cartaz).resize((280, 350), Image.LANCZOS)
+                    cartaz_img = ctk.CTkImage(img, size=(280, 350))
+                    label = ctk.CTkLabel(frame_esq, image=cartaz_img, text="")
+                    label.pack(pady=10)
+                    label.image = cartaz_img
+                else:
+                    # Placeholder
+                    img = Image.new('RGB', (280, 350), (100, 100, 100))
+                    cartaz_img = ctk.CTkImage(img, size=(280, 350))
+                    label = ctk.CTkLabel(frame_esq, image=cartaz_img, text="Sem imagem")
+                    label.pack(pady=10)
+                    label.image = cartaz_img
+                
+                # Informações do filme
+                info_frame = ctk.CTkFrame(frame_esq, fg_color="transparent")
+                info_frame.pack(fill="x", padx=10, pady=10)
+
+                titulo = filme_info.get("Titulo_Filme", filme_info.get("titulo", "Filme"))
+                ctk.CTkLabel(info_frame, text=titulo, 
+                            font=("Arial", 16, "bold"), wraplength=280, text_color="black").pack(pady=5)
+                
+                genero = filme_info.get('Genero', filme_info.get('genero', ''))
+                ctk.CTkLabel(info_frame, text=f"Gênero: {genero}", 
+                            font=("Arial", 12), wraplength=280, text_color="black").pack(pady=2)
+                
+                duracao = filme_info.get('Duracao', filme_info.get('duracao', ''))
+                ctk.CTkLabel(info_frame, text=f"Duração: {duracao}", 
+                            font=("Arial", 12), text_color="black").pack(pady=2)
+
+                # Informações da sessão
+                sessao_frame = ctk.CTkFrame(frame_esq, fg_color="transparent")
+                sessao_frame.pack(fill="x", padx=10, pady=10)
+                
+                ctk.CTkLabel(sessao_frame, text=f"Tipo: {filme_selecionado.get('tipo_selecionado', '').capitalize()}", 
+                            font=("Arial", 12), text_color="black").pack(pady=2)
+                ctk.CTkLabel(sessao_frame, text=f"Horário: {filme_selecionado.get('horario_selecionado', '')}", 
+                            font=("Arial", 12), text_color="black").pack(pady=2)
+                
+                if sala_info:
+                    ctk.CTkLabel(sessao_frame, text=f"Sala: {sala_info.get('Nome_Sala', '')}", 
+                                font=("Arial", 12), text_color="black").pack(pady=2)
+
+                # Atualizar resumo (usando as labels existentes)
+                titulo = filme_info.get("Titulo_Filme", filme_info.get("titulo", "Filme"))
+                label_titulo_resumo.configure(text=titulo)
+                
+                horario = filme_selecionado.get('horario_selecionado', '')
+                label_horario_resumo.configure(text=f"Horário: {horario}")
+                
+                if sala_info:
+                    sala_nome = sala_info.get('Nome_Sala', '')
+                    label_sala_resumo.configure(text=f"Sala: {sala_nome}")
+                else:
+                    label_sala_resumo.configure(text="")
+                
+                print("DEBUG: Interface atualizada com sucesso")
+                
+            except Exception as e:
+                print(f"Erro ao atualizar interface: {e}")
+                ctk.CTkLabel(frame_esq, text="Erro ao carregar informações", 
+                            font=("Arial", 14), text_color="black").pack(pady=50)
+        else:
+            ctk.CTkLabel(frame_esq, text="Nenhum filme selecionado", 
+                        font=("Arial", 14), text_color="black").pack(pady=50)
+            
+            # Limpar resumo
+            label_titulo_resumo.configure(text="Nenhum filme selecionado")
+            label_horario_resumo.configure(text="")
+            label_sala_resumo.configure(text="")
+
+    def criar_grade_assentos():
+        """Cria a grade de assentos"""
+        nonlocal assentos, selecionados
+        assentos = {}
+        selecionados = []  # ← INICIALIZA a lista de selecionados
+        
+        # Limpar grade (exceto TELA)
+        for widget in container_assentos.winfo_children()[1:]:
+            widget.destroy()
+        
+        if assentos_info:
+            # Agrupar por linha
+            linhas = {}
+            for assento in assentos_info:
+                linha = assento["Linha"]
+                if linha not in linhas:
+                    linhas[linha] = []
+                linhas[linha].append(assento)
+            
+            # Criar grade
+            for linha in sorted(linhas.keys()):
+                linha_frame = ctk.CTkFrame(container_assentos, fg_color="transparent")
+                linha_frame.pack(pady=3)
+                
+                for assento in sorted(linhas[linha], key=lambda x: x["Coluna"]):
+                    codigo = f"{assento['Linha']}{assento['Coluna']}"
+                    status = assento["Status"]
+                    
+                    cor = COR_OCUPADO if status == "ocupado" else COR_LIVRE
+                    estado = "disabled" if status == "ocupado" else "normal"
+                    
+                    botao = ctk.CTkButton(
+                        linha_frame, text=codigo, width=70, height=70, fg_color=cor, 
+                        text_color=COR_TEXTO, font=("Arial", 11, "bold"), corner_radius=8,
+                        state=estado, command=lambda c=codigo, id=assento["ID_Assento"]: toggle_assento(c, id)
+                    )
+                    botao.pack(side="left", padx=2)
+                    assentos[codigo] = (botao, status, assento["ID_Assento"])
+            
+            print(f"DEBUG: Grade criada com {len(assentos)} assentos")
+        else:
+            ctk.CTkLabel(container_assentos, text="Nenhum assento disponível", 
+                        font=("Arial", 14), text_color="white").pack(pady=20)
+        
+        criar_legenda()
+        atualizar_resumo()  # Garantir que o resumo esteja atualizado
+
+    def criar_legenda():
+        """Cria a legenda"""
+        frame_legenda = ctk.CTkFrame(container_assentos, fg_color="#2b2b2b", 
+                                    border_width=2, border_color="#444444", corner_radius=12)
+        frame_legenda.pack(pady=20, padx=20, fill="x")
+        
+        ctk.CTkLabel(frame_legenda, text="Legenda dos Assentos", 
+                    font=("Arial", 14, "bold"), text_color=COR_TEXTO).pack(pady=(10, 8))
+        
+        legenda_frame = ctk.CTkFrame(frame_legenda, fg_color="transparent")
+        legenda_frame.pack(fill="x", padx=15, pady=(0, 10))
+        
+        # Disponível
+        item1 = ctk.CTkFrame(legenda_frame, fg_color="transparent")
+        item1.pack(side="left", expand=True, padx=10)
+        ctk.CTkLabel(item1, text="●", font=("Arial", 20), text_color=COR_LIVRE).pack(side="left", padx=(0, 5))
+        ctk.CTkLabel(item1, text="Disponível", font=("Arial", 12), text_color=COR_TEXTO).pack(side="left")
+        
+        # Selecionado
+        item2 = ctk.CTkFrame(legenda_frame, fg_color="transparent")
+        item2.pack(side="left", expand=True, padx=10)
+        ctk.CTkLabel(item2, text="●", font=("Arial", 20), text_color=COR_SELECIONADO).pack(side="left", padx=(0, 5))
+        ctk.CTkLabel(item2, text="Selecionado", font=("Arial", 12), text_color=COR_TEXTO).pack(side="left")
+        
+        # Ocupado
+        item3 = ctk.CTkFrame(legenda_frame, fg_color="transparent")
+        item3.pack(side="left", expand=True, padx=10)
+        ctk.CTkLabel(item3, text="●", font=("Arial", 20), text_color=COR_OCUPADO).pack(side="left", padx=(0, 5))
+        ctk.CTkLabel(item3, text="Ocupado", font=("Arial", 12), text_color=COR_TEXTO).pack(side="left")
+
+    # ================== INICIALIZAÇÃO ==================
+    # Carregar dados
+    frame.after(100, carregar_dados_banco)
     
     return frame
