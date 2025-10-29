@@ -18,16 +18,16 @@ def conectar():
         return None
 
 # ========================= CRUD FILMES =========================
-def inserir_filme(titulo, genero, duracao, classificacao, cartaz_path=None):
+def inserir_filme(titulo, genero, duracao, classificacao, direcao, sinopse, cartaz_path=None):
     con = conectar()
     if con is None: 
         return False
     try:
         cursor = con.cursor()
         cursor.execute("""
-            INSERT INTO Filmes (Titulo_Filme, Genero, Duracao, Classificacao, Cartaz_Path) 
-            VALUES (%s, %s, %s, %s, %s)
-        """, (titulo, genero, duracao, classificacao, cartaz_path))
+            INSERT INTO Filmes (Titulo_Filme, Genero, Duracao, Classificacao, Direcao, Sinopse, Cartaz_Path) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (titulo, genero, duracao, classificacao, direcao, sinopse, cartaz_path))
         con.commit()
         return True
     except Error as e:
@@ -43,9 +43,9 @@ def listar_filmes():
     try:
         cursor = con.cursor(dictionary=True)
         cursor.execute("""
-            SELECT ID_Filme, Titulo_Filme, Genero, Duracao, Classificacao, Cartaz_Path 
+            SELECT ID_Filme, Titulo_Filme, Genero, Duracao, Classificacao, Direcao, Sinopse, Cartaz_Path 
             FROM Filmes 
-            ORDER BY Titulo_Filme ASC
+            ORDER BY ID_Filme ASC
         """)
         resultado = cursor.fetchall()
         return resultado
@@ -55,7 +55,7 @@ def listar_filmes():
     finally:
         con.close()
 
-def editar_filme(id_filme, titulo, genero, duracao, classificacao, cartaz_path=None):
+def editar_filme(id_filme, titulo, genero, duracao, classificacao, direcao, sinopse, cartaz_path=None):
     con = conectar()
     if con is None: 
         return False
@@ -64,15 +64,15 @@ def editar_filme(id_filme, titulo, genero, duracao, classificacao, cartaz_path=N
         if cartaz_path:
             cursor.execute("""
                 UPDATE Filmes 
-                SET Titulo_Filme=%s, Genero=%s, Duracao=%s, Classificacao=%s, Cartaz_Path=%s 
+                SET Titulo_Filme=%s, Genero=%s, Duracao=%s, Classificacao=%s, Direcao=%s, Sinopse=%s, Cartaz_Path=%s 
                 WHERE ID_Filme=%s
-            """, (titulo, genero, duracao, classificacao, cartaz_path, id_filme))
+            """, (titulo, genero, duracao, classificacao, direcao, sinopse, cartaz_path, id_filme))
         else:
             cursor.execute("""
                 UPDATE Filmes 
-                SET Titulo_Filme=%s, Genero=%s, Duracao=%s, Classificacao=%s 
+                SET Titulo_Filme=%s, Genero=%s, Duracao=%s, Classificacao=%s, Direcao=%s, Sinopse=%s 
                 WHERE ID_Filme=%s
-            """, (titulo, genero, duracao, classificacao, id_filme))
+            """, (titulo, genero, duracao, classificacao, direcao, sinopse, id_filme))
         con.commit()
         return True
     except Error as e:
