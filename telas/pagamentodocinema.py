@@ -155,17 +155,82 @@ def gerar_comprovante(filme, horario, assentos, preco_por_assento=25.00, logo_pa
     return nome_arquivo
 
 
-def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_unit, assentos=None, total=None, finalizar_callback=None):
+# No arquivo pagamentodocinema.py, na função mostrar_confirmacao_pagamento
+
+def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=None):
     """
     Mostra a tela de confirmação de pagamento dentro de um frame existente
+    
+    Args:
+        parent: CTkFrame onde o conteúdo será exibido
+        dados_compra: dicionário com todas as informações da compra
+        finalizar_callback: função a ser chamada ao finalizar
     """
     # Limpar frame pai
     for widget in parent.winfo_children():
         widget.destroy()
 
-    # Calcular total se não fornecido
-    if total is None:
-        total = qtd_ingressos * preco_unit
+    # ====== VALIDAÇÃO DOS DADOS ======
+    if not dados_compra:
+        print("ERRO: Nenhum dado de compra fornecido!")
+        # Criar dados padrão para evitar erro
+        dados_compra = {
+            'filme': {'Titulo_Filme': 'Filme não especificado'},
+            'sessao': {'horario_selecionado': 'Horário não especificado'},
+            'assentos': [],
+            'quantidade': 0,
+            'preco_unitario': 25.00,
+            'total': 0
+        }
+
+    # ====== EXTRAIR INFORMAÇÕES DO DADOS_COMPRA ======
+    filme_obj = dados_compra.get("filme", {})
+    sessao_obj = dados_compra.get("sessao", {})
+    
+    # Obter título do filme
+    titulo_filme = filme_obj.get("Titulo_Filme") or filme_obj.get("titulo") or "Filme não especificado"
+    
+    # CORREÇÃO: Extrair horário de forma mais robusta
+    horario = "Horário não especificado"
+    
+    # Tentar extrair horário da sessão
+    if sessao_obj:
+        # Se a sessão tem Hora_Sessao (do banco)
+        if sessao_obj.get('Hora_Sessao'):
+            horario = str(sessao_obj['Hora_Sessao'])[:5]  # Formata para HH:MM
+        # Se a sessão tem horario_selecionado (do catálogo)
+        elif sessao_obj.get('horario_selecionado'):
+            horario = sessao_obj['horario_selecionado']
+    
+    # Se não encontrou na sessão, tentar no filme
+    if horario == "Horário não especificado" and filme_obj.get('horario_selecionado'):
+        horario = filme_obj['horario_selecionado']
+    
+    # Obter informações da sala se disponível
+    sala_obj = dados_compra.get("sala", {})
+    nome_sala = sala_obj.get("Nome_Sala", "")
+    
+    assentos = dados_compra.get("assentos", [])
+    qtd_ingressos = dados_compra.get("quantidade", len(assentos))
+    preco_unit = dados_compra.get("preco_unitario", 25.00)
+    total = dados_compra.get("total", qtd_ingressos * preco_unit)
+
+    print(f"DEBUG: Dados extraídos para pagamento:")
+    print(f"  - Título: {titulo_filme}")
+    print(f"  - Horário: {horario}")
+    print(f"  - Sala: {nome_sala}")
+    print(f"  - Assentos: {assentos}")
+    print(f"  - Quantidade: {qtd_ingressos}")
+    print(f"  - Preço unitário: R$ {preco_unit:.2f}")
+    print(f"  - Total: R$ {total:.2f}")
+    
+    # DEBUG: Mostrar estrutura completa do dados_compra
+    print(f"DEBUG: Estrutura completa do dados_compra:")
+    print(f"  - Filme: {filme_obj}")
+    print(f"  - Sessao: {sessao_obj}")
+    print(f"  - Sala: {sala_obj}")
+
+    # ... o resto do código permanece igual ...
 
     # ====== CONFIGURAR FRAME PRINCIPAL ======
     frame = ctk.CTkFrame(parent, fg_color=COR_FUNDO, width=1800, height=900)
@@ -190,7 +255,7 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
     # ====== CONTAINER PRINCIPAL PARA CONTEÚDO ======
     container_principal = ctk.CTkFrame(
         frame, 
-        fg_color="#2b2b2b",  # Cinza mais escuro para o container
+        fg_color="#2b2b2b",
         bg_color="transparent",
         corner_radius=15,
         width=800,
@@ -207,7 +272,7 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
         header_frame,
         text="✅ Pagamento Confirmado!",
         font=("Arial", 24, "bold"),
-        text_color="#27AE60"  # Verde para sucesso
+        text_color="#27AE60"
     ).pack(pady=10)
 
     ctk.CTkLabel(
@@ -233,17 +298,22 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
         text_color=COR_DESTAQUE
     ).pack(anchor="w", pady=(0, 15))
 
+    # Construir lista de informações
     informacoes = [
-        ("🎬 Filme:", filme),
+        ("🎬 Filme:", titulo_filme),
         ("🕒 Horário:", horario),
         ("🎫 Quantidade:", f"{qtd_ingressos} ingressos"),
         ("💰 Preço unitário:", f"R$ {preco_unit:.2f}"),
         ("💵 Total:", f"R$ {total:.2f}")
     ]
 
+    # Adicionar sala se disponível
+    if nome_sala:
+        informacoes.insert(2, ("🎪 Sala:", nome_sala))
+
     # Adicionar assentos se disponível
     if assentos:
-        informacoes.insert(2, ("💺 Assentos:", ", ".join(assentos)))
+        informacoes.insert(3 if nome_sala else 2, ("💺 Assentos:", ", ".join(assentos)))
 
     for label, valor in informacoes:
         linha_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
@@ -279,7 +349,7 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
         wraplength=400
     ).pack(anchor="w", pady=10)
 
-        # ====== LADO DIREITO: QR CODE ======
+    # ====== LADO DIREITO: QR CODE ======
     qr_frame = ctk.CTkFrame(content_frame, fg_color="transparent", width=300)
     qr_frame.pack(side="right", fill="y", padx=(20, 0))
     qr_frame.pack_propagate(False)
@@ -290,8 +360,10 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
 
     # Gerar QR Code
     conteudo = (
-        f"COMPRA CINEPLUS\nFilme: {filme}\n"
+        f"COMPRA CINEPLUS\nFilme: {titulo_filme}\n"
         f"Horário: {horario}\n"
+        f"Sala: {nome_sala}\n"
+        f"Assentos: {', '.join(assentos)}\n"
         f"Qtd: {qtd_ingressos}\n"
         f"Total: R$ {total:.2f}\n"
         f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
@@ -325,24 +397,37 @@ def mostrar_confirmacao_pagamento(parent, filme, horario, qtd_ingressos, preco_u
             text_color="#e74c3c"
         ).pack(pady=50)
 
-
     # ====== BOTÃO FINALIZAR ======
     btn_frame = ctk.CTkFrame(container_principal, fg_color="transparent")
     btn_frame.pack(fill="x", pady=30, padx=40)
 
-    def finalizar_com_compravante():
-        # Gerar comprovante apenas quando o usuário clicar em finalizar
-        nome_arquivo = gerar_comprovante(filme, horario, assentos, preco_por_assento=preco_unit, logo_path="logo.png")
-        messagebox.showinfo("Sucesso", f"Comprovante gerado com sucesso!\nArquivo: {nome_arquivo}")
-        
-        # Chamar o callback original se existir
-        if finalizar_callback:
-            finalizar_callback()
+    def finalizar_com_comprovante():
+        """Gera comprovante e chama callback"""
+        try:
+            nome_arquivo = gerar_comprovante(
+                titulo_filme, 
+                horario, 
+                assentos, 
+                preco_por_assento=preco_unit, 
+                logo_path="logo.png"
+            )
+            messagebox.showinfo("Sucesso", f"Comprovante gerado com sucesso!\nArquivo: {nome_arquivo}")
+            
+            # Chamar o callback original se existir
+            if finalizar_callback:
+                finalizar_callback()
+                
+        except Exception as e:
+            print(f"Erro ao gerar comprovante: {e}")
+            messagebox.showerror("Erro", "Erro ao gerar comprovante!")
+            # Chamar callback mesmo com erro
+            if finalizar_callback:
+                finalizar_callback()
 
     ctk.CTkButton(
         btn_frame,
         text="Finalizar Compra",
-        command=finalizar_com_compravante,
+        command=finalizar_com_comprovante,
         font=("Arial", 16, "bold"),
         fg_color=COR_BOTAO,
         hover_color=COR_BOTAO_HOVER,
