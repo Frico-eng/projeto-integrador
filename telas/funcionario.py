@@ -50,8 +50,10 @@ def criar_tela_funcionario(parent, voltar_callback):
         genero = entry_genero.get().strip()
         duracao = entry_duracao.get().strip()
         classificacao = entry_classificacao.get().strip()
+        direcao = entry_direcao.get().strip()
+        sinopse = text_sinopse.get("1.0", "end-1c").strip()
 
-        if not all([titulo, genero, duracao, classificacao]):
+        if not all([titulo, genero, duracao, classificacao, direcao, sinopse]):
             messagebox.showwarning("Campos obrigatórios", "Preencha todos os campos!")
             return
 
@@ -62,7 +64,7 @@ def criar_tela_funcionario(parent, voltar_callback):
             # Por enquanto, vamos apenas salvar o caminho original
             cartaz_path = imagem_atual
 
-        if inserir_filme(titulo, genero, int(duracao), classificacao, cartaz_path):
+        if inserir_filme(titulo, genero, int(duracao), classificacao, direcao, sinopse, cartaz_path):
             messagebox.showinfo("Sucesso", f"Filme '{titulo}' cadastrado com sucesso!")
             carregar_filmes()
             limpar_campos()
@@ -73,9 +75,10 @@ def criar_tela_funcionario(parent, voltar_callback):
         nonlocal imagem_atual, filme_selecionado_id
         for entry in [
             entry_titulo, entry_genero, entry_duracao,
-            entry_classificacao
+            entry_classificacao, entry_direcao
         ]:
             entry.delete(0, "end")
+        text_sinopse.delete("1.0", "end")
         imagem_atual = None
         filme_selecionado_id = None
         label_imagem.configure(image=None, text="(sem imagem)")
@@ -87,15 +90,21 @@ def criar_tela_funcionario(parent, voltar_callback):
             filme = filmes[indice]
             filme_selecionado_id = filme['ID_Filme']
 
+            # Limpar campos
             entry_titulo.delete(0, "end")
             entry_genero.delete(0, "end")
             entry_duracao.delete(0, "end")
             entry_classificacao.delete(0, "end")
+            entry_direcao.delete(0, "end")
+            text_sinopse.delete("1.0", "end")
 
+            # Preencher campos
             entry_titulo.insert(0, filme["Titulo_Filme"])
             entry_genero.insert(0, filme["Genero"])
             entry_duracao.insert(0, str(filme["Duracao"]))
             entry_classificacao.insert(0, filme["Classificacao"])
+            entry_direcao.insert(0, filme.get("Direcao", ""))
+            text_sinopse.insert("1.0", filme.get("Sinopse", ""))
 
             # Carregar imagem se existir
             if filme.get("Cartaz_Path"):
@@ -112,7 +121,7 @@ def criar_tela_funcionario(parent, voltar_callback):
         except IndexError:
             pass
 
-    def editar_filme():
+    def editar_filme_selecionado():
         nonlocal imagem_atual, filme_selecionado_id
         
         if not filme_selecionado_id:
@@ -123,15 +132,17 @@ def criar_tela_funcionario(parent, voltar_callback):
         genero = entry_genero.get().strip()
         duracao = entry_duracao.get().strip()
         classificacao = entry_classificacao.get().strip()
+        direcao = entry_direcao.get().strip()
+        sinopse = text_sinopse.get("1.0", "end-1c").strip()
 
-        if not all([titulo, genero, duracao, classificacao]):
+        if not all([titulo, genero, duracao, classificacao, direcao, sinopse]):
             messagebox.showwarning("Campos obrigatórios", "Preencha todos os campos!")
             return
 
         # Usar o caminho da imagem atual (se foi selecionada uma nova)
         cartaz_path = imagem_atual if imagem_atual else None
 
-        if editar_filme(filme_selecionado_id, titulo, genero, int(duracao), classificacao, cartaz_path):
+        if editar_filme(filme_selecionado_id, titulo, genero, int(duracao), classificacao, direcao, sinopse, cartaz_path):
             messagebox.showinfo("Sucesso", "Filme atualizado com sucesso!")
             carregar_filmes()
             limpar_campos()
@@ -194,9 +205,17 @@ def criar_tela_funcionario(parent, voltar_callback):
     entry_classificacao = ctk.CTkEntry(frame_form, width=300)
     entry_classificacao.grid(row=3, column=1, padx=10, pady=5)
 
+    ctk.CTkLabel(frame_form, text="Direção:").grid(row=4, column=0, padx=10, pady=5, sticky="e")
+    entry_direcao = ctk.CTkEntry(frame_form, width=300)
+    entry_direcao.grid(row=4, column=1, padx=10, pady=5)
+
+    ctk.CTkLabel(frame_form, text="Sinopse:").grid(row=5, column=0, padx=10, pady=5, sticky="ne")
+    text_sinopse = ctk.CTkTextbox(frame_form, width=300, height=100)
+    text_sinopse.grid(row=5, column=1, padx=10, pady=5, sticky="ew")
+
     # ==== IMAGEM ====
     frame_imagem = ctk.CTkFrame(frame_form)
-    frame_imagem.grid(row=0, column=2, rowspan=4, padx=30, pady=5)
+    frame_imagem.grid(row=0, column=2, rowspan=6, padx=30, pady=5)
 
     label_imagem = ctk.CTkLabel(frame_imagem, text="(sem imagem)", width=120, height=180)
     label_imagem.pack(pady=5)
@@ -207,7 +226,7 @@ def criar_tela_funcionario(parent, voltar_callback):
     frame_botoes.pack(pady=10)
 
     ctk.CTkButton(frame_botoes, text="Cadastrar", command=cadastrar_filme).grid(row=0, column=0, padx=10)
-    ctk.CTkButton(frame_botoes, text="Editar", command=editar_filme).grid(row=0, column=1, padx=10)
+    ctk.CTkButton(frame_botoes, text="Editar", command=editar_filme_selecionado).grid(row=0, column=1, padx=10)
     ctk.CTkButton(frame_botoes, text="Remover", command=remover_filme).grid(row=0, column=2, padx=10)
     ctk.CTkButton(frame_botoes, text="Limpar Campos", command=limpar_campos).grid(row=0, column=3, padx=10)
     ctk.CTkButton(frame_botoes, text="Atualizar Lista", command=carregar_filmes).grid(row=0, column=4, padx=10)

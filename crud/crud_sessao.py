@@ -16,6 +16,8 @@ def conectar():
         print("Erro ao conectar ao MySQL:", e)
         return None
 
+
+
 def listar_sessoes_por_filme(id_filme):
     con = conectar()
     if con is None: 

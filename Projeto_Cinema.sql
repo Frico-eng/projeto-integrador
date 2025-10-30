@@ -8,20 +8,21 @@ CREATE TABLE Filmes (
     Genero VARCHAR(50),
     Duracao INT,
     Classificacao VARCHAR(10),
-    Cartaz_Path VARCHAR(500)
+    Cartaz_Path VARCHAR(500),
+    Direcao VARCHAR(255),
+    Sinopse TEXT
 );
 
--- Inserir os filmes com os caminhos dos cartazes
-INSERT INTO Filmes (Titulo_Filme, Genero, Duracao, Classificacao, Cartaz_Path) VALUES
-('predador terras selvagens', 'terror, suspense, Aventura, Ficção científica', 98, '12', 'utilidades/images/predador.jpg'),
-('zootopia', 'Ficção policial, infantil, animação, Aventura, Animação', 108, 'LIVRE', 'utilidades/images/zootopia.jpg'),
-('Matrix', 'Ação, Aventura, Ficção científica, Cyberpunk', 109, '14', 'utilidades/images/matrix.jpg'),
-('Interstellar', 'Ficção científica, Ação, Suspense, Aventura', 87, '10', 'utilidades/images/interstellar.jpg'),
-('Jumanji', 'Comédia, Infantil, Aventura, Ação', 90, 'LIVRE', 'utilidades/images/jumanji.jpg'),
-('Demon Slayer - Castelo Infinito', 'Ação, Aventura, Fantasia Sombria e Artes Marciais', 156, '18', 'utilidades/images/Demon Slayer.jpg'),
-('Homem-Aranha Sem Volta Para Casa', 'Filme super-herói, Ação, Aventura, Comédia, Suspense', 98, '12', 'utilidades/images/Homem-aranha Sem volta para casa.jpg'),
-('Invocação do Mal', 'Terror, Sobrenatural, Mistério, Suspense', 135, '14', 'utilidades/images/invocação do mal.jpg');
-
+-- Inserir os filmes com os caminhos dos cartazes, direção e sinopses
+INSERT INTO Filmes (Titulo_Filme, Genero, Duracao, Classificacao, Cartaz_Path, Direcao, Sinopse) VALUES
+('predador terras selvagens', 'terror, suspense, Aventura, Ficção científica', 98, '12', 'utilidades/images/predador.jpg', 'Dan Trachtenberg', 'Um jovem guerreiro Comanche embarca em uma missão perigosa para proteger sua tribo de uma ameaça alienígena mortal conhecida como Predador. Enquanto luta pela sobrevivência, ele descobre que o caçador extraterrestre está mais avançado e letal do que qualquer inimigo que já enfrentou.'),
+('zootopia', 'Ficção policial, infantil, animação, Aventura, Animação', 108, 'LIVRE', 'utilidades/images/zootopia.jpg', 'Byron Howard, Rich Moore', 'Em uma cidade habitada por animais antropomórficos, a coelha Judy Hopps se torna a primeira policial coelho e precisa provar seu valor. Ela se une à raposa falastrona Nick Wilde para desvendar um caso misterioso que abala os alicerces de Zootopia, descobrindo uma conspiração que ameaça a harmonia entre as espécies.'),
+('Matrix', 'Ação, Aventura, Ficção científica, Cyberpunk', 109, '14', 'utilidades/images/matrix.jpg', 'Lana Wachowski, Lilly Wachowski', 'Um hacker de computador chamado Neo descobre que a realidade como conhecemos é na verdade uma simulação chamada Matrix, criada por máquinas inteligentes para subjugar a humanidade. Ele se junta a um grupo de rebeldes liderados por Morpheus e Trinity para lutar contra o sistema e descobrir seu verdadeiro destino como "O Escolhido".'),
+('Interstellar', 'Ficção científica, Ação, Suspense, Aventura', 87, '10', 'utilidades/images/interstellar.jpg', 'Christopher Nolan', 'Em um futuro onde a Terra está morrendo, um grupo de exploradores embarca na mais importante missão da história da humanidade: viajar através de um buraco de minhoca no espaço em busca de um novo lar para a espécie humana. O ex-piloto Cooper precisa enfrentar os limites do possível para salvar o futuro da humanidade.'),
+('Jumanji', 'Comédia, Infantil, Aventura, Ação', 90, 'LIVRE', 'utilidades/images/jumanji.jpg', 'Joe Johnston', 'Dois crianças descobrem um jogo de tabuleiro mágico chamado Jumanji e, ao começarem a jogar, liberam um homem que estava preso no jogo há décadas. Juntos, eles precisam completar a partida para reverter o caos causado pelas perigosas criaturas e fenômenos que escaparam do jogo para o mundo real.'),
+('Demon Slayer - Castelo Infinito', 'Ação, Aventura, Fantasia Sombria e Artes Marciais', 156, '18', 'utilidades/images/Demon Slayer.jpg', 'Haruo Sotozaki', 'Tanjiro Kamado e seus companheiros do Corpo de Caçadores de Demônios invadem o Castelo Infinito para enfrentar os Quatro Lunares Superiores e o próprio Muzan Kibutsuji. Nesta batalha épica, eles precisam usar todas as suas habilidades para derrotar os demônios mais poderosos e salvar a irmã de Tanjiro, Nezuko.'),
+('Homem-Aranha Sem Volta Para Casa', 'Filme super-herói, Ação, Aventura, Comédia, Suspense', 98, '12', 'utilidades/images/Homem-aranha Sem volta para casa.jpg', 'Jon Watts', 'Peter Parker pede ao Dr. Estranho para fazer o mundo esquecer que ele é o Homem-Aranha, mas quando o feitiço dá errado, multiversos são abertos trazendo vilões e heróis de outras realidades. Agora, Peter deve enfrentar ameaças de universos alternativos enquanto lida com consequências devastadoras para seu mundo.'),
+('Invocação do Mal', 'Terror, Sobrenatural, Mistério, Suspense', 135, '14', 'utilidades/images/invocação do mal.jpg', 'James Wan', 'Baseado em uma história real, os investigadores paranormais Ed e Lorraine Warren são chamados para ajudar uma família aterrorizada por uma presença obscura em sua fazenda. Eles descobrem que a casa está assombrada por uma entidade demoníaca que ameaça não apenas a família, mas todos que se aproximam do local.');
 CREATE TABLE Salas (
     ID_Sala INT AUTO_INCREMENT PRIMARY KEY,
     Nome_Sala VARCHAR(50) NOT NULL,
