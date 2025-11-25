@@ -30,32 +30,11 @@ footer_secondary = None
 
 # ========================= FUNÇÕES AUXILIARES =========================
 
+# main.py (apenas a função mostrar_pagamento precisa ser atualizada)
+
 def mostrar_pagamento(dados_compra):
     """Recebe dados completos da compra e mostra tela de pagamento"""
     print(f"DEBUG: Mostrando pagamento com dados: {dados_compra}")
-    
-    # CORREÇÃO: Extrair dados corretamente da estrutura
-    filme_obj = dados_compra.get("filme", {})
-    sessao_obj = dados_compra.get("sessao", {})
-    
-    # Obter título do filme
-    titulo_filme = filme_obj.get("Titulo_Filme") or filme_obj.get("titulo") or "Filme não especificado"
-    
-    # Obter horário - priorizar da sessão, depois do filme
-    horario = sessao_obj.get("horario_selecionado") or filme_obj.get("horario_selecionado") or "Horário não especificado"
-    
-    assentos = dados_compra.get("assentos", [])
-    qtd_ingressos = dados_compra.get("quantidade", len(assentos))
-    preco_unit = dados_compra.get("preco_unitario", 25.00)
-    total = dados_compra.get("total", qtd_ingressos * preco_unit)
-    
-    print(f"DEBUG: Dados extraídos para pagamento:")
-    print(f"  - Título: {titulo_filme}")
-    print(f"  - Horário: {horario}")
-    print(f"  - Assentos: {assentos}")
-    print(f"  - Quantidade: {qtd_ingressos}")
-    print(f"  - Preço unitário: R$ {preco_unit:.2f}")
-    print(f"  - Total: R$ {total:.2f}")
     
     # Limpa o frame de pagamento
     from utilidades.gerenciador_telas import screens
@@ -64,23 +43,23 @@ def mostrar_pagamento(dados_compra):
         widget.destroy()
     
     def finalizar_callback():
-        mostrar_tela_agradecimento(screens["thank_you"], voltar_callback=lambda: show_screen("main"))
+        """Callback chamado quando o pagamento é finalizado"""
+        mostrar_tela_agradecimento(
+            screens["thank_you"], 
+            dados_compra=dados_compra,
+            voltar_callback=lambda: show_screen("main"),
+            feedback_callback=lambda: show_screen("feedback")
+        )
         show_screen("thank_you")
     
-    # Chama a função de pagamento com dados corretos
+    # CHAMADA CORRIGIDA: Agora passa apenas dados_compra e callback
     mostrar_confirmacao_pagamento(
         frame,
-        filme=titulo_filme,
-        horario=horario,
-        qtd_ingressos=qtd_ingressos,
-        preco_unit=preco_unit,
-        assentos=assentos,
-        total=total,
+        dados_compra=dados_compra,
         finalizar_callback=finalizar_callback
     )
     
     show_screen("pagamento")
-    
 def criar_tela_assentos_com_pagamento(filme_completo):
     """Cria tela de assentos recebendo o filme completo com horário"""
     
@@ -94,7 +73,7 @@ def criar_tela_assentos_com_pagamento(filme_completo):
         print(f"  - Preço unitário: R$ {dados_compra.get('preco_unitario', 0):.2f}")
         print(f"  - Total: R$ {dados_compra.get('total', 0):.2f}")
         
-        # CORREÇÃO: Garantir que temos o horário
+        # Garantir que temos o horário
         if 'sessao' not in dados_compra:
             dados_compra['sessao'] = filme_completo
             
@@ -155,10 +134,8 @@ def inicializar_telas():
                 lambda: show_screen("cadastro"),
                 icone_regist).pack(side="left", padx=5)
 
-    # Botões extras
+    # Botões extras - APENAS Filmes em cartaz
     criar_botao(right_frame, "Filmes em cartaz", lambda: show_screen("catalogo"), icone_compra, width=250).pack(pady=15)
-    criar_botao(right_frame, "Feedback", lambda: show_screen("feedback"), width=250).pack(pady=15)
-    criar_botao(right_frame, "Área do Funcionário", lambda: show_screen("funcionario"), width=250).pack(pady=15)
 
     # Contato
     contato_frame = ctk.CTkFrame(right_frame, fg_color="transparent")
@@ -189,11 +166,15 @@ def inicializar_telas():
     catalogo_content.pack(fill="both", expand=True)
     register_screen("catalogo", catalogo_frame)
 
-    # --- Funcionario ---
+    # --- Funcionario --- (mantido para acesso interno se necessário)
     funcionario_frame = ctk.CTkFrame(app, fg_color="transparent")
     funcionario_content = criar_tela_funcionario(funcionario_frame, voltar_callback=lambda: show_screen("main"))
     funcionario_content.pack(fill="both", expand=True)
     register_screen("funcionario", funcionario_frame)
+
+    # --- Assentos ---
+    assentos_frame = ctk.CTkFrame(app, fg_color="transparent")
+    register_screen("assentos", assentos_frame)
 
     # --- Pagamento ---
     pagamento_frame = ctk.CTkFrame(app, fg_color="transparent")
@@ -202,7 +183,6 @@ def inicializar_telas():
     # --- Thank You ---
     thank_you_frame = ctk.CTkFrame(app, fg_color="transparent")
     register_screen("thank_you", thank_you_frame)
-    mostrar_tela_agradecimento(thank_you_frame, voltar_callback=lambda: show_screen("main"))
 
     # --- Footers ---
     footer_main, footer_secondary = criar_footer(app)

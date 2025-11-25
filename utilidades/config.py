@@ -20,6 +20,6 @@ if not os.path.exists(IMAGE_DIR):
 # --- Image paths ---
 BANNER_PATH = os.path.join(IMAGE_DIR, "left_banner.png")
 LOGO_PATH = os.path.join(IMAGE_DIR, "logo_dark.png")
-ICON_USER_PATH = os.path.join(IMAGE_DIR, "icone_user.png")
-ICON_REGIST_PATH = os.path.join(IMAGE_DIR, "icone_regist.png")
-ICON_COMPRA_PATH = os.path.join(IMAGE_DIR, "icone_compra.png")
+ICON_USER_PATH = os.path.join(IMAGE_DIR, "user.png")
+ICON_REGIST_PATH = os.path.join(IMAGE_DIR, "clipboard-list.png")
+ICON_COMPRA_PATH = os.path.join(IMAGE_DIR, "movie.png")

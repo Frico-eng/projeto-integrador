@@ -2,9 +2,15 @@ import os
 import customtkinter as ctk
 from PIL import Image, ImageTk
 from crud.crud_filme import buscar_filme_por_id
-from crud.crud_sessao import buscar_sessao_por_dados
+from crud.crud_sessao import buscar_sessao_por_dados, listar_sessoes_por_filme
 from crud.crud_sala import buscar_sala_por_id
-from crud.crud_assento import listar_assentos_por_sala, atualizar_status_assento
+from crud.crud_assento_sessao import (
+    listar_assentos_por_sessao, 
+    reservar_assento, 
+    verificar_disponibilidade_assento,
+    obter_resumo_ocupacao_sessao,
+    obter_info_sessao
+)
 
 BTN_COLOR = "#F6C148"
 BTN_HOVER = "#E2952D"
@@ -30,13 +36,34 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     # ================== VARIÁVEIS ==================
     filme_info = None
     sala_info = None
+    sessao_info = None
     assentos_info = []
     assentos = {}
     selecionados = []
     preco = 25.00
+    seat_icon = None  # Variável para armazenar o ícone do assento
 
     # ================== FUNÇÕES PRINCIPAIS (DEFINIDAS PRIMEIRO) ==================
     
+    def carregar_icone_assento():
+        """Carrega o ícone do assento"""
+        nonlocal seat_icon
+        try:
+            seat_icon_path = os.path.join(IMAGE_DIR, "seat.png")
+            if os.path.exists(seat_icon_path):
+                # Carregar e redimensionar a imagem
+                img = Image.open(seat_icon_path)
+                # Redimensionar para caber no botão (ajuste o tamanho conforme necessário)
+                img_resized = img.resize((20, 20), Image.LANCZOS)
+                seat_icon = ctk.CTkImage(img_resized, size=(20, 20))
+                print("DEBUG: Ícone do assento carregado com sucesso")
+            else:
+                print(f"DEBUG: Arquivo do ícone não encontrado em: {seat_icon_path}")
+                seat_icon = None
+        except Exception as e:
+            print(f"DEBUG: Erro ao carregar ícone do assento: {e}")
+            seat_icon = None
+
     def confirmar():
         """Confirma a seleção"""
         print(f"DEBUG: Confirmando {len(selecionados)} assentos...")
@@ -47,53 +74,66 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
             return
             
         try:
-            print("DEBUG: Atualizando assentos no banco...")
+            if not sessao_info:
+                lista_selecionados.configure(text="Erro: Sessão não encontrada!")
+                return
+                
+            id_sessao = sessao_info["ID_Sessao"]
+            print(f"DEBUG: Reservando assentos para sessão {id_sessao}...")
+            
+            # Reservar cada assento individualmente
+            assentos_reservados = []
             for assento in selecionados:
-                sucesso = atualizar_status_assento(assento["id"], "ocupado")
+                sucesso = reservar_assento(
+                    id_sessao, 
+                    assento["id_assento"], 
+                    id_cliente=1  # TODO: Pegar ID do cliente logado
+                )
                 if sucesso:
-                    print(f"DEBUG: Assento {assento['codigo']} atualizado para ocupado")
+                    assentos_reservados.append(assento["codigo"])
+                    print(f"DEBUG: Assento {assento['codigo']} reservado com sucesso")
                 else:
-                    print(f"DEBUG: Erro ao atualizar assento {assento['codigo']}")
+                    print(f"DEBUG: Erro ao reservar assento {assento['codigo']}")
             
-            # EXTRAIR APENAS OS CÓDIGOS DOS ASSENTOS
-            assentos_codigos = [item["codigo"] for item in selecionados]
-            
-            lista_selecionados.configure(text=f"Assentos confirmados!\n{', '.join(assentos_codigos)}")
-            print(f"DEBUG: Assentos confirmados: {assentos_codigos}")
-            
-            if avancar_callback:
-                # CORREÇÃO: Estruturar dados de forma consistente
-                dados_compra = {
-                    "filme": filme_info,  # Informações completas do filme
-                    "sala": sala_info,    # Informações da sala
-                    "sessao": filme_selecionado,  # Sessão com horário
-                    "assentos": assentos_codigos,  # Lista de strings com códigos
-                    "quantidade": len(selecionados),
-                    "preco_unitario": preco,
-                    "total": len(selecionados) * preco
-                }
+            if assentos_reservados:
+                lista_selecionados.configure(text=f"Assentos confirmados!\n{', '.join(assentos_reservados)}")
+                print(f"DEBUG: Assentos confirmados: {assentos_reservados}")
                 
-                print(f"DEBUG: Estrutura de dados enviada:")
-                print(f"  - Filme titulo: {filme_info.get('Titulo_Filme') if filme_info else 'N/A'}")
-                print(f"  - Sessao horario: {filme_selecionado.get('horario_selecionado') if filme_selecionado else 'N/A'}")
-                print(f"  - Assentos: {assentos_codigos}")
+                if avancar_callback:
+                    # Estruturar dados de forma consistente
+                    dados_compra = {
+                        "filme": filme_info,
+                        "sala": sala_info,
+                        "sessao": sessao_info,
+                        "assentos": assentos_reservados,
+                        "quantidade": len(assentos_reservados),
+                        "preco_unitario": preco,
+                        "total": len(assentos_reservados) * preco
+                    }
+                    
+                    print(f"DEBUG: Estrutura de dados enviada:")
+                    print(f"  - Filme: {filme_info.get('Titulo_Filme') if filme_info else 'N/A'}")
+                    print(f"  - Sessao ID: {sessao_info.get('ID_Sessao')}")
+                    print(f"  - Assentos: {assentos_reservados}")
+                    
+                    avancar_callback(dados_compra)
+                else:
+                    print("ERRO: avancar_callback não definido!")
                 
-                avancar_callback(dados_compra)
+                # Atualizar interface para refletir assentos ocupados
+                print("DEBUG: Atualizando interface após confirmação...")
+                for assento in selecionados:
+                    codigo = assento["codigo"]
+                    if codigo in assentos:
+                        botao, _, id_assento = assentos[codigo]
+                        botao.configure(fg_color=COR_OCUPADO, state="disabled", image="")
+                        assentos[codigo] = (botao, "ocupado", id_assento)
+                
+                selecionados.clear()
+                atualizar_resumo()
+                print("DEBUG: Confirmação concluída com sucesso")
             else:
-                print("ERRO: avancar_callback não definido!")
-            
-            # Atualizar interface para refletir assentos ocupados
-            print("DEBUG: Atualizando interface após confirmação...")
-            for assento in selecionados:
-                codigo = assento["codigo"]
-                if codigo in assentos:
-                    botao, _, id_assento = assentos[codigo]
-                    botao.configure(fg_color=COR_OCUPADO, state="disabled")
-                    assentos[codigo] = (botao, "ocupado", id_assento)
-            
-            selecionados.clear()
-            atualizar_resumo()
-            print("DEBUG: Confirmação concluída com sucesso")
+                lista_selecionados.configure(text="Erro ao reservar assentos!")
             
         except Exception as e:
             print(f"Erro ao confirmar: {e}")
@@ -103,7 +143,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
 
     def toggle_assento(codigo, id_assento):
         """Alterna seleção do assento"""
-        nonlocal selecionados  # ← CORREÇÃO IMPORTANTE: usar nonlocal
+        nonlocal selecionados
         
         if codigo not in assentos:
             return
@@ -113,10 +153,16 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
             return
             
         if status == "livre":
-            botao.configure(fg_color=COR_SELECIONADO)
-            assentos[codigo] = (botao, "selecionado", id_assento)
-            selecionados.append({"codigo": codigo, "id": id_assento})
-            print(f"DEBUG: Assento {codigo} selecionado")
+            # Verificar disponibilidade no banco
+            if sessao_info and verificar_disponibilidade_assento(sessao_info["ID_Sessao"], id_assento):
+                botao.configure(fg_color=COR_SELECIONADO)
+                assentos[codigo] = (botao, "selecionado", id_assento)
+                selecionados.append({"codigo": codigo, "id_assento": id_assento})
+                print(f"DEBUG: Assento {codigo} selecionado")
+            else:
+                print(f"DEBUG: Assento {codigo} não está mais disponível")
+                botao.configure(fg_color=COR_OCUPADO, state="disabled", image="")
+                assentos[codigo] = (botao, "ocupado", id_assento)
         else:
             botao.configure(fg_color=COR_LIVRE)
             assentos[codigo] = (botao, "livre", id_assento)
@@ -138,12 +184,20 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
         total = len(selecionados) * preco
         label_total.configure(text=f"Total: R$ {total:.2f}")
         
+        # Atualizar informações de ocupação se houver sessão
+        if sessao_info:
+            resumo_ocupacao = obter_resumo_ocupacao_sessao(sessao_info["ID_Sessao"])
+            if resumo_ocupacao:
+                label_ocupacao.configure(
+                    text=f"Disponíveis: {resumo_ocupacao['disponiveis']} / {resumo_ocupacao['total_assentos']}"
+                )
+        
         # Forçar atualização da interface
         frame_dir.update()
 
     # ================== CARREGAR DADOS DO BANCO ==================
     def carregar_dados_banco():
-        nonlocal filme_info, sala_info, assentos_info
+        nonlocal filme_info, sala_info, sessao_info, assentos_info
         
         try:
             print("=" * 50)
@@ -158,31 +212,45 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                 filme_info = buscar_filme_por_id(filme_selecionado["ID_Filme"])
                 print(f"DEBUG: Filme encontrado - {filme_info.get('Titulo_Filme') if filme_info else 'Nenhum'}")
             
-            # Para TESTE: usar dados fixos se não conseguir encontrar sessão
+            # Buscar sessão específica
             tipo_sessao = filme_selecionado.get('tipo_selecionado', 'dublado')
             horario_sessao = filme_selecionado.get('horario_selecionado', '16:00')
             
-            print(f"DEBUG: Usando sessão - Tipo: {tipo_sessao}, Horário: {horario_sessao}")
+            print(f"DEBUG: Buscando sessão - Tipo: {tipo_sessao}, Horário: {horario_sessao}")
             
-            # Buscar qualquer sessão disponível para este filme
-            from crud.crud_sessao import listar_sessoes_por_filme
+            # Buscar sessões disponíveis para este filme
             sessoes = listar_sessoes_por_filme(filme_selecionado["ID_Filme"])
             
             if sessoes:
-                # Pegar a primeira sessão disponível
-                sessao_info = sessoes[0]
-                print(f"DEBUG: Usando primeira sessão disponível: {sessao_info}")
+                # Encontrar sessão que corresponde ao tipo e horário selecionado
+                sessao_encontrada = None
+                for sessao in sessoes:
+                    if (sessao.get('Tipo_Sessao') == tipo_sessao and 
+                        str(sessao.get('Hora_Sessao'))[:5] == horario_sessao):
+                        sessao_encontrada = sessao
+                        break
                 
+                if not sessao_encontrada:
+                    # Usar a primeira sessão disponível se não encontrar exata
+                    sessao_encontrada = sessoes[0]
+                    print(f"DEBUG: Sessão exata não encontrada, usando primeira disponível")
+                
+                sessao_info = sessao_encontrada
+                print(f"DEBUG: Sessão encontrada - ID: {sessao_info['ID_Sessao']}")
+                
+                # Buscar informações da sala
                 if "ID_Sala" in sessao_info:
                     sala_info = buscar_sala_por_id(sessao_info["ID_Sala"])
                     print(f"DEBUG: Sala encontrada - {sala_info}")
-                    
-                    if sala_info:
-                        assentos_info = listar_assentos_por_sala(sala_info["ID_Sala"])
-                        print(f"DEBUG: {len(assentos_info)} assentos encontrados")
+                
+                # Buscar assentos da sessão
+                if sessao_info:
+                    assentos_info = listar_assentos_por_sessao(sessao_info["ID_Sessao"])
+                    print(f"DEBUG: {len(assentos_info)} assentos encontrados para a sessão")
             else:
                 print("DEBUG: Nenhuma sessão encontrada, usando dados de teste")
                 # Dados de teste
+                sessao_info = {"ID_Sessao": 1, "ID_Sala": 1, "Tipo_Sessao": tipo_sessao}
                 sala_info = {"ID_Sala": 1, "Nome_Sala": "Sala 1", "Capacidade": 56}
                 assentos_info = criar_assentos_teste()
             
@@ -198,6 +266,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
             # Em caso de erro, usar dados de teste
             print("DEBUG: Usando dados de teste devido a erro")
             filme_info = filme_selecionado
+            sessao_info = {"ID_Sessao": 1, "ID_Sala": 1}
             sala_info = {"ID_Sala": 1, "Nome_Sala": "Sala 1", "Capacidade": 56}
             assentos_info = criar_assentos_teste()
             atualizar_interface()
@@ -213,7 +282,6 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
             for coluna in range(1, colunas + 1):
                 assentos.append({
                     "ID_Assento": i * colunas + coluna,
-                    "ID_Sala": 1,
                     "Linha": linha,
                     "Coluna": coluna,
                     "Status": "disponivel"
@@ -270,7 +338,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     info_compra_frame = ctk.CTkFrame(painel_resumo, fg_color="transparent")
     info_compra_frame.pack(fill="x", padx=15, pady=10)
     
-    # Labels para informações do filme no resumo (agora são variáveis)
+    # Labels para informações do filme no resumo
     label_titulo_resumo = ctk.CTkLabel(info_compra_frame, text="", 
                                       font=("Arial", 14, "bold"), wraplength=250, justify="left")
     label_titulo_resumo.pack(anchor="w")
@@ -282,6 +350,11 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     label_sala_resumo = ctk.CTkLabel(info_compra_frame, text="", 
                                     font=("Arial", 12), justify="left")
     label_sala_resumo.pack(anchor="w", pady=2)
+    
+    # Label para ocupação
+    label_ocupacao = ctk.CTkLabel(info_compra_frame, text="", 
+                                 font=("Arial", 11), justify="left")
+    label_ocupacao.pack(anchor="w", pady=2)
     
     frame_lista = ctk.CTkScrollableFrame(painel_resumo, fg_color="transparent", height=120)
     frame_lista.pack(fill="both", expand=True, padx=15, pady=10)
@@ -308,7 +381,6 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                                   fg_color=BTN_COLOR, hover_color=BTN_HOVER, text_color=BTN_TEXT)
         btn_voltar.pack(side="left", padx=10)
 
-    # AGORA a função confirmar já está definida, pode ser usada
     btn_confirmar = ctk.CTkButton(frame_botoes, text="Confirmar", width=150, height=40, 
                                  font=("Arial", 14, "bold"), command=confirmar, 
                                  fg_color=BTN_COLOR, hover_color=BTN_HOVER, text_color=BTN_TEXT)
@@ -361,21 +433,27 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                 sessao_frame = ctk.CTkFrame(frame_esq, fg_color="transparent")
                 sessao_frame.pack(fill="x", padx=10, pady=10)
                 
-                ctk.CTkLabel(sessao_frame, text=f"Tipo: {filme_selecionado.get('tipo_selecionado', '').capitalize()}", 
-                            font=("Arial", 12), text_color="black").pack(pady=2)
-                ctk.CTkLabel(sessao_frame, text=f"Horário: {filme_selecionado.get('horario_selecionado', '')}", 
-                            font=("Arial", 12), text_color="black").pack(pady=2)
+                if sessao_info:
+                    tipo = sessao_info.get('Tipo_Sessao', '').capitalize()
+                    horario = str(sessao_info.get('Hora_Sessao', ''))[:5]
+                    ctk.CTkLabel(sessao_frame, text=f"Tipo: {tipo}", 
+                                font=("Arial", 12), text_color="black").pack(pady=2)
+                    ctk.CTkLabel(sessao_frame, text=f"Horário: {horario}", 
+                                font=("Arial", 12), text_color="black").pack(pady=2)
                 
                 if sala_info:
                     ctk.CTkLabel(sessao_frame, text=f"Sala: {sala_info.get('Nome_Sala', '')}", 
                                 font=("Arial", 12), text_color="black").pack(pady=2)
 
-                # Atualizar resumo (usando as labels existentes)
+                # Atualizar resumo
                 titulo = filme_info.get("Titulo_Filme", filme_info.get("titulo", "Filme"))
                 label_titulo_resumo.configure(text=titulo)
                 
-                horario = filme_selecionado.get('horario_selecionado', '')
-                label_horario_resumo.configure(text=f"Horário: {horario}")
+                if sessao_info:
+                    horario = str(sessao_info.get('Hora_Sessao', ''))[:5]
+                    label_horario_resumo.configure(text=f"Horário: {horario}")
+                else:
+                    label_horario_resumo.configure(text="")
                 
                 if sala_info:
                     sala_nome = sala_info.get('Nome_Sala', '')
@@ -402,7 +480,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
         """Cria a grade de assentos"""
         nonlocal assentos, selecionados
         assentos = {}
-        selecionados = []  # ← INICIALIZA a lista de selecionados
+        selecionados = []
         
         # Limpar grade (exceto TELA)
         for widget in container_assentos.winfo_children()[1:]:
@@ -429,13 +507,23 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                     cor = COR_OCUPADO if status == "ocupado" else COR_LIVRE
                     estado = "disabled" if status == "ocupado" else "normal"
                     
+                    # Criar botão com ícone
                     botao = ctk.CTkButton(
-                        linha_frame, text=codigo, width=70, height=70, fg_color=cor, 
-                        text_color=COR_TEXTO, font=("Arial", 11, "bold"), corner_radius=8,
-                        state=estado, command=lambda c=codigo, id=assento["ID_Assento"]: toggle_assento(c, id)
+                        linha_frame, 
+                        text=codigo, 
+                        width=70, 
+                        height=70, 
+                        fg_color=cor, 
+                        text_color=COR_TEXTO, 
+                        font=("Arial", 11, "bold"), 
+                        corner_radius=8,
+                        state=estado,
+                        image=seat_icon,  # Adiciona o ícone aqui
+                        compound="top",   # Ícone acima do texto
+                        command=lambda c=codigo, id=assento["ID_Assento"]: toggle_assento(c, id)
                     )
                     botao.pack(side="left", padx=2)
-                    assentos[codigo] = (botao, status, assento["ID_Assento"])
+                    assentos[codigo] = (botao, "ocupado" if status == "ocupado" else "livre", assento["ID_Assento"])
             
             print(f"DEBUG: Grade criada com {len(assentos)} assentos")
         else:
@@ -443,7 +531,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                         font=("Arial", 14), text_color="white").pack(pady=20)
         
         criar_legenda()
-        atualizar_resumo()  # Garantir que o resumo esteja atualizado
+        atualizar_resumo()
 
     def criar_legenda():
         """Cria a legenda"""
@@ -476,7 +564,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
         ctk.CTkLabel(item3, text="Ocupado", font=("Arial", 12), text_color=COR_TEXTO).pack(side="left")
 
     # ================== INICIALIZAÇÃO ==================
-    # Carregar dados
-    frame.after(100, carregar_dados_banco)
+    # Carregar ícone e dados
+    frame.after(100, lambda: [carregar_icone_assento(), carregar_dados_banco()])
     
     return frame

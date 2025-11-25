@@ -1,7 +1,7 @@
 # crud/crud_sessao.py
 import mysql.connector
 from mysql.connector import Error
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 def conectar():
     try:
@@ -15,8 +15,6 @@ def conectar():
     except Error as e:
         print("Erro ao conectar ao MySQL:", e)
         return None
-
-
 
 def listar_sessoes_por_filme(id_filme):
     con = conectar()
@@ -62,6 +60,185 @@ def listar_sessoes_por_filme(id_filme):
     finally:
         con.close()
 
+def listar_sessoes_por_dia_horario(dia_info, horario):
+    """
+    Lista todas as sessões disponíveis para um dia e horário específicos
+    
+    Args:
+        dia_info: dict com informações do dia {'data': datetime, 'label': 'dd/mm', 'nome': 'Dia'}
+        horario: string no formato 'HH:MM'
+    
+    Returns:
+        Lista de sessões com informações completas
+    """
+    con = conectar()
+    if con is None: 
+        return []
+    
+    try:
+        cursor = con.cursor(dictionary=True)
+        
+        # Converter a data do formato brasileiro para o formato do banco (YYYY-MM-DD)
+        data_sessao = dia_info['data'].strftime('%Y-%m-%d')
+        
+        # Buscar sessões para a data e horário específicos
+        cursor.execute("""
+            SELECT 
+                s.ID_Sessao,
+                s.ID_Filme,
+                s.ID_Sala,
+                s.Data_Sessao,
+                s.Hora_Sessao,
+                s.Tipo_Sessao,
+                f.Titulo_Filme,
+                f.Genero,
+                f.Duracao,
+                f.Classificacao,
+                f.Cartaz_Path,
+                f.Direcao,
+                f.Sinopse,
+                sa.Nome_Sala,
+                sa.Capacidade
+            FROM Sessoes s
+            INNER JOIN Filmes f ON s.ID_Filme = f.ID_Filme
+            INNER JOIN Salas sa ON s.ID_Sala = sa.ID_Sala
+            WHERE s.Data_Sessao = %s 
+            AND TIME_FORMAT(s.Hora_Sessao, '%%H:%%i') = %s
+            ORDER BY f.Titulo_Filme ASC
+        """, (data_sessao, horario))
+        
+        resultado = cursor.fetchall()
+        
+        # Formatar os dados das sessões
+        sessoes_formatadas = []
+        for sessao in resultado:
+            # Formatar hora
+            hora = sessao['Hora_Sessao']
+            if hasattr(hora, 'total_seconds'):
+                total_seconds = int(hora.total_seconds())
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                hora_formatada = f"{hours:02d}:{minutes:02d}"
+            elif hasattr(hora, 'strftime'):
+                hora_formatada = hora.strftime("%H:%M")
+            else:
+                hora_formatada = str(hora)
+            
+            sessao_formatada = {
+                "ID_Sessao": sessao["ID_Sessao"],
+                "ID_Filme": sessao["ID_Filme"],
+                "ID_Sala": sessao["ID_Sala"],
+                "Data_Sessao": sessao["Data_Sessao"],
+                "Hora_Sessao": sessao["Hora_Sessao"],
+                "Hora_Formatada": hora_formatada,
+                "Tipo_Sessao": sessao["Tipo_Sessao"],
+                "Titulo_Filme": sessao["Titulo_Filme"],
+                "Genero": sessao["Genero"],
+                "Duracao": sessao["Duracao"],
+                "Classificacao": sessao["Classificacao"],
+                "Cartaz_Path": sessao["Cartaz_Path"],
+                "Direcao": sessao["Direcao"],
+                "Sinopse": sessao["Sinopse"],
+                "Nome_Sala": sessao["Nome_Sala"],
+                "Capacidade": sessao["Capacidade"]
+            }
+            sessoes_formatadas.append(sessao_formatada)
+        
+        return sessoes_formatadas
+        
+    except Error as e:
+        print("Erro ao listar sessões por dia/horário:", e)
+        return []
+    finally:
+        con.close()
+
+def listar_horarios_disponiveis_por_dia(dia_info):
+    """
+    Lista todos os horários disponíveis para um dia específico
+    
+    Args:
+        dia_info: dict com informações do dia {'data': datetime, 'label': 'dd/mm', 'nome': 'Dia'}
+    
+    Returns:
+        Lista de horários únicos no formato 'HH:MM'
+    """
+    con = conectar()
+    if con is None: 
+        return []
+    
+    try:
+        cursor = con.cursor()
+        
+        # Converter a data para o formato do banco
+        data_sessao = dia_info['data'].strftime('%Y-%m-%d')
+        
+        # Buscar horários distintos para o dia
+        cursor.execute("""
+            SELECT DISTINCT TIME_FORMAT(Hora_Sessao, '%%H:%%i') as horario
+            FROM Sessoes 
+            WHERE Data_Sessao = %s
+            ORDER BY Hora_Sessao ASC
+        """, (data_sessao,))
+        
+        resultado = cursor.fetchall()
+        
+        # Extrair apenas os horários
+        horarios = [horario[0] for horario in resultado]
+        
+        return horarios
+        
+    except Error as e:
+        print("Erro ao listar horários disponíveis:", e)
+        return []
+    finally:
+        con.close()
+
+def listar_tipos_disponiveis_por_filme_dia_horario(id_filme, dia_info, horario):
+    """
+    Lista os tipos de sessão (dublado/legendado) disponíveis para um filme específico
+    em um dia e horário específicos
+    
+    Args:
+        id_filme: ID do filme
+        dia_info: dict com informações do dia
+        horario: string no formato 'HH:MM'
+    
+    Returns:
+        Lista de tipos disponíveis
+    """
+    con = conectar()
+    if con is None: 
+        return []
+    
+    try:
+        cursor = con.cursor()
+        
+        # Converter a data para o formato do banco
+        data_sessao = dia_info['data'].strftime('%Y-%m-%d')
+        
+        # Buscar tipos distintos para o filme, dia e horário
+        cursor.execute("""
+            SELECT DISTINCT Tipo_Sessao
+            FROM Sessoes 
+            WHERE ID_Filme = %s 
+            AND Data_Sessao = %s
+            AND TIME_FORMAT(Hora_Sessao, '%%H:%%i') = %s
+            ORDER BY Tipo_Sessao
+        """, (id_filme, data_sessao, horario))
+        
+        resultado = cursor.fetchall()
+        
+        # Extrair apenas os tipos
+        tipos = [tipo[0] for tipo in resultado]
+        
+        return tipos
+        
+    except Error as e:
+        print("Erro ao listar tipos disponíveis:", e)
+        return []
+    finally:
+        con.close()
+
 def buscar_sessao_por_dados(id_filme, data_sessao, horario_sessao, tipo_sessao):
     con = conectar()
     if con is None: 
@@ -87,5 +264,111 @@ def buscar_sessao_por_dados(id_filme, data_sessao, horario_sessao, tipo_sessao):
     except Error as e:
         print("Erro ao buscar sessão:", e)
         return None
+    finally:
+        con.close()
+
+def obter_detalhes_sessao_completo(id_sessao):
+    """
+    Obtém todos os detalhes de uma sessão específica, incluindo informações do filme e sala
+    
+    Args:
+        id_sessao: ID da sessão
+    
+    Returns:
+        Dict com informações completas da sessão
+    """
+    con = conectar()
+    if con is None: 
+        return None
+    
+    try:
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                s.ID_Sessao,
+                s.ID_Filme,
+                s.ID_Sala,
+                s.Data_Sessao,
+                s.Hora_Sessao,
+                s.Tipo_Sessao,
+                f.Titulo_Filme,
+                f.Genero,
+                f.Duracao,
+                f.Classificacao,
+                f.Cartaz_Path,
+                f.Direcao,
+                f.Sinopse,
+                sa.Nome_Sala,
+                sa.Capacidade
+            FROM Sessoes s
+            INNER JOIN Filmes f ON s.ID_Filme = f.ID_Filme
+            INNER JOIN Salas sa ON s.ID_Sala = sa.ID_Sala
+            WHERE s.ID_Sessao = %s
+        """, (id_sessao,))
+        
+        sessao = cursor.fetchone()
+        
+        if sessao:
+            # Formatar hora
+            hora = sessao['Hora_Sessao']
+            if hasattr(hora, 'total_seconds'):
+                total_seconds = int(hora.total_seconds())
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                sessao['Hora_Formatada'] = f"{hours:02d}:{minutes:02d}"
+            elif hasattr(hora, 'strftime'):
+                sessao['Hora_Formatada'] = hora.strftime("%H:%M")
+            else:
+                sessao['Hora_Formatada'] = str(hora)
+        
+        return sessao
+        
+    except Error as e:
+        print("Erro ao obter detalhes da sessão:", e)
+        return None
+    finally:
+        con.close()
+
+def verificar_lugares_disponiveis(id_sessao):
+    """
+    Verifica quantos lugares estão disponíveis para uma sessão
+    
+    Args:
+        id_sessao: ID da sessão
+    
+    Returns:
+        Número de lugares disponíveis
+    """
+    con = conectar()
+    if con is None: 
+        return 0
+    
+    try:
+        cursor = con.cursor()
+        
+        # Buscar capacidade da sala e ingressos vendidos
+        cursor.execute("""
+            SELECT 
+                sa.Capacidade,
+                COUNT(i.ID_Ingresso) as ingressos_vendidos
+            FROM Sessoes s
+            INNER JOIN Salas sa ON s.ID_Sala = sa.ID_Sala
+            LEFT JOIN Ingressos i ON s.ID_Sessao = i.ID_Sessao
+            WHERE s.ID_Sessao = %s
+            GROUP BY sa.Capacidade
+        """, (id_sessao,))
+        
+        resultado = cursor.fetchone()
+        
+        if resultado:
+            capacidade = resultado[0]
+            ingressos_vendidos = resultado[1] if resultado[1] else 0
+            return capacidade - ingressos_vendidos
+        else:
+            return 0
+            
+    except Error as e:
+        print("Erro ao verificar lugares disponíveis:", e)
+        return 0
     finally:
         con.close()

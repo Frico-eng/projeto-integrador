@@ -11,12 +11,14 @@ from crud.crud_sessao import listar_sessoes_por_filme
 BTN_COLOR = "#F6C148"
 BTN_HOVER = "#E2952D"
 BTN_TEXT = "#1C2732"
+FILME_SELECIONADO_COLOR = "#B6D8F1"
+FILME_NORMAL_COLOR = "#F6C148"
+SELECTED_COLOR = "#B6D8F1"
 
 # ================== CONSTANTES DE CAMINHOS ==================
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # sobe uma pasta (pai de 'telas')
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
 
-# Caminhos para as classificações indicativas
 CLASSIFICACOES = {
     "LIVRE": os.path.join(IMAGE_DIR, "livre.png"),
     "10": os.path.join(IMAGE_DIR, "dez.png"),
@@ -26,14 +28,12 @@ CLASSIFICACOES = {
     "18": os.path.join(IMAGE_DIR, "dezoito.png"),
 }
 
-# Carregar filmes do banco de dados
 def carregar_filmes_do_banco():
     try:
         filmes_db = listar_filmes()
         filmes_formatados = []
         
         for filme in filmes_db:
-            # Formatar dados do filme
             filme_formatado = {
                 "ID_Filme": filme["ID_Filme"],
                 "titulo": filme["Titulo_Filme"],
@@ -41,10 +41,8 @@ def carregar_filmes_do_banco():
                 "duracao": f"{filme['Duracao']} min",
                 "classificacao": CLASSIFICACOES.get(filme["Classificacao"], ""),
                 "cartaz_path": filme.get("Cartaz_Path", ""),
-                # Campos que podem não existir no banco (mantidos para compatibilidade)
-                "descricao": f"Assista {filme['Titulo_Filme']} nos melhores cinemas.",
-                "teste": f"Duração: {filme['Duracao']} minutos",
-                "direçao": "Vários diretores"
+                "direcao": filme.get("Direcao", "Direção não informada"),
+                "sinopse": filme.get("Sinopse", "Sinopse não disponível.")
             }
             filmes_formatados.append(filme_formatado)
         
@@ -53,7 +51,6 @@ def carregar_filmes_do_banco():
         print(f"Erro ao carregar filmes do banco: {e}")
         return []
 
-# Carregar sessões do banco de dados
 def carregar_sessoes_do_banco(id_filme):
     try:
         sessoes_db = listar_sessoes_por_filme(id_filme)
@@ -63,7 +60,6 @@ def carregar_sessoes_do_banco(id_filme):
         }
         
         for sessao in sessoes_db:
-            # Usar o campo formatado
             hora = sessao.get("Hora_Formatada", "")
             tipo = sessao["Tipo_Sessao"]
             
@@ -72,7 +68,6 @@ def carregar_sessoes_do_banco(id_filme):
             elif tipo == "legendado" and hora:
                 sessoes_formatadas["legendado"].append(hora)
         
-        # Ordenar horários
         sessoes_formatadas["dublado"].sort()
         sessoes_formatadas["legendado"].sort()
         
@@ -82,96 +77,166 @@ def carregar_sessoes_do_banco(id_filme):
         return {"dublado": [], "legendado": []}
 
 def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
-    """Cria e retorna o frame do catálogo de filmes com seleção de horário"""
+    """Cria e retorna o frame do catálogo de filmes"""
     
-    # Frame principal com tamanho fixo
+    # Frame principal
     frame = ctk.CTkFrame(parent, fg_color="transparent", width=1800, height=900)
     frame.pack_propagate(False)
-    
-    # cache de imagens para evitar garbage collection
     frame.image_cache = {}
 
-    # ----- frame esquerdo: lista (scrollable) -----
-    frame_esq = ctk.CTkFrame(frame, width=240, height=600)
-    frame_esq.pack(side="left", fill="y", padx=(12,6), pady=12)
-    frame_esq.pack_propagate(False)
-
-    ctk.CTkLabel(frame_esq, text="Filmes em Cartaz", font=("Arial", 16, "bold")).pack(pady=(8,6))
-
-    scroll = ctk.CTkScrollableFrame(frame_esq, width=100, height=580)
-    scroll.pack(fill="both", expand=True, padx=8, pady=8)
+    # Variáveis de controle
+    dia_selecionado = ctk.StringVar(value="")
+    tipo_selecionado = ctk.StringVar(value="")
+    horario_selecionado = ctk.StringVar(value="")
     
-    # Variáveis para os dados do filme
     titulo_var = ctk.StringVar(value="Selecione um filme")
-    descricao_var = ctk.StringVar(value="Descrição do filme aparecerá aqui.")
-    lancamento_var = ctk.StringVar(value="Lançamento do filme aparecerá aqui.")
+    sinopse_var = ctk.StringVar(value="Sinopse do filme aparecerá aqui.")
+    direcao_var = ctk.StringVar(value="Direção do filme aparecerá aqui.")
     genero_var = ctk.StringVar(value="Gênero do filme aparecerá aqui.")
     duracao_var = ctk.StringVar(value="Duração do filme aparecerá aqui.")
-    classificacao_var = ctk.StringVar(value="")
 
-    # ----- frame direito: detalhes -----
-    frame_dir = ctk.CTkFrame(frame, width=1800, height=700)
-    frame_dir.pack(side="right", fill="both", padx=(6,12), pady=12)
-    frame_dir.pack_propagate(False)
+    filme_selecionado = [None]
+    botoes_dias = []
+    botoes_filmes = []
+    
+    # Listas para armazenar botões de horário por tipo
+    botoes_horarios_dublado = []
+    botoes_horarios_legendado = []
 
-    # Frame superior com imagem e textos - ALTURA REDUZIDA
-    frame_top = ctk.CTkFrame(frame_dir, height=450)
-    frame_top.pack(fill="x", padx=12, pady=(10,0))
-    frame_top.pack_propagate(False)
+    # ================== LAYOUT PRINCIPAL ==================
+    
+    # FRAME SUPERIOR: Apenas Dias
+    frame_superior = ctk.CTkFrame(frame, height=120)
+    frame_superior.pack(fill="x", padx=12, pady=(12, 6))
+    frame_superior.pack_propagate(False)
 
-    # Frame para a imagem do filme (container com tamanho adequado)
-    frame_imagem = ctk.CTkFrame(frame_top, width=300, height=450)
-    frame_imagem.pack(side="left", padx=12, pady=12)
+    # Dias
+    frame_dias = ctk.CTkFrame(frame_superior, fg_color="transparent")
+    frame_dias.pack(fill="x", pady=5)
+    ctk.CTkLabel(frame_dias, text="Dias:", font=("Arial", 14, "bold")).pack(pady=(0, 0))
+    
+    frame_dias_container = ctk.CTkFrame(frame_dias, fg_color="transparent")
+    frame_dias_container.pack(anchor="center", pady=0)
+
+    # FRAME MEIO: Lista de filmes (scroll horizontal)
+    frame_meio = ctk.CTkFrame(frame, height=260)
+    frame_meio.pack(fill="x", padx=12, pady=6)
+    frame_meio.pack_propagate(False)
+
+    scroll_container = ctk.CTkFrame(frame_meio, fg_color="transparent")
+    scroll_container.pack(fill="both", expand=True, padx=10, pady=0)
+
+    canvas = tk.Canvas(scroll_container, height=200, bg='#2b2b2b', highlightthickness=0)
+    scrollbar = ctk.CTkScrollbar(scroll_container, orientation="horizontal", command=canvas.xview)
+    scrollable_frame = ctk.CTkFrame(canvas, fg_color="transparent")
+
+    scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(xscrollcommand=scrollbar.set)
+
+    canvas.pack(side="top", fill="both", expand=True)
+    scrollbar.pack(side="bottom", fill="x")
+
+    # FRAME INFERIOR: Detalhes do filme e Horários por Tipo
+    frame_inferior = ctk.CTkFrame(frame)
+    frame_inferior.pack(fill="both", expand=True, padx=12, pady=(6, 12))
+
+    # Frame esquerdo: detalhes do filme
+    frame_esquerdo = ctk.CTkFrame(frame_inferior, width=400)
+    frame_esquerdo.pack(side="left", fill="both", expand=True, padx=(0, 6), pady=10)
+    frame_esquerdo.pack_propagate(False)
+
+    # Frame direito: Horários por tipo de sessão
+    frame_direito = ctk.CTkFrame(frame_inferior, width=600)
+    frame_direito.pack(side="right", fill="both", padx=(6, 0), pady=10)
+    frame_direito.pack_propagate(False)
+
+    # ===== CONTEÚDO DO FRAME ESQUERDO (DETALHES DO FILME) =====
+    frame_top = ctk.CTkFrame(frame_esquerdo)
+    frame_top.pack(fill="x", padx=12, pady=10)
+
+    # Imagem do filme
+    frame_imagem = ctk.CTkFrame(frame_top, width=200, height=280)
+    frame_imagem.pack(side="left", padx=0, pady=0)
     frame_imagem.pack_propagate(False)
 
-    # Imagem do filme - agora dentro do frame_imagem
     label_imagem = ctk.CTkLabel(frame_imagem, text="")
     label_imagem.pack(expand=True, fill="both", padx=5, pady=5)
 
-    # Frame de textos
+    # Textos do filme
     frame_textos = ctk.CTkFrame(frame_top, fg_color="transparent")
-    frame_textos.pack(side="left", fill="both", expand=True, padx=12)
+    frame_textos.pack(side="left", fill="both", expand=True, padx=0)
 
     label_titulo = ctk.CTkLabel(frame_textos, textvariable=titulo_var, font=("Arial", 18, "bold"))
     label_titulo.pack(anchor="nw", pady=(0,6))
 
-    label_descricao = ctk.CTkLabel(frame_textos, textvariable=descricao_var, wraplength=1200, justify="left")
-    label_descricao.pack(anchor="nw", pady=(0,6))
+    frame_info_basica = ctk.CTkFrame(frame_textos, fg_color="transparent")
+    frame_info_basica.pack(anchor="nw", fill="x", pady=(0,6))
 
-    label_lancamento2 = ctk.CTkLabel(frame_textos, text="Duração", font=("Arial", 14, "bold"))
-    label_lancamento2.pack(anchor="nw")
-    label_lancamento = ctk.CTkLabel(frame_textos, textvariable=duracao_var, wraplength=400, justify="left")
-    label_lancamento.pack(anchor="nw", pady=(0,6))
+    # Direção
+    ctk.CTkLabel(frame_info_basica, text="Direção:", font=("Arial", 14, "bold")).pack(anchor="nw")
+    label_direcao = ctk.CTkLabel(frame_info_basica, textvariable=direcao_var, wraplength=400, justify="left")
+    label_direcao.pack(anchor="nw", pady=(0,6))
 
-    label_genero2 = ctk.CTkLabel(frame_textos, text="Gênero", font=("Arial", 14, "bold"))
-    label_genero2.pack(anchor="nw")
-    label_genero = ctk.CTkLabel(frame_textos, textvariable=genero_var, wraplength=400, justify="left")
+    # Duração
+    ctk.CTkLabel(frame_info_basica, text="Duração:", font=("Arial", 14, "bold")).pack(anchor="nw")
+    label_duracao = ctk.CTkLabel(frame_info_basica, textvariable=duracao_var, wraplength=400, justify="left")
+    label_duracao.pack(anchor="nw", pady=(0,0))
+
+    # Gênero
+    ctk.CTkLabel(frame_info_basica, text="Gênero:", font=("Arial", 14, "bold")).pack(anchor="nw")
+    label_genero = ctk.CTkLabel(frame_info_basica, textvariable=genero_var, wraplength=400, justify="left")
     label_genero.pack(anchor="nw", pady=(0,6))
 
-    # Frame para classificação
+    # Sinopse
+    ctk.CTkLabel(frame_textos, text="Sinopse:", font=("Arial", 14, "bold")).pack(anchor="nw", pady=(0,0))
+    label_sinopse = ctk.CTkLabel(frame_textos, textvariable=sinopse_var, wraplength=850, justify="left")
+    label_sinopse.pack(anchor="nw", pady=(0,0))
+
+    # Classificação
     frame_classificacao = ctk.CTkFrame(frame_textos, fg_color="transparent")
-    frame_classificacao.pack(anchor="nw", pady=(0,6))
+    frame_classificacao.pack(anchor="nw", pady=(0,0))
     
     ctk.CTkLabel(frame_classificacao, text="Classificação:", font=("Arial", 14, "bold")).pack(side="left")
     label_classificacao = ctk.CTkLabel(frame_classificacao, text="", width=50, height=50)
     label_classificacao.pack(side="left", padx=10)
 
-    # Frame para sessões com seleção de horário
-    frame_sessoes = ctk.CTkFrame(frame_dir, height=350)
-    frame_sessoes.pack(fill="x", padx=12, pady=(10,0))
-    frame_sessoes.pack_propagate(False)
+    # ===== CONTEÚDO DO FRAME DIREITO (HORÁRIOS POR TIPO) =====
+    ctk.CTkLabel(frame_direito, text="Horários por Tipo de Sessão", font=("Arial", 16, "bold")).pack(pady=(10, 5))
 
-    # Botões de navegação
-    botoes_frame = ctk.CTkFrame(frame_dir, height=50)
+    # Container principal para os tipos
+    frame_tipos_container = ctk.CTkFrame(frame_direito, fg_color="transparent")
+    frame_tipos_container.pack(fill="both", expand=True, padx=10, pady=10)
+
+    # Frame para Dublado
+    frame_dublado = ctk.CTkFrame(frame_tipos_container, fg_color="transparent")
+    frame_dublado.pack(fill="x", pady=(0, 20))
+
+    ctk.CTkLabel(frame_dublado, text="Dublado", font=("Arial", 14, "bold")).pack(anchor="w", pady=(0, 5))
+    
+    frame_horarios_dublado = ctk.CTkFrame(frame_dublado, fg_color="transparent")
+    frame_horarios_dublado.pack(fill="x")
+
+    # Frame para Legendado
+    frame_legendado = ctk.CTkFrame(frame_tipos_container, fg_color="transparent")
+    frame_legendado.pack(fill="x", pady=(0, 10))
+
+    ctk.CTkLabel(frame_legendado, text="Legendado", font=("Arial", 14, "bold")).pack(anchor="w", pady=(0, 5))
+    
+    frame_horarios_legendado = ctk.CTkFrame(frame_legendado, fg_color="transparent")
+    frame_horarios_legendado.pack(fill="x")
+
+    # Label para mostrar seleção atual
+    label_selecao = ctk.CTkLabel(frame_direito, text="", font=("Arial", 12, "bold"))
+    label_selecao.pack(anchor="w", pady=10)
+
+    # ===== BOTÕES DE NAVEGAÇÃO =====
+    botoes_frame = ctk.CTkFrame(frame, height=50)
     botoes_frame.pack(side="bottom", fill="x", padx=20, pady=10)
     botoes_frame.pack_propagate(False)
 
-    # Variáveis para armazenar seleções
-    dia_selecionado = ctk.StringVar(value="")
-    tipo_selecionado = ctk.StringVar(value="")
-    horario_selecionado = ctk.StringVar(value="")
-
-    # Função para gerar os próximos 3 dias
+    # ================== FUNÇÕES PRINCIPAIS ==================
+    
     def gerar_proximos_dias():
         hoje = datetime.now()
         dias = []
@@ -188,211 +253,118 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
         return dias
 
     def criar_botao_dia(parent, dia_info):
-        btn = ctk.CTkButton(parent, text=f"{dia_info['nome']}\n{dia_info['label']}", 
-                           width=80, height=30, corner_radius=10,
-                           fg_color=BTN_COLOR,
-                           hover_color=BTN_HOVER,
-                           text_color=BTN_TEXT,
-                           command=lambda: selecionar_dia(dia_info))
+        btn = ctk.CTkButton(parent, text=f"{dia_info['nome']}:{dia_info['label']}", 
+                           width=200, height=40, corner_radius=10,
+                           fg_color=BTN_COLOR, hover_color=BTN_HOVER, text_color=BTN_TEXT,
+                           font=("Arial", 18), command=lambda: selecionar_dia(dia_info))
         btn.pack(side="left", padx=5, pady=5)
         return btn
 
-    def criar_botao_tipo(parent, tipo, label):
-        btn = ctk.CTkButton(parent, text=label, width=80, height=30, corner_radius=10,
-                           fg_color=BTN_COLOR,
-                           hover_color=BTN_HOVER,
-                           text_color=BTN_TEXT,
-                           command=lambda: selecionar_tipo(tipo))
-        btn.pack(side="left", padx=5, pady=5)
-        return btn
-
-    def criar_botao_horario(parent, horario):
-        btn = ctk.CTkButton(parent, text=horario, width=80, height=30, corner_radius=8,
-                           fg_color=BTN_COLOR,
-                           hover_color=BTN_HOVER,
-                           text_color=BTN_TEXT,
-                           command=lambda: selecionar_horario(horario))
-        btn.pack(side="left", padx=3, pady=3)
+    def criar_botao_horario(parent, horario, tipo):
+        btn = ctk.CTkButton(parent, text=horario, width=120, height=35, corner_radius=8,
+                           fg_color=BTN_COLOR, hover_color=BTN_HOVER, text_color=BTN_TEXT,
+                           font=("Arial", 14), 
+                           command=lambda: selecionar_horario(horario, tipo))
+        btn.pack(side="left", padx=3, pady=2)
         return btn
 
     def selecionar_dia(dia_info):
         dia_selecionado.set(dia_info)
+        
         # Atualizar visual dos botões de dia
         for btn in botoes_dias:
-            if btn.cget("text").split('\n')[1] == dia_info['label']:
-                btn.configure(fg_color="#1f6aa5")
+            if btn.cget("text").split(':')[1] == dia_info['label']:
+                btn.configure(fg_color=SELECTED_COLOR)
             else:
                 btn.configure(fg_color=BTN_COLOR)
         
-        # Resetar seleções de tipo e horário
+        # Resetar seleções
+        horario_selecionado.set("")
         tipo_selecionado.set("")
-        horario_selecionado.set("")
-        atualizar_botoes_tipo()
-        atualizar_botoes_horario()
+        
+        # Atualizar horários
+        atualizar_horarios_por_tipo()
 
-    def selecionar_tipo(tipo):
+    def selecionar_horario(horario, tipo):
         if not dia_selecionado.get():
-            return
-        
-        tipo_selecionado.set(tipo)
-        # Atualizar visual dos botões de tipo
-        for btn_tipo in botoes_tipos:
-            if btn_tipo.cget("text").lower() == tipo:
-                btn_tipo.configure(fg_color="#1f6aa5")
-            else:
-                btn_tipo.configure(fg_color=BTN_COLOR)
-        
-        # Resetar seleção de horário
-        horario_selecionado.set("")
-        atualizar_botoes_horario()
-
-    def selecionar_horario(horario):
-        if not dia_selecionado.get() or not tipo_selecionado.get():
+            messagebox.showwarning("Seleção Incompleta", "Selecione um dia primeiro")
             return
         
         horario_selecionado.set(horario)
+        tipo_selecionado.set(tipo)
+        
         # Atualizar visual dos botões de horário
-        for btn_horario in botoes_horarios:
-            if btn_horario.cget("text") == horario:
-                btn_horario.configure(fg_color="#1f6aa5")
-            else:
-                btn_horario.configure(fg_color=BTN_COLOR)
+        # Resetar todos os botões primeiro
+        for btn in botoes_horarios_dublado + botoes_horarios_legendado:
+            btn.configure(fg_color=BTN_COLOR)
+        
+        # Destacar o botão selecionado
+        if tipo == "dublado":
+            for btn in botoes_horarios_dublado:
+                if btn.cget("text") == horario:
+                    btn.configure(fg_color=SELECTED_COLOR)
+        else:  # legendado
+            for btn in botoes_horarios_legendado:
+                if btn.cget("text") == horario:
+                    btn.configure(fg_color=SELECTED_COLOR)
+        
+        atualizar_selecao()
 
-    def atualizar_botoes_tipo():
-        # Limpar botões de tipo existentes
-        for widget in frame_tipos_container.winfo_children():
+    def atualizar_horarios_por_tipo():
+        """Atualiza os horários para cada tipo de sessão"""
+        # Limpar botões existentes
+        for widget in frame_horarios_dublado.winfo_children():
+            widget.destroy()
+        for widget in frame_horarios_legendado.winfo_children():
             widget.destroy()
         
-        botoes_tipos.clear()
+        botoes_horarios_dublado.clear()
+        botoes_horarios_legendado.clear()
         
-        if not dia_selecionado.get():
+        if not dia_selecionado.get() or not filme_selecionado[0]:
             return
         
-        # Criar botões para cada tipo disponível
         filme = filme_selecionado[0]
         if filme and "sessoes" in filme:
-            tipos_disponiveis = []
+            # Horários para Dublado
             if filme["sessoes"].get("dublado"):
-                tipos_disponiveis.append(("dublado", "Dublado"))
-            if filme["sessoes"].get("legendado"):
-                tipos_disponiveis.append(("legendado", "Legendado"))
-            
-            for tipo, label in tipos_disponiveis:
-                btn = criar_botao_tipo(frame_tipos_container, tipo, label)
-                botoes_tipos.append(btn)
-
-    def atualizar_botoes_horario():
-        # Limpar botões de horário existentes
-        for widget in frame_horarios_container.winfo_children():
-            widget.destroy()
-        
-        botoes_horarios.clear()
-        
-        if not dia_selecionado.get() or not tipo_selecionado.get():
-            return
-        
-        # Criar botões para cada horário disponível
-        filme = filme_selecionado[0]
-        if filme and "sessoes" in filme:
-            horarios = filme["sessoes"].get(tipo_selecionado.get(), [])
-            
-            for horario in horarios:
-                btn = criar_botao_horario(frame_horarios_container, horario)
-                botoes_horarios.append(btn)
-
-    def mostrar_sessoes(filme):
-        # Limpar frame de sessões
-        for widget in frame_sessoes.winfo_children():
-            widget.destroy()
-        
-        # Resetar seleções
-        dia_selecionado.set("")
-        tipo_selecionado.set("")
-        horario_selecionado.set("")
-        
-        # Título das sessões
-        ctk.CTkLabel(frame_sessoes, text="Selecione a Sessão:", 
-                     font=("Arial", 16, "bold")).pack(anchor="w", pady=(10,5))
-        
-        # Frame para dias
-        frame_dias = ctk.CTkFrame(frame_sessoes, fg_color="transparent")
-        frame_dias.pack(fill="x", padx=10, pady=5)
-        ctk.CTkLabel(frame_dias, text="Dia:", font=("Arial", 14, "bold")).pack(anchor="w")
-        
-        # Container para botões de dias
-        frame_dias_container = ctk.CTkFrame(frame_dias, fg_color="transparent")
-        frame_dias_container.pack(fill="x", pady=5)
-        
-        # Criar botões para os próximos 3 dias
-        dias = gerar_proximos_dias()
-        botoes_dias.clear()
-        for dia_info in dias:
-            btn = criar_botao_dia(frame_dias_container, dia_info)
-            botoes_dias.append(btn)
-        
-        # Frame para tipos (dublado/legendado)
-        frame_tipos = ctk.CTkFrame(frame_sessoes, fg_color="transparent")
-        frame_tipos.pack(fill="x", padx=10, pady=5)
-        ctk.CTkLabel(frame_tipos, text="Tipo:", font=("Arial", 14, "bold")).pack(anchor="w")
-        
-        # Container para botões de tipo
-        global frame_tipos_container
-        frame_tipos_container = ctk.CTkFrame(frame_tipos, fg_color="transparent")
-        frame_tipos_container.pack(fill="x", pady=5)
-        
-        # Frame para horários
-        frame_horarios = ctk.CTkFrame(frame_sessoes, fg_color="transparent")
-        frame_horarios.pack(fill="x", padx=10, pady=5)
-        ctk.CTkLabel(frame_horarios, text="Horário:", font=("Arial", 14, "bold")).pack(anchor="w")
-        
-        # Container para botões de horário
-        global frame_horarios_container
-        frame_horarios_container = ctk.CTkFrame(frame_horarios, fg_color="transparent")
-        frame_horarios_container.pack(fill="x", pady=5)
-        
-        # Label para mostrar seleção atual
-        label_selecao = ctk.CTkLabel(frame_sessoes, text="", font=("Arial", 14, "bold"))
-        label_selecao.pack(anchor="w", pady=10)
-        
-        def atualizar_selecao(*args):
-            dia = dia_selecionado.get()
-            tipo = tipo_selecionado.get()
-            horario = horario_selecionado.get()
-            
-            # CORREÇÃO: Verificar se dia é um dicionário antes de acessar
-            if dia and tipo and horario:
-                if isinstance(dia, dict):
-                    selecao_texto = f"Sessão selecionada: {dia['nome']} ({dia['label']}) - {tipo.capitalize()} - {horario}"
-                else:
-                    # Se for string, tentar extrair informações básicas
-                    selecao_texto = f"Sessão selecionada: {tipo.capitalize()} - {horario}"
-                label_selecao.configure(text=selecao_texto)
+                for horario in filme["sessoes"]["dublado"]:
+                    btn = criar_botao_horario(frame_horarios_dublado, horario, "dublado")
+                    botoes_horarios_dublado.append(btn)
             else:
-                label_selecao.configure(text="")
-        
-        # Vincular as variáveis à atualização do texto
-        dia_selecionado.trace("w", atualizar_selecao)
-        tipo_selecionado.trace("w", atualizar_selecao)
-        horario_selecionado.trace("w", atualizar_selecao)
+                ctk.CTkLabel(frame_horarios_dublado, text="Nenhum horário disponível", 
+                           font=("Arial", 12), text_color="gray").pack(side="left")
+            
+            # Horários para Legendado
+            if filme["sessoes"].get("legendado"):
+                for horario in filme["sessoes"]["legendado"]:
+                    btn = criar_botao_horario(frame_horarios_legendado, horario, "legendado")
+                    botoes_horarios_legendado.append(btn)
+            else:
+                ctk.CTkLabel(frame_horarios_legendado, text="Nenhum horário disponível", 
+                           font=("Arial", 12), text_color="gray").pack(side="left")
 
-    # Listas para armazenar referências dos botões
-    botoes_dias = []
-    botoes_tipos = []
-    botoes_horarios = []
-
-    # Variável para armazenar o filme selecionado
-    filme_selecionado = [None]
+    def destacar_filme_selecionado(filme_atual):
+        """Destaca visualmente o filme selecionado"""
+        for item_frame, filme_info in botoes_filmes:
+            if filme_info["ID_Filme"] == filme_atual["ID_Filme"]:
+                item_frame.configure(fg_color=FILME_SELECIONADO_COLOR)
+            else:
+                item_frame.configure(fg_color=FILME_NORMAL_COLOR)
 
     def mostrar_filme(filme):
+        """Exibe os detalhes do filme selecionado"""
         filme_selecionado[0] = filme
+        destacar_filme_selecionado(filme)
         
+        # Atualizar informações
         titulo_var.set(filme.get("titulo", ""))
-        descricao_var.set(filme.get("descricao", ""))
+        sinopse_var.set(filme.get("sinopse", ""))
+        direcao_var.set(filme.get("direcao", ""))
         duracao_var.set(filme.get("duracao", ""))
         genero_var.set(filme.get("genero", ""))
-        lancamento_var.set(filme.get("teste", ""))
 
-        # Carregar imagem do filme
+        # Carregar imagem
         caminho = filme.get("cartaz_path", "")
         img = None
         if caminho and os.path.isfile(caminho):
@@ -400,13 +372,12 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
                 img = Image.open(caminho)
             except Exception as e:
                 print(f"Erro ao carregar imagem {caminho}: {e}")
-                img = None
         
         if img is None:
             img = Image.new("RGB", (200, 300), (40, 40, 40))
         
         img = img.resize((200, 300), Image.LANCZOS)
-        foto = ctk.CTkImage(img, size=(300, 450))
+        foto = ctk.CTkImage(img, size=(200, 300))
         label_imagem.configure(image=foto, text="")
         label_imagem.image = foto
 
@@ -420,34 +391,106 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
                 label_classificacao.configure(image=foto_c, text="")
                 label_classificacao.image = foto_c
             except Exception as e:
-                print(f"Erro ao carregar classificação {classificacao_path}: {e}")
                 label_classificacao.configure(image=None, text="N/A")
         else:
             label_classificacao.configure(image=None, text="N/A")
 
-        # Carregar sessões do banco de dados
+        # Carregar sessões
         id_filme = filme.get("ID_Filme")
         if id_filme:
             sessoes = carregar_sessoes_do_banco(id_filme)
             filme["sessoes"] = sessoes
-            mostrar_sessoes(filme)
 
-    # ================== FUNÇÃO DE ATUALIZAÇÃO AUTOMÁTICA ==================
-    def atualizar_catalogo():
-        """Recarrega os filmes do banco e atualiza a interface automaticamente"""
-        nonlocal filmes
+        # Atualizar interface
+        if dia_selecionado.get():
+            atualizar_horarios_por_tipo()
+            horario_selecionado.set("")
+            tipo_selecionado.set("")
+        else:
+            for widget in frame_horarios_dublado.winfo_children():
+                widget.destroy()
+            for widget in frame_horarios_legendado.winfo_children():
+                widget.destroy()
+            botoes_horarios_dublado.clear()
+            botoes_horarios_legendado.clear()
+            horario_selecionado.set("")
+            tipo_selecionado.set("")
+
+        atualizar_selecao()
+
+    def atualizar_selecao():
+        dia = dia_selecionado.get()
+        tipo = tipo_selecionado.get()
+        horario = horario_selecionado.get()
         
-        # Recarregar filmes do banco
+        if dia and tipo and horario:
+            if isinstance(dia, dict):
+                selecao_texto = f"Sessão: {dia['nome']} ({dia['label']}) - {horario} - {tipo.capitalize()}"
+            else:
+                selecao_texto = f"Sessão: {horario} - {tipo.capitalize()}"
+            label_selecao.configure(text=selecao_texto)
+        else:
+            label_selecao.configure(text="Selecione dia, horário e tipo")
+
+    def criar_botoes_filmes():
+        """Cria os botões para cada filme na lista horizontal"""
+        for filme in filmes:
+            # Frame para cada filme
+            item_frame = ctk.CTkFrame(scrollable_frame, fg_color=FILME_NORMAL_COLOR, 
+                                    height=300, width=160, corner_radius=8)
+            item_frame.pack(side="left", pady=10, padx=8)
+            item_frame.pack_propagate(False)
+            
+            botoes_filmes.append((item_frame, filme))
+            
+            # Carregar imagem
+            caminho_imagem = filme.get("cartaz_path", "")
+            if caminho_imagem and os.path.isfile(caminho_imagem):
+                try:
+                    img = Image.open(caminho_imagem)
+                    img = img.resize((140, 180), Image.LANCZOS)
+                    foto = ctk.CTkImage(img, size=(140, 180))
+                except Exception as e:
+                    img = Image.new("RGB", (140, 180), (40, 40, 40))
+                    foto = ctk.CTkImage(img, size=(140, 180))
+            else:
+                img = Image.new("RGB", (140, 180), (40, 40, 40))
+                foto = ctk.CTkImage(img, size=(140, 180))
+
+            # Conteúdo do frame
+            content_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
+            content_frame.pack(fill="both", expand=True, padx=5, pady=5)
+
+            # Botão com imagem
+            btn_imagem = ctk.CTkButton(
+                content_frame,
+                image=foto, text="",
+                fg_color="transparent", hover_color=BTN_HOVER,
+                command=lambda f=filme: mostrar_filme(f),
+                height=180, width=140
+            )
+            btn_imagem.pack(pady=(5, 5))
+
+            # Título
+            label_titulo = ctk.CTkLabel(
+                content_frame,
+                text=filme["titulo"].title(),
+                anchor="center", text_color=BTN_TEXT,
+                font=("Arial", 12, "bold"), height=30, wraplength=140
+            )
+            label_titulo.pack(fill="x", expand=False)
+
+    def atualizar_catalogo():
+        """Recarrega os filmes do banco"""
+        nonlocal filmes
         filmes = carregar_filmes_do_banco()
         
-        # Limpar a lista atual
-        for widget in scroll.winfo_children():
+        for widget in scrollable_frame.winfo_children():
             widget.destroy()
         
-        # Recriar os botões dos filmes
+        botoes_filmes.clear()
         criar_botoes_filmes()
         
-        # Se havia um filme selecionado, tentar mantê-lo
         if filme_selecionado[0]:
             filme_atual = next((f for f in filmes if f["ID_Filme"] == filme_selecionado[0].get("ID_Filme")), None)
             if filme_atual:
@@ -456,75 +499,6 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
                 mostrar_filme(filmes[0])
         elif filmes:
             mostrar_filme(filmes[0])
-    
-    def criar_botoes_filmes():
-        """Cria os botões para cada filme na lista lateral"""
-        for filme in filmes:
-            # Frame para cada item do filme
-            item_frame = ctk.CTkFrame(scroll, fg_color=BTN_COLOR, height=300, width=60, corner_radius=8)
-            item_frame.pack(pady=4, padx=6, fill="x")
-            item_frame.pack_propagate(False)
-            
-            # Carrega a imagem do cartaz
-            caminho_imagem = filme.get("cartaz_path", "")
-            foto = None
-            
-            if caminho_imagem and os.path.isfile(caminho_imagem):
-                try:
-                    img = Image.open(caminho_imagem)
-                    img = img.resize((180, 210), Image.LANCZOS)
-                    foto = ctk.CTkImage(img, size=(180, 210))
-                except Exception as e:
-                    print(f"Erro ao carregar imagem {caminho_imagem}: {e}")
-                    # Criar imagem padrão
-                    img = Image.new("RGB", (180, 210), (40, 40, 40))
-                    foto = ctk.CTkImage(img, size=(180, 210))
-            else:
-                # Imagem padrão se não houver caminho
-                img = Image.new("RGB", (180, 210), (40, 40, 40))
-                foto = ctk.CTkImage(img, size=(180, 210))
-
-            # Frame principal que contém imagem e botão
-            content_frame = ctk.CTkFrame(item_frame, fg_color="transparent", height=500)
-            content_frame.pack(fill="both", expand=True, padx=8, pady=2)
-            content_frame.pack_propagate(False)
-
-            # BOTÃO com a imagem
-            btn_imagem = ctk.CTkButton(
-                content_frame,
-                image=foto,
-                text="",
-                fg_color="transparent",
-                hover_color=BTN_HOVER,
-                command=lambda f=filme: mostrar_filme(f),
-                height=210,
-                width=180
-            )
-            btn_imagem.pack(pady=(10, 10))
-
-            # LABEL com o título
-            label_titulo = ctk.CTkLabel(
-                content_frame,
-                text=filme["titulo"].title(),
-                anchor="center",
-                text_color=BTN_TEXT,
-                font=("Arial", 14, "bold"),
-                height=50,
-                wraplength=180
-            )
-            label_titulo.pack(fill="x", expand=False, padx=20)
-
-    # Carregar filmes do banco e criar botões
-    filmes = carregar_filmes_do_banco()
-    criar_botoes_filmes()
-
-    # Botões de navegação (SEM BOTÃO DE ATUALIZAR)
-    btn_voltar = ctk.CTkButton(botoes_frame, text="Voltar", 
-                              fg_color=BTN_COLOR, font=("Arial", 14, "bold"),
-                              hover_color=BTN_HOVER,
-                              text_color=BTN_TEXT, height=40, width=150,
-                              command=voltar_callback)
-    btn_voltar.pack(side="left", padx=10)
 
     def on_confirmar():
         dia = dia_selecionado.get()
@@ -532,27 +506,49 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
         horario = horario_selecionado.get()
         
         if filme_selecionado[0] and dia and tipo and horario:
-            # Adiciona todas as informações selecionadas ao dicionário do filme
             filme_completo = filme_selecionado[0].copy()
             filme_completo["dia_selecionado"] = dia
             filme_completo["tipo_selecionado"] = tipo
             filme_completo["horario_selecionado"] = horario
             confirmar_callback(filme_completo)
         else:
-            messagebox.showwarning("Seleção Incompleta", "Selecione um filme, dia, tipo e horário")
+            messagebox.showwarning("Seleção Incompleta", "Selecione um filme, dia, horário e tipo")
+
+    # ================== INICIALIZAÇÃO ==================
+    
+    # Vincular variáveis
+    dia_selecionado.trace("w", lambda *args: atualizar_selecao())
+    tipo_selecionado.trace("w", lambda *args: atualizar_selecao())
+    horario_selecionado.trace("w", lambda *args: atualizar_selecao())
+
+    # Criar botões de dias
+    dias = gerar_proximos_dias()
+    for dia_info in dias:
+        btn = criar_botao_dia(frame_dias_container, dia_info)
+        botoes_dias.append(btn)
+
+    # Carregar e exibir filmes
+    filmes = carregar_filmes_do_banco()
+    criar_botoes_filmes()
+
+    # Botões de navegação
+    btn_voltar = ctk.CTkButton(botoes_frame, text="Voltar", 
+                              fg_color=BTN_COLOR, font=("Arial", 14, "bold"),
+                              hover_color=BTN_HOVER, text_color=BTN_TEXT,
+                              height=40, width=150, command=voltar_callback)
+    btn_voltar.pack(side="left", padx=10)
 
     btn_confirmar = ctk.CTkButton(botoes_frame, text="Selecionar Assentos", 
                                  fg_color=BTN_COLOR, font=("Arial", 14, "bold"),
-                                 hover_color=BTN_HOVER,
-                                 text_color=BTN_TEXT, height=40, width=150,
-                                 command=on_confirmar)
+                                 hover_color=BTN_HOVER, text_color=BTN_TEXT,
+                                 height=40, width=150, command=on_confirmar)
     btn_confirmar.pack(side="left", padx=20)
 
-    # Seleciona o primeiro filme por padrão
+    # Selecionar primeiro filme
     if filmes:
         mostrar_filme(filmes[0])
 
-    # Expor a função de atualização para uso externo
+    # Expor função de atualização
     frame.atualizar_catalogo = atualizar_catalogo
 
     return frame
