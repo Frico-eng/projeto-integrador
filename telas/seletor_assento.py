@@ -41,9 +41,29 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     assentos = {}
     selecionados = []
     preco = 25.00
+    seat_icon = None  # Variável para armazenar o ícone do assento
 
     # ================== FUNÇÕES PRINCIPAIS (DEFINIDAS PRIMEIRO) ==================
     
+    def carregar_icone_assento():
+        """Carrega o ícone do assento"""
+        nonlocal seat_icon
+        try:
+            seat_icon_path = os.path.join(IMAGE_DIR, "seat.png")
+            if os.path.exists(seat_icon_path):
+                # Carregar e redimensionar a imagem
+                img = Image.open(seat_icon_path)
+                # Redimensionar para caber no botão (ajuste o tamanho conforme necessário)
+                img_resized = img.resize((20, 20), Image.LANCZOS)
+                seat_icon = ctk.CTkImage(img_resized, size=(20, 20))
+                print("DEBUG: Ícone do assento carregado com sucesso")
+            else:
+                print(f"DEBUG: Arquivo do ícone não encontrado em: {seat_icon_path}")
+                seat_icon = None
+        except Exception as e:
+            print(f"DEBUG: Erro ao carregar ícone do assento: {e}")
+            seat_icon = None
+
     def confirmar():
         """Confirma a seleção"""
         print(f"DEBUG: Confirmando {len(selecionados)} assentos...")
@@ -106,7 +126,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                     codigo = assento["codigo"]
                     if codigo in assentos:
                         botao, _, id_assento = assentos[codigo]
-                        botao.configure(fg_color=COR_OCUPADO, state="disabled")
+                        botao.configure(fg_color=COR_OCUPADO, state="disabled", image="")
                         assentos[codigo] = (botao, "ocupado", id_assento)
                 
                 selecionados.clear()
@@ -141,7 +161,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                 print(f"DEBUG: Assento {codigo} selecionado")
             else:
                 print(f"DEBUG: Assento {codigo} não está mais disponível")
-                botao.configure(fg_color=COR_OCUPADO, state="disabled")
+                botao.configure(fg_color=COR_OCUPADO, state="disabled", image="")
                 assentos[codigo] = (botao, "ocupado", id_assento)
         else:
             botao.configure(fg_color=COR_LIVRE)
@@ -487,10 +507,19 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                     cor = COR_OCUPADO if status == "ocupado" else COR_LIVRE
                     estado = "disabled" if status == "ocupado" else "normal"
                     
+                    # Criar botão com ícone
                     botao = ctk.CTkButton(
-                        linha_frame, text=codigo, width=70, height=70, fg_color=cor, 
-                        text_color=COR_TEXTO, font=("Arial", 11, "bold"), corner_radius=8,
-                        state=estado, 
+                        linha_frame, 
+                        text=codigo, 
+                        width=70, 
+                        height=70, 
+                        fg_color=cor, 
+                        text_color=COR_TEXTO, 
+                        font=("Arial", 11, "bold"), 
+                        corner_radius=8,
+                        state=estado,
+                        image=seat_icon,  # Adiciona o ícone aqui
+                        compound="top",   # Ícone acima do texto
                         command=lambda c=codigo, id=assento["ID_Assento"]: toggle_assento(c, id)
                     )
                     botao.pack(side="left", padx=2)
@@ -535,7 +564,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
         ctk.CTkLabel(item3, text="Ocupado", font=("Arial", 12), text_color=COR_TEXTO).pack(side="left")
 
     # ================== INICIALIZAÇÃO ==================
-    # Carregar dados
-    frame.after(100, carregar_dados_banco)
+    # Carregar ícone e dados
+    frame.after(100, lambda: [carregar_icone_assento(), carregar_dados_banco()])
     
     return frame

@@ -16,6 +16,9 @@ from reportlab.lib.pagesizes import A5, landscape
 from reportlab.pdfgen import canvas
 from datetime import datetime
 
+# Importar o CRUD de ingressos
+from crud.crud_ingressos import inserir_ingresso, inserir_multiplos_ingressos, verificar_ingresso_existente
+
 # Definir diretórios
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
@@ -154,8 +157,94 @@ def gerar_comprovante(filme, horario, assentos, preco_por_assento=25.00, logo_pa
     c.save()
     return nome_arquivo
 
-
-# No arquivo pagamentodocinema.py, na função mostrar_confirmacao_pagamento
+def inserir_ingressos_no_banco(dados_compra):
+    """
+    Insere os ingressos no banco de dados
+    
+    Args:
+        dados_compra: dicionário com todas as informações da compra
+        
+    Returns:
+        tuple: (sucesso, lista_ids_ingressos) ou (False, mensagem_erro)
+    """
+    try:
+        print("DEBUG: Iniciando inserção de ingressos no banco...")
+        
+        # Extrair informações necessárias
+        sessao_obj = dados_compra.get("sessao", {})
+        assentos = dados_compra.get("assentos", [])
+        preco_unit = dados_compra.get("preco_unitario", 25.00)
+        
+        # IDs essenciais
+        id_sessao = sessao_obj.get("ID_Sessao")
+        id_cliente = 1  # TODO: Substituir pelo ID do cliente logado
+        
+        if not id_sessao:
+            return False, "ID da sessão não encontrado"
+        
+        if not assentos:
+            return False, "Nenhum assento selecionado"
+        
+        print(f"DEBUG: Inserindo ingressos para sessão {id_sessao}, cliente {id_cliente}")
+        print(f"DEBUG: Assentos: {assentos}")
+        
+        # Buscar IDs dos assentos_sessao
+        from crud.crud_assento_sessao import listar_assentos_por_sessao
+        
+        assentos_sessao = listar_assentos_por_sessao(id_sessao)
+        print(f"DEBUG: {len(assentos_sessao)} assentos encontrados na sessão")
+        
+        # Mapear código do assento para ID_Assento_Sessao
+        mapa_assentos = {}
+        for assento in assentos_sessao:
+            codigo = f"{assento['Linha']}{assento['Coluna']}"
+            mapa_assentos[codigo] = assento['ID_Assento_Sessao']
+        
+        print(f"DEBUG: Mapa de assentos: {mapa_assentos}")
+        
+        # Preparar lista de ingressos para inserção
+        ingressos_para_inserir = []
+        assentos_nao_encontrados = []
+        
+        for codigo_assento in assentos:
+            id_assento_sessao = mapa_assentos.get(codigo_assento)
+            
+            if id_assento_sessao:
+                # Verificar se o ingresso já existe
+                if not verificar_ingresso_existente(id_sessao, id_assento_sessao):
+                    ingressos_para_inserir.append(
+                        (id_sessao, id_cliente, id_assento_sessao, preco_unit)
+                    )
+                    print(f"DEBUG: Preparado ingresso para assento {codigo_assento} (ID: {id_assento_sessao})")
+                else:
+                    print(f"AVISO: Ingresso já existe para assento {codigo_assento}")
+                    return False, f"Assento {codigo_assento} já possui ingresso vendido"
+            else:
+                assentos_nao_encontrados.append(codigo_assento)
+                print(f"ERRO: Assento {codigo_assento} não encontrado na sessão")
+        
+        if assentos_nao_encontrados:
+            return False, f"Assentos não encontrados: {', '.join(assentos_nao_encontrados)}"
+        
+        if not ingressos_para_inserir:
+            return False, "Nenhum ingresso válido para inserir"
+        
+        # Inserir múltiplos ingressos
+        print(f"DEBUG: Inserindo {len(ingressos_para_inserir)} ingressos...")
+        ids_ingressos = inserir_multiplos_ingressos(ingressos_para_inserir)
+        
+        if ids_ingressos:
+            print(f"DEBUG: Ingressos inseridos com sucesso! IDs: {ids_ingressos}")
+            return True, ids_ingressos
+        else:
+            print("ERRO: Falha ao inserir ingressos no banco")
+            return False, "Erro ao inserir ingressos no banco de dados"
+            
+    except Exception as e:
+        print(f"ERRO: Exceção ao inserir ingressos: {e}")
+        import traceback
+        traceback.print_exc()
+        return False, f"Erro interno: {str(e)}"
 
 def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=None):
     """
@@ -229,8 +318,6 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
     print(f"  - Filme: {filme_obj}")
     print(f"  - Sessao: {sessao_obj}")
     print(f"  - Sala: {sala_obj}")
-
-    # ... o resto do código permanece igual ...
 
     # ====== CONFIGURAR FRAME PRINCIPAL ======
     frame = ctk.CTkFrame(parent, fg_color=COR_FUNDO, width=1800, height=900)
@@ -402,8 +489,18 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
     btn_frame.pack(fill="x", pady=30, padx=40)
 
     def finalizar_com_comprovante():
-        """Gera comprovante e chama callback"""
+        """Gera comprovante, insere no banco e chama callback"""
         try:
+            # 1. Primeiro inserir no banco
+            print("DEBUG: Inserindo ingressos no banco...")
+            sucesso, resultado = inserir_ingressos_no_banco(dados_compra)
+            
+            if not sucesso:
+                messagebox.showerror("Erro", f"Erro ao registrar ingressos:\n{resultado}")
+                return
+            
+            # 2. Gerar comprovante PDF
+            print("DEBUG: Gerando comprovante...")
             nome_arquivo = gerar_comprovante(
                 titulo_filme, 
                 horario, 
@@ -411,16 +508,26 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
                 preco_por_assento=preco_unit, 
                 logo_path="logo.png"
             )
-            messagebox.showinfo("Sucesso", f"Comprovante gerado com sucesso!\nArquivo: {nome_arquivo}")
             
-            # Chamar o callback original se existir
+            # 3. Mostrar mensagem de sucesso
+            messagebox.showinfo(
+                "Sucesso", 
+                f"Compra finalizada com sucesso!\n\n"
+                f"✅ Ingressos registrados no sistema\n"
+                f"📄 Comprovante gerado: {nome_arquivo}\n\n"
+                f"Apresente o QR Code na entrada do cinema."
+            )
+            
+            # 4. Chamar o callback original se existir
             if finalizar_callback:
                 finalizar_callback()
                 
         except Exception as e:
-            print(f"Erro ao gerar comprovante: {e}")
-            messagebox.showerror("Erro", "Erro ao gerar comprovante!")
-            # Chamar callback mesmo com erro
+            print(f"Erro ao finalizar compra: {e}")
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror("Erro", f"Erro ao finalizar compra:\n{str(e)}")
+            # Chamar callback mesmo com erro (para voltar ao menu)
             if finalizar_callback:
                 finalizar_callback()
 
