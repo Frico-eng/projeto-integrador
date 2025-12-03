@@ -8,16 +8,16 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import qrcode
 import customtkinter as ctk
-from PIL import Image, ImageTk
+from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime
 from utilidades.config import *
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 from reportlab.lib.pagesizes import A5, landscape
 from reportlab.pdfgen import canvas
-from datetime import datetime
+import shutil
 
 # Importar o CRUD de ingressos
-from crud.crud_ingressos import inserir_ingresso, inserir_multiplos_ingressos, verificar_ingresso_existente
+from crud.crud_ingressos import inserir_ingresso, verificar_ingresso_existente
 
 # Definir diretórios
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -31,135 +31,424 @@ COR_BOTAO = "#F6C148"
 COR_BOTAO_HOVER = "#E2952D"
 COR_TEXTO_BOTAO = "#1C2732"
 
+# === FUNÇÃO PARA GERAR COMPROVANTE PDF ===
 def gerar_comprovante(filme, horario, assentos, preco_por_assento=25.00, logo_path="logo.png"):
+    """Gera um comprovante em PDF"""
     total = len(assentos) * preco_por_assento
-    nome_arquivo = f"Comprovante_{filme.replace(' ', '')}{datetime.now().strftime('%H%M%S')}.pdf"
+    nome_arquivo = f"Comprovante_{filme.replace(' ', '_')}_{datetime.now().strftime('%H%M%S')}.pdf"
 
-    # Usar A5 landscape (420 x 297 pontos)
     c = canvas.Canvas(nome_arquivo, pagesize=landscape(A5))
-    width, height = landscape(A5)  # 420 x 297
-
-    # Margens
-    margem_esq = 30
-    margem_dir = 30
-    largura_util = width - margem_esq - margem_dir
 
     # === LOGO DO CINEPLUS ===
     if os.path.exists(logo_path):
-        c.drawImage(logo_path, margem_esq, height - 80, width=50, height=50, mask='auto')
+        c.drawImage(logo_path, 70, 270, width=100, height=100, mask='auto')
 
     # === TÍTULO DO CINEMA ===
-    c.setFont("Helvetica-Bold", 16)
-    titulo = "🎬 CinePlus - Comprovante de Ingresso 🎬"
-    c.drawCentredString(width / 2, height - 60, titulo)
-
-    # Linha divisória
-    c.line(margem_esq, height - 75, width - margem_dir, height - 75)
+    c.setFont("Helvetica-Bold", 22)
+    c.drawCentredString(420, 350, "🎬 CinePlus - Comprovante de Ingresso 🎬")
+    c.line(50, 340, 790, 340)
 
     # === DADOS DO FILME ===
-    y_pos = height - 110
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(margem_esq, y_pos, "Detalhes da Compra:")
-    y_pos -= 25
-
-    def quebrar_texto(texto, largura_max):
-        lines = []
-        words = texto.split()
-        current_line = []
-        for word in words:
-            test_line = ' '.join(current_line + [word])
-            if c.stringWidth(test_line, "Helvetica", 10) <= largura_max:
-                current_line.append(word)
-            else:
-                if current_line:
-                    lines.append(' '.join(current_line))
-                current_line = [word]
-        if current_line:
-            lines.append(' '.join(current_line))
-        return lines
-
-    # Filme
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(margem_esq, y_pos, "Filme:")
-    c.setFont("Helvetica", 10)
-    for line in quebrar_texto(filme, largura_util - 80):
-        c.drawString(margem_esq + 50, y_pos, line)
-        y_pos -= 15
-    y_pos -= 5
-
-    # Horário
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(margem_esq, y_pos, "Horário:")
-    c.setFont("Helvetica", 10)
-    c.drawString(margem_esq + 50, y_pos, horario)
-    y_pos -= 20
-
-    # Assentos
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(margem_esq, y_pos, "Assentos:")
-    c.setFont("Helvetica", 10)
-    for line in quebrar_texto(', '.join(assentos), largura_util - 80):
-        c.drawString(margem_esq + 50, y_pos, line)
-        y_pos -= 15
-    y_pos -= 5
-
-    # Preço e total
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(margem_esq, y_pos, "Preço unitário:")
-    c.setFont("Helvetica", 10)
-    c.drawString(margem_esq + 70, y_pos, f"R$ {preco_por_assento:.2f}")
-    y_pos -= 20
-
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(margem_esq, y_pos, "Total:")
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(margem_esq + 70, y_pos, f"R$ {total:.2f}")
-    y_pos -= 25
-
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(margem_esq, y_pos, "Data da compra:")
-    c.setFont("Helvetica", 10)
-    c.drawString(margem_esq + 70, y_pos, datetime.now().strftime('%d/%m/%Y %H:%M'))
-    y_pos -= 30
-
-    # === QR CODE ===
-    conteudo_qr = (
-        f"CinePlus\nFilme: {filme}\nHorário: {horario}\n"
-        f"Assentos: {', '.join(assentos)}\nTotal: R$ {total:.2f}\n"
-        f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
-    )
-    try:
-        qr_img = qrcode.make(conteudo_qr)
-        temp_qr_path = "temp_qr_code_pdf.png"
-        qr_img.save(temp_qr_path)
-
-        # Inserir o QR code no canto direito do PDF
-        qr_size = 100
-        c.drawImage(temp_qr_path, width - margem_dir - qr_size, 60, width=qr_size, height=qr_size, mask='auto')
-
-        # Mensagem sob o QR
-        c.setFont("Helvetica-Oblique", 9)
-        c.drawCentredString(width - margem_dir - qr_size/2, 50, "Apresente este QR Code na entrada")
-
-        # Excluir QR temporário após salvar
-        os.remove(temp_qr_path)
-    except Exception as e:
-        print(f"Erro ao gerar QR code: {e}")
+    c.setFont("Helvetica", 14)
+    c.drawString(100, 290, f"Filme: {filme}")
+    c.drawString(100, 260, f"Horário: {horario}")
+    c.drawString(100, 230, f"Assentos: {', '.join(assentos)}")
+    c.drawString(100, 200, f"Preço por assento: R$ {preco_por_assento:.2f}")
+    c.drawString(100, 170, f"Total: R$ {total:.2f}")
+    c.drawString(100, 140, f"Data da compra: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
     # === RODAPÉ ===
-    rodape_y = 40
-    c.setFont("Helvetica-Oblique", 9)
-    c.drawCentredString(width / 2, rodape_y, "Agradecemos sua preferência! Bom filme! 🍿")
-
-    # Linha final
-    c.line(margem_esq, 30, width - margem_dir, 30)
+    c.setFont("Helvetica-Oblique", 12)
+    c.drawCentredString(420, 110, "Apresente este comprovante na entrada da sessão.")
+    c.drawCentredString(420, 90, "Agradecemos sua preferência! Bom filme! 🍿")
 
     c.save()
     return nome_arquivo
 
+# === FUNÇÃO PARA GERAR IMAGEM DO COMPROVANTE ===
+def gerar_imagem_comprovante(filme, horario, assentos, preco_por_assento=25.00, tamanho=(400, 280)):
+    """
+    Gera uma imagem PNG do comprovante para exibir na interface
+    
+    Args:
+        filme: Nome do filme
+        horario: Horário da sessão
+        assentos: Lista de assentos
+        preco_por_assento: Preço por ingresso
+        tamanho: Tamanho da imagem (largura, altura)
+    
+    Returns:
+        CTkImage: Imagem do comprovante
+    """
+    try:
+        total = len(assentos) * preco_por_assento
+        
+        # Criar uma imagem em branco
+        largura, altura = tamanho
+        img = Image.new('RGB', (largura, altura), color='#FFFFFF')
+        draw = ImageDraw.Draw(img)
+        
+        # Tentar carregar fontes
+        try:
+            # Tentar fontes comuns do Windows
+            font_paths = [
+                "arial.ttf",
+                "C:/Windows/Fonts/arial.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                "/System/Library/Fonts/Helvetica.ttc"
+            ]
+            
+            font_titulo = None
+            for path in font_paths:
+                try:
+                    font_titulo = ImageFont.truetype(path, 18)
+                    break
+                except:
+                    continue
+            
+            if font_titulo is None:
+                font_titulo = ImageFont.load_default()
+                
+            font_normal = ImageFont.truetype("arial.ttf", 14) if os.path.exists("arial.ttf") else ImageFont.load_default()
+            font_pequena = ImageFont.truetype("arial.ttf", 11) if os.path.exists("arial.ttf") else ImageFont.load_default()
+            
+        except:
+            # Usar fonte padrão se não encontrar outras
+            font_titulo = ImageFont.load_default()
+            font_normal = ImageFont.load_default()
+            font_pequena = ImageFont.load_default()
+        
+        # Cores
+        cor_titulo = "#000000"
+        cor_texto = "#333333"
+        cor_destaque = "#F6C148"
+        cor_fundo = "#F8F8F8"
+        cor_sucesso = "#27AE60"
+        
+        # Desenhar fundo com bordas arredondadas
+        draw.rectangle([(0, 0), (largura, altura)], fill=cor_fundo, outline="#DDDDDD", width=2)
+        
+        # Cabeçalho com cor de destaque
+        draw.rectangle([(0, 0), (largura, 50)], fill=cor_destaque)
+        
+        # Título centralizado
+        titulo_texto = "🎬 CinePlus - Comprovante 🎬"
+        bbox = draw.textbbox((0, 0), titulo_texto, font=font_titulo)
+        text_width = bbox[2] - bbox[0]
+        text_x = (largura - text_width) // 2
+        draw.text((text_x, 25), titulo_texto, fill=cor_titulo, font=font_titulo, anchor="mm")
+        
+        # Informações da compra
+        y_pos = 70
+        espacamento = 28
+        
+        # Filme (pode ser truncado se muito longo)
+        filme_display = filme[:25] + "..." if len(filme) > 25 else filme
+        draw.text((20, y_pos), "🎬 Filme:", fill="#000000", font=font_normal)
+        draw.text((120, y_pos), f"{filme_display}", fill=cor_texto, font=font_normal)
+        y_pos += espacamento
+        
+        # Horário
+        draw.text((20, y_pos), "🕒 Horário:", fill="#000000", font=font_normal)
+        draw.text((120, y_pos), f"{horario}", fill=cor_texto, font=font_normal)
+        y_pos += espacamento
+        
+        # Assentos (pode ser truncado se muitos)
+        assentos_texto = ', '.join(assentos)
+        if len(assentos_texto) > 20:
+            assentos_texto = assentos_texto[:20] + "..."
+        draw.text((20, y_pos), "💺 Assentos:", fill="#000000", font=font_normal)
+        draw.text((120, y_pos), f"{assentos_texto}", fill=cor_texto, font=font_normal)
+        y_pos += espacamento
+        
+        # Preço unitário
+        draw.text((20, y_pos), "💰 Unitário:", fill="#000000", font=font_normal)
+        draw.text((120, y_pos), f"R$ {preco_por_assento:.2f}", fill=cor_texto, font=font_normal)
+        y_pos += espacamento
+        
+        # Total (em destaque)
+        draw.text((20, y_pos), "💵 Total:", fill="#000000", font=font_normal)
+        draw.text((120, y_pos), f"R$ {total:.2f}", fill=cor_sucesso, font=font_normal)
+        y_pos += espacamento + 10
+        
+        # Linha divisória
+        draw.line([(20, y_pos), (largura-20, y_pos)], fill="#CCCCCC", width=2)
+        y_pos += 20
+        
+        # Data da compra
+        data_atual = datetime.now().strftime('%d/%m/%Y %H:%M')
+        draw.text((largura//2, y_pos), f"📅 {data_atual}", 
+                 fill="#666666", font=font_pequena, anchor="mm")
+        y_pos += 25
+        
+        # Rodapé
+        draw.text((largura//2, altura-25), "Apresente este QR Code na entrada", 
+                 fill="#666666", font=font_pequena, anchor="mm")
+        
+        # Converter para CTkImage
+        imagem_ctk = ctk.CTkImage(img, size=tamanho)
+        return imagem_ctk
+        
+    except Exception as e:
+        print(f"Erro ao gerar imagem do comprovante: {e}")
+        # Retornar uma imagem de fallback simples
+        img_fallback = Image.new('RGB', tamanho, color='#F8F8F8')
+        draw = ImageDraw.Draw(img_fallback)
+        draw.rectangle([(0, 0), (largura, altura)], outline="#DDDDDD", width=2)
+        
+        # Texto de fallback
+        bbox = draw.textbbox((0, 0), "Comprovante Gerado", font=ImageFont.load_default())
+        text_width = bbox[2] - bbox[0]
+        text_x = (largura - text_width) // 2
+        text_y = altura // 2
+        
+        draw.text((text_x, text_y), "Comprovante Gerado", 
+                 fill="#666666", font=ImageFont.load_default(), anchor="mm")
+        
+        return ctk.CTkImage(img_fallback, size=tamanho)
+
+# === FUNÇÃO PARA VISUALIZAR COMPROVANTE EM TELA CHEIA ===
+def visualizar_comprovante_tela_cheia(parent, caminho_pdf, dados_compra):
+    """
+    Abre uma janela modal para visualizar o comprovante
+    
+    Args:
+        parent: Janela/Frame pai
+        caminho_pdf: Caminho do arquivo PDF
+        dados_compra: Dados da compra para recriar visualização
+    """
+    # Criar janela modal
+    janela_pdf = ctk.CTkToplevel(parent)
+    janela_pdf.title("Visualizar Comprovante")
+    janela_pdf.geometry("900x700")
+    janela_pdf.resizable(True, True)
+    janela_pdf.transient(parent)
+    janela_pdf.grab_set()
+    
+    # Centralizar na tela
+    parent_x = parent.winfo_rootx()
+    parent_y = parent.winfo_rooty()
+    parent_width = parent.winfo_width()
+    parent_height = parent.winfo_height()
+    
+    janela_width = 900
+    janela_height = 700
+    
+    x = parent_x + (parent_width - janela_width) // 2
+    y = parent_y + (parent_height - janela_height) // 2
+    
+    janela_pdf.geometry(f"{janela_width}x{janela_height}+{x}+{y}")
+    
+    # Configurar layout
+    janela_pdf.configure(fg_color=COR_FUNDO)
+    
+    # Frame principal
+    frame_principal = ctk.CTkFrame(janela_pdf, fg_color=COR_FUNDO)
+    frame_principal.pack(fill="both", expand=True, padx=20, pady=20)
+    
+    # Título
+    ctk.CTkLabel(
+        frame_principal,
+        text="📄 Comprovante de Compra - CinePlus",
+        font=("Arial", 24, "bold"),
+        text_color=COR_DESTAQUE
+    ).pack(pady=(0, 20))
+    
+    # Frame para conteúdo do comprovante
+    frame_comprovante = ctk.CTkFrame(frame_principal, fg_color="#FFFFFF", corner_radius=15)
+    frame_comprovante.pack(fill="both", expand=True, padx=10, pady=10)
+    
+    # Criar uma visualização detalhada do comprovante
+    try:
+        # Extrair dados da compra
+        filme = dados_compra.get("filme", {}).get("Titulo_Filme", "Filme não especificado")
+        horario = dados_compra.get("sessao", {}).get("Hora_Sessao", "Horário não especificado")
+        assentos = dados_compra.get("assentos", [])
+        preco = dados_compra.get("preco_unitario", 25.00)
+        total = dados_compra.get("total", len(assentos) * preco)
+        
+        # Formatar horário
+        if isinstance(horario, datetime):
+            horario_texto = horario.strftime('%H:%M')
+        else:
+            horario_texto = str(horario)
+        
+        # Gerar imagem maior do comprovante
+        imagem_comprovante = gerar_imagem_comprovante(
+            filme, 
+            horario_texto, 
+            assentos, 
+            preco, 
+            tamanho=(800, 500)
+        )
+        
+        # Exibir imagem
+        label_imagem = ctk.CTkLabel(
+            frame_comprovante, 
+            image=imagem_comprovante,
+            text="",
+            fg_color="#FFFFFF"
+        )
+        label_imagem.image = imagem_comprovante
+        label_imagem.pack(pady=20, padx=20)
+        
+    except Exception as e:
+        print(f"Erro ao criar visualização: {e}")
+        ctk.CTkLabel(
+            frame_comprovante,
+            text="✅ Comprovante Gerado com Sucesso!",
+            font=("Arial", 18, "bold"),
+            text_color="#27AE60",
+            fg_color="#FFFFFF"
+        ).pack(pady=50)
+        
+        ctk.CTkLabel(
+            frame_comprovante,
+            text=f"Arquivo: {os.path.basename(caminho_pdf)}",
+            font=("Arial", 14),
+            text_color="#333333",
+            fg_color="#FFFFFF"
+        ).pack(pady=10)
+    
+    # Informações do arquivo
+    info_frame = ctk.CTkFrame(frame_principal, fg_color="transparent")
+    info_frame.pack(fill="x", pady=(15, 10))
+    
+    ctk.CTkLabel(
+        info_frame,
+        text=f"📁 Arquivo salvo em: {os.path.abspath(caminho_pdf)}",
+        font=("Arial", 12),
+        text_color=COR_TEXTO,
+        wraplength=800
+    ).pack(pady=5)
+    
+    ctk.CTkLabel(
+        info_frame,
+        text="💡 Dica: Salve ou imprima este comprovante para apresentar na entrada do cinema",
+        font=("Arial", 11, "italic"),
+        text_color="#95a5a6"
+    ).pack(pady=5)
+    
+    # Frame para botões
+    frame_botoes = ctk.CTkFrame(frame_principal, fg_color="transparent")
+    frame_botoes.pack(pady=20)
+    
+    def abrir_pdf_externo():
+        """Abre o PDF no visualizador padrão do sistema"""
+        try:
+            if os.path.exists(caminho_pdf):
+                if sys.platform == "win32":
+                    os.startfile(caminho_pdf)
+                elif sys.platform == "darwin":  # macOS
+                    os.system(f"open '{caminho_pdf}'")
+                else:  # Linux
+                    os.system(f"xdg-open '{caminho_pdf}'")
+            else:
+                messagebox.showwarning("Atenção", f"Arquivo não encontrado:\n{caminho_pdf}")
+        except Exception as e:
+            messagebox.showerror("Erro", f"Não foi possível abrir o PDF:\n{str(e)}")
+    
+    def salvar_como():
+        """Permite ao usuário escolher onde salvar o PDF"""
+        arquivo_destino = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
+            initialfile=os.path.basename(caminho_pdf)
+        )
+        
+        if arquivo_destino:
+            try:
+                shutil.copy2(caminho_pdf, arquivo_destino)
+                messagebox.showinfo("Sucesso", f"✅ PDF salvo em:\n{arquivo_destino}")
+            except Exception as e:
+                messagebox.showerror("Erro", f"❌ Erro ao salvar arquivo:\n{str(e)}")
+    
+    def imprimir_comprovante():
+        """Opção para imprimir o comprovante"""
+        try:
+            if os.path.exists(caminho_pdf):
+                resposta = messagebox.askyesno(
+                    "Imprimir", 
+                    f"Deseja imprimir o comprovante?\n\n"
+                    f"O arquivo será aberto no visualizador padrão de PDF,\n"
+                    f"onde você pode usar a opção de impressão."
+                )
+                
+                if resposta:
+                    abrir_pdf_externo()
+            else:
+                messagebox.showwarning("Atenção", "Arquivo PDF não encontrado")
+        except Exception as e:
+            messagebox.showerror("Erro", f"Erro ao imprimir:\n{str(e)}")
+    
+    def enviar_por_email():
+        """Simula envio por email"""
+        messagebox.showinfo(
+            "Enviar por Email", 
+            "Funcionalidade de email será implementada em breve.\n\n"
+            "Por enquanto, use a opção 'Salvar Como' para guardar seu comprovante."
+        )
+    
+    # Botões em linha
+    ctk.CTkButton(
+        frame_botoes,
+        text="🔓 Abrir PDF",
+        command=abrir_pdf_externo,
+        font=("Arial", 14),
+        fg_color="#3498db",
+        hover_color="#2980b9",
+        width=140,
+        height=40
+    ).pack(side="left", padx=5)
+    
+    ctk.CTkButton(
+        frame_botoes,
+        text="💾 Salvar Como",
+        command=salvar_como,
+        font=("Arial", 14),
+        fg_color="#27ae60",
+        hover_color="#219653",
+        width=140,
+        height=40
+    ).pack(side="left", padx=5)
+    
+    ctk.CTkButton(
+        frame_botoes,
+        text="🖨️ Imprimir",
+        command=imprimir_comprovante,
+        font=("Arial", 14),
+        fg_color="#9b59b6",
+        hover_color="#8e44ad",
+        width=120,
+        height=40
+    ).pack(side="left", padx=5)
+    
+    ctk.CTkButton(
+        frame_botoes,
+        text="📧 Enviar Email",
+        command=enviar_por_email,
+        font=("Arial", 14),
+        fg_color="#e67e22",
+        hover_color="#d35400",
+        width=140,
+        height=40
+    ).pack(side="left", padx=5)
+    
+    ctk.CTkButton(
+        frame_botoes,
+        text="✖️ Fechar",
+        command=janela_pdf.destroy,
+        font=("Arial", 14),
+        fg_color="#7f8c8d",
+        hover_color="#6c7a7d",
+        width=100,
+        height=40
+    ).pack(side="left", padx=5)
+
+# === FUNÇÃO PARA INSERIR INGRESSOS NO BANCO ===
 def inserir_ingressos_no_banco(dados_compra):
     """
-    Insere os ingressos no banco de dados
+    Insere os ingressos no banco de dados usando a função inserir_ingresso
     
     Args:
         dados_compra: dicionário com todas as informações da compra
@@ -202,8 +491,8 @@ def inserir_ingressos_no_banco(dados_compra):
         
         print(f"DEBUG: Mapa de assentos: {mapa_assentos}")
         
-        # Preparar lista de ingressos para inserção
-        ingressos_para_inserir = []
+        # Lista para armazenar confirmações
+        ingressos_inseridos = []
         assentos_nao_encontrados = []
         
         for codigo_assento in assentos:
@@ -212,10 +501,15 @@ def inserir_ingressos_no_banco(dados_compra):
             if id_assento_sessao:
                 # Verificar se o ingresso já existe
                 if not verificar_ingresso_existente(id_sessao, id_assento_sessao):
-                    ingressos_para_inserir.append(
-                        (id_sessao, id_cliente, id_assento_sessao, preco_unit)
-                    )
-                    print(f"DEBUG: Preparado ingresso para assento {codigo_assento} (ID: {id_assento_sessao})")
+                    # Inserir cada ingresso individualmente
+                    sucesso = inserir_ingresso(id_sessao, id_cliente, id_assento_sessao, preco_unit)
+                    
+                    if sucesso:
+                        print(f"DEBUG: Ingresso inserido para assento {codigo_assento}")
+                        ingressos_inseridos.append(codigo_assento)
+                    else:
+                        print(f"ERRO: Falha ao inserir ingresso para assento {codigo_assento}")
+                        return False, f"Falha ao reservar assento {codigo_assento}"
                 else:
                     print(f"AVISO: Ingresso já existe para assento {codigo_assento}")
                     return False, f"Assento {codigo_assento} já possui ingresso vendido"
@@ -226,19 +520,11 @@ def inserir_ingressos_no_banco(dados_compra):
         if assentos_nao_encontrados:
             return False, f"Assentos não encontrados: {', '.join(assentos_nao_encontrados)}"
         
-        if not ingressos_para_inserir:
+        if not ingressos_inseridos:
             return False, "Nenhum ingresso válido para inserir"
         
-        # Inserir múltiplos ingressos
-        print(f"DEBUG: Inserindo {len(ingressos_para_inserir)} ingressos...")
-        ids_ingressos = inserir_multiplos_ingressos(ingressos_para_inserir)
-        
-        if ids_ingressos:
-            print(f"DEBUG: Ingressos inseridos com sucesso! IDs: {ids_ingressos}")
-            return True, ids_ingressos
-        else:
-            print("ERRO: Falha ao inserir ingressos no banco")
-            return False, "Erro ao inserir ingressos no banco de dados"
+        print(f"DEBUG: {len(ingressos_inseridos)} ingressos inseridos com sucesso!")
+        return True, ingressos_inseridos
             
     except Exception as e:
         print(f"ERRO: Exceção ao inserir ingressos: {e}")
@@ -246,6 +532,7 @@ def inserir_ingressos_no_banco(dados_compra):
         traceback.print_exc()
         return False, f"Erro interno: {str(e)}"
 
+# === FUNÇÃO PRINCIPAL PARA MOSTRAR CONFIRMAÇÃO DE PAGAMENTO ===
 def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=None):
     """
     Mostra a tela de confirmação de pagamento dentro de um frame existente
@@ -279,15 +566,13 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
     # Obter título do filme
     titulo_filme = filme_obj.get("Titulo_Filme") or filme_obj.get("titulo") or "Filme não especificado"
     
-    # CORREÇÃO: Extrair horário de forma mais robusta
+    # Extrair horário de forma robusta
     horario = "Horário não especificado"
     
     # Tentar extrair horário da sessão
     if sessao_obj:
-        # Se a sessão tem Hora_Sessao (do banco)
         if sessao_obj.get('Hora_Sessao'):
             horario = str(sessao_obj['Hora_Sessao'])[:5]  # Formata para HH:MM
-        # Se a sessão tem horario_selecionado (do catálogo)
         elif sessao_obj.get('horario_selecionado'):
             horario = sessao_obj['horario_selecionado']
     
@@ -313,11 +598,8 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
     print(f"  - Preço unitário: R$ {preco_unit:.2f}")
     print(f"  - Total: R$ {total:.2f}")
     
-    # DEBUG: Mostrar estrutura completa do dados_compra
-    print(f"DEBUG: Estrutura completa do dados_compra:")
-    print(f"  - Filme: {filme_obj}")
-    print(f"  - Sessao: {sessao_obj}")
-    print(f"  - Sala: {sala_obj}")
+    # Variável para armazenar o caminho do PDF gerado
+    pdf_gerado = None
 
     # ====== CONFIGURAR FRAME PRINCIPAL ======
     frame = ctk.CTkFrame(parent, fg_color=COR_FUNDO, width=1800, height=900)
@@ -345,8 +627,8 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
         fg_color="#2b2b2b",
         bg_color="transparent",
         corner_radius=15,
-        width=800,
-        height=700
+        width=1100,  # Aumentado para caber mais conteúdo
+        height=800
     )
     container_principal.place(relx=0.5, rely=0.5, anchor="center")
     container_principal.pack_propagate(False)
@@ -358,14 +640,14 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
     ctk.CTkLabel(
         header_frame,
         text="✅ Pagamento Confirmado!",
-        font=("Arial", 24, "bold"),
+        font=("Arial", 28, "bold"),
         text_color="#27AE60"
     ).pack(pady=10)
 
     ctk.CTkLabel(
         header_frame,
         text="Seu ingresso foi reservado com sucesso",
-        font=("Arial", 16),
+        font=("Arial", 18),
         text_color=COR_TEXTO
     ).pack()
 
@@ -381,9 +663,9 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
     ctk.CTkLabel(
         info_frame,
         text="📋 Detalhes da Compra",
-        font=("Arial", 18, "bold"),
+        font=("Arial", 20, "bold"),
         text_color=COR_DESTAQUE
-    ).pack(anchor="w", pady=(0, 15))
+    ).pack(anchor="w", pady=(0, 20))
 
     # Construir lista de informações
     informacoes = [
@@ -404,50 +686,61 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
 
     for label, valor in informacoes:
         linha_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
-        linha_frame.pack(fill="x", pady=8)
+        linha_frame.pack(fill="x", pady=10)
 
         ctk.CTkLabel(
             linha_frame, 
             text=label, 
-            font=("Arial", 14, "bold"),
+            font=("Arial", 16, "bold"),
             text_color=COR_TEXTO, 
-            width=150, 
+            width=180, 
             anchor="w"
         ).pack(side="left")
 
         ctk.CTkLabel(
             linha_frame, 
             text=valor, 
-            font=("Arial", 14),
+            font=("Arial", 16),
             text_color=COR_TEXTO, 
-            anchor="w"
+            anchor="w",
+            wraplength=400
         ).pack(side="left", fill="x", expand=True)
 
     # Espaçamento
-    ctk.CTkLabel(info_frame, text="", height=20).pack()
+    ctk.CTkLabel(info_frame, text="", height=30).pack()
 
     # Instruções
     ctk.CTkLabel(
         info_frame,
-        text="📱 Apresente este QR code na entrada do cinema",
-        font=("Arial", 14, "bold"),
+        text="📱 Apresente o QR Code na entrada do cinema",
+        font=("Arial", 16, "bold"),
         text_color=COR_DESTAQUE,
         justify="left",
         wraplength=400
     ).pack(anchor="w", pady=10)
 
-    # ====== LADO DIREITO: QR CODE ======
-    qr_frame = ctk.CTkFrame(content_frame, fg_color="transparent", width=300)
-    qr_frame.pack(side="right", fill="y", padx=(20, 0))
-    qr_frame.pack_propagate(False)
+    ctk.CTkLabel(
+        info_frame,
+        text="💡 Clique em 'Finalizar Compra' para gerar seu comprovante",
+        font=("Arial", 14),
+        text_color="#95a5a6",
+        justify="left",
+        wraplength=400
+    ).pack(anchor="w", pady=5)
 
-    # Subframe centralizado para QR code e textos
-    qr_inner_frame = ctk.CTkFrame(qr_frame, fg_color="transparent")
-    qr_inner_frame.place(relx=0.5, rely=0.5, anchor="center")
+    # ====== LADO DIREITO: QR CODE E MINIATURA COMPROVANTE ======
+    lado_direito_frame = ctk.CTkFrame(content_frame, fg_color="transparent", width=400)
+    lado_direito_frame.pack(side="right", fill="y", padx=(20, 0))
+    lado_direito_frame.pack_propagate(False)
+
+    # Frame para QR Code
+    qr_frame = ctk.CTkFrame(lado_direito_frame, fg_color="transparent")
+    qr_frame.pack(fill="x", pady=(0, 20))
 
     # Gerar QR Code
     conteudo = (
-        f"COMPRA CINEPLUS\nFilme: {titulo_filme}\n"
+        f"CINEPLUS COMPRA\n"
+        f"Filme: {titulo_filme}\n"
         f"Horário: {horario}\n"
         f"Sala: {nome_sala}\n"
         f"Assentos: {', '.join(assentos)}\n"
@@ -464,32 +757,79 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
         img = Image.open(qr_img_path).resize((280, 280))
         qr_photo = ctk.CTkImage(img, size=(280, 280))
         
-        qr_label = ctk.CTkLabel(qr_inner_frame, image=qr_photo, text="")
+        qr_label = ctk.CTkLabel(qr_frame, image=qr_photo, text="")
         qr_label.image = qr_photo
-        qr_label.pack(pady=10)
+        qr_label.pack()
 
         ctk.CTkLabel(
-            qr_inner_frame,
+            qr_frame,
             text="QR Code do Ingresso",
             font=("Arial", 16, "bold"),
             text_color=COR_TEXTO
-        ).pack(pady=10)
+        ).pack(pady=5)
 
     except Exception as e:
         print(f"Erro ao carregar QR code: {e}")
         ctk.CTkLabel(
-            qr_inner_frame,
+            qr_frame,
             text="Erro ao gerar QR Code",
             font=("Arial", 14),
             text_color="#e74c3c"
-        ).pack(pady=50)
+        ).pack(pady=20)
 
-    # ====== BOTÃO FINALIZAR ======
+    # Frame para visualização do comprovante (miniatura)
+    pdf_frame = ctk.CTkFrame(lado_direito_frame, fg_color="#1a1a1a", corner_radius=10)
+    pdf_frame.pack(fill="both", expand=True)
+
+    ctk.CTkLabel(
+        pdf_frame,
+        text="📄 Comprovante",
+        font=("Arial", 16, "bold"),
+        text_color=COR_DESTAQUE
+    ).pack(pady=15)
+
+    # Placeholder para miniatura do comprovante
+    pdf_miniatura_label = ctk.CTkLabel(
+        pdf_frame,
+        text="O comprovante será gerado após finalizar a compra",
+        font=("Arial", 12, "italic"),
+        text_color="#95a5a6",
+        wraplength=350,
+        height=180
+    )
+    pdf_miniatura_label.pack(expand=True, pady=10, padx=10)
+
+    # Função para atualizar a miniatura do comprovante
+    def atualizar_miniatura_comprovante():
+        """Atualiza a miniatura do comprovante na tela"""
+        # Extrair dados para gerar a imagem
+        horario_texto = str(horario)[:5] if ":" in str(horario) else horario
+        
+        # Gerar imagem do comprovante
+        imagem_comprovante = gerar_imagem_comprovante(
+            titulo_filme, 
+            horario_texto, 
+            assentos, 
+            preco_por_assento=preco_unit, 
+            tamanho=(350, 200)
+        )
+        
+        if imagem_comprovante:
+            pdf_miniatura_label.configure(
+                image=imagem_comprovante, 
+                text="",
+                height=200
+            )
+            pdf_miniatura_label.image = imagem_comprovante
+
+    # ====== BOTÕES DE AÇÃO ======
     btn_frame = ctk.CTkFrame(container_principal, fg_color="transparent")
     btn_frame.pack(fill="x", pady=30, padx=40)
 
     def finalizar_com_comprovante():
-        """Gera comprovante, insere no banco e chama callback"""
+        """Gera comprovante, insere no banco e atualiza a interface"""
+        nonlocal pdf_gerado
+        
         try:
             # 1. Primeiro inserir no banco
             print("DEBUG: Inserindo ingressos no banco...")
@@ -501,48 +841,94 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
             
             # 2. Gerar comprovante PDF
             print("DEBUG: Gerando comprovante...")
-            nome_arquivo = gerar_comprovante(
+            horario_texto = str(horario)[:5] if ":" in str(horario) else horario
+            pdf_gerado = gerar_comprovante(
                 titulo_filme, 
-                horario, 
+                horario_texto, 
                 assentos, 
                 preco_por_assento=preco_unit, 
                 logo_path="logo.png"
             )
             
-            # 3. Mostrar mensagem de sucesso
+            # 3. Atualizar miniatura do comprovante
+            atualizar_miniatura_comprovante()
+            
+            # 4. Atualizar botões
+            btn_finalizar.configure(state="disabled", text="✅ Compra Finalizada")
+            btn_visualizar_pdf.configure(state="normal")
+            
+            # 5. Mostrar mensagem de sucesso
             messagebox.showinfo(
-                "Sucesso", 
+                "✅ Sucesso", 
                 f"Compra finalizada com sucesso!\n\n"
-                f"✅ Ingressos registrados no sistema\n"
-                f"📄 Comprovante gerado: {nome_arquivo}\n\n"
-                f"Apresente o QR Code na entrada do cinema."
+                f"• {len(assentos)} ingressos registrados\n"
+                f"• Comprovante gerado: {os.path.basename(pdf_gerado)}\n\n"
+                f"Clique em 'Visualizar Comprovante' para ver detalhes."
             )
             
-            # 4. Chamar o callback original se existir
-            if finalizar_callback:
-                finalizar_callback()
-                
         except Exception as e:
             print(f"Erro ao finalizar compra: {e}")
             import traceback
             traceback.print_exc()
             messagebox.showerror("Erro", f"Erro ao finalizar compra:\n{str(e)}")
-            # Chamar callback mesmo com erro (para voltar ao menu)
-            if finalizar_callback:
-                finalizar_callback()
 
-    ctk.CTkButton(
+    def visualizar_comprovante():
+        """Abre o comprovante para visualização"""
+        if pdf_gerado and os.path.exists(pdf_gerado):
+            visualizar_comprovante_tela_cheia(frame, pdf_gerado, dados_compra)
+        else:
+            messagebox.showwarning("Atenção", "Por favor, finalize a compra primeiro para gerar o comprovante.")
+
+    def voltar_menu():
+        """Volta ao menu principal"""
+        if finalizar_callback:
+            finalizar_callback()
+
+    # Botão para finalizar compra (gerar PDF)
+    btn_finalizar = ctk.CTkButton(
         btn_frame,
-        text="Finalizar Compra",
+        text="✅ Finalizar Compra e Gerar Comprovante",
         command=finalizar_com_comprovante,
         font=("Arial", 16, "bold"),
         fg_color=COR_BOTAO,
         hover_color=COR_BOTAO_HOVER,
         text_color=COR_TEXTO_BOTAO,
-        height=45,
+        height=50,
+        width=300,
+        corner_radius=10
+    )
+    btn_finalizar.pack(side="left", padx=10)
+
+    # Botão para visualizar comprovante (inicialmente desabilitado)
+    btn_visualizar_pdf = ctk.CTkButton(
+        btn_frame,
+        text="📄 Visualizar Comprovante",
+        command=visualizar_comprovante,
+        font=("Arial", 16, "bold"),
+        fg_color="#3498db",
+        hover_color="#2980b9",
+        text_color=COR_TEXTO,
+        height=50,
+        width=250,
+        corner_radius=10,
+        state="disabled"  # Inicialmente desabilitado
+    )
+    btn_visualizar_pdf.pack(side="left", padx=10)
+
+    # Botão para voltar ao menu
+    btn_voltar = ctk.CTkButton(
+        btn_frame,
+        text="🏠 Voltar ao Menu",
+        command=voltar_menu,
+        font=("Arial", 16, "bold"),
+        fg_color="#7f8c8d",
+        hover_color="#6c7a7d",
+        text_color=COR_TEXTO,
+        height=50,
         width=200,
         corner_radius=10
-    ).pack(pady=10)
+    )
+    btn_voltar.pack(side="left", padx=10)
 
     # Configurar fullscreen
     parent.master.attributes('-fullscreen', True)
