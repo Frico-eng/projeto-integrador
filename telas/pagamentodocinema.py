@@ -2,8 +2,6 @@ import sys
 import os
 import threading
 import time
-
-# Adiciona o diretório pai ao Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import qrcode
@@ -12,11 +10,9 @@ from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime
 from utilidades.config import *
 from tkinter import messagebox, filedialog
-from reportlab.lib.pagesizes import A5, landscape
+from reportlab.lib.pagesizes import A5, portrait
 from reportlab.pdfgen import canvas
 import shutil
-
-# Importar o CRUD de ingressos
 from crud.crud_ingressos import inserir_ingresso, verificar_ingresso_existente
 
 # Definir diretórios
@@ -32,54 +28,132 @@ COR_BOTAO_HOVER = "#E2952D"
 COR_TEXTO_BOTAO = "#1C2732"
 
 # === FUNÇÃO PARA GERAR COMPROVANTE PDF ===
+# === FUNÇÃO PARA GERAR COMPROVANTE PDF COM QR CODE ===
 def gerar_comprovante(filme, horario, assentos, preco_por_assento=25.00, logo_path="logo.png"):
-    """Gera um comprovante em PDF"""
     total = len(assentos) * preco_por_assento
     nome_arquivo = f"Comprovante_{filme.replace(' ', '_')}_{datetime.now().strftime('%H%M%S')}.pdf"
-
-    c = canvas.Canvas(nome_arquivo, pagesize=landscape(A5))
-
+    c = canvas.Canvas(nome_arquivo, pagesize=portrait(A5))
+    
+    # Dimensões da página A5 em portrait
+    largura, altura = portrait(A5)
+    
+    # === GERAR QR CODE ===
+    try:
+        # Conteúdo do QR Code
+        conteudo_qr = (
+            f"CINEPLUS - COMPROVANTE\n"
+            f"Filme: {filme}\n"
+            f"Horário: {horario}\n"
+            f"Assentos: {', '.join(assentos)}\n"
+            f"Quantidade: {len(assentos)}\n"
+            f"Total: R$ {total:.2f}\n"
+            f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n"
+            f"ID: {datetime.now().strftime('%Y%m%d%H%M%S')}"
+        )
+        
+        # Gerar QR Code
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(conteudo_qr)
+        qr.make(fit=True)
+        
+        # Criar imagem do QR Code
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Salvar temporariamente
+        qr_temp_path = f"temp_qr_{datetime.now().strftime('%H%M%S')}.png"
+        qr_img.save(qr_temp_path)
+        
+    except Exception as e:
+        print(f"Erro ao gerar QR Code: {e}")
+        qr_temp_path = None
+    
     # === LOGO DO CINEPLUS ===
     if os.path.exists(logo_path):
-        c.drawImage(logo_path, 70, 270, width=100, height=100, mask='auto')
-
+        c.drawImage(logo_path, 70, 420, width=80, height=80, mask='auto')
+    
+    # === QR CODE (lado direito) ===
+    if qr_temp_path and os.path.exists(qr_temp_path):
+        c.drawImage(qr_temp_path, 165, 180, width=100, height=100, mask='auto')
+        # Remover arquivo temporário após uso
+        try:
+            os.remove(qr_temp_path)
+        except:
+            pass
+    
     # === TÍTULO DO CINEMA ===
-    c.setFont("Helvetica-Bold", 22)
-    c.drawCentredString(420, 350, "🎬 CinePlus - Comprovante de Ingresso 🎬")
-    c.line(50, 340, 790, 340)
-
+    c.setFont("Helvetica-Bold", 18)
+    c.drawCentredString(largura/2, 550, "🎬 CinePlus - Comprovante de Ingresso 🎬")
+    c.line(10, 530, largura-10, 530)
+    
+    # === LINHA DE CÓDIGO ===
+    c.setFont("Helvetica", 10)
+    codigo = f"REF: {datetime.now().strftime('%Y%m%d%H%M%S')}"
+    c.drawCentredString(largura/2, 510, codigo)
+    
     # === DADOS DO FILME ===
     c.setFont("Helvetica", 14)
-    c.drawString(100, 290, f"Filme: {filme}")
-    c.drawString(100, 260, f"Horário: {horario}")
-    c.drawString(100, 230, f"Assentos: {', '.join(assentos)}")
-    c.drawString(100, 200, f"Preço por assento: R$ {preco_por_assento:.2f}")
-    c.drawString(100, 170, f"Total: R$ {total:.2f}")
-    c.drawString(100, 140, f"Data da compra: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-
-    # === RODAPÉ ===
+    
+    # Filme (com quebra de linha se necessário)
+    filme_texto = f"Filme: {filme}"
+    if len(filme_texto) > 40:
+        c.setFont("Helvetica", 12)
+    c.drawCentredString(largura/2, 480, filme_texto)
+    c.setFont("Helvetica", 14)
+    
+    c.drawCentredString(largura/2, 455, f"Horário: {horario}")
+    
+    # Assentos (com tratamento para muitos assentos)
+    assentos_texto = f"Assentos: {', '.join(assentos)}"
+    if len(assentos_texto) > 50:
+        c.setFont("Helvetica", 12)
+        # Dividir em duas linhas se necessário
+        if len(assentos_texto) > 100:
+            metade = len(assentos) // 2
+            linha1 = ', '.join(assentos[:metade])
+            linha2 = ', '.join(assentos[metade:])
+            c.drawCentredString(largura/2, 430, f"Assentos: {linha1}")
+            c.drawCentredString(largura/2, 410, linha2)
+        else:
+            c.drawCentredString(largura/2, 430, assentos_texto)
+        c.setFont("Helvetica", 14)
+    else:
+        c.drawCentredString(largura/2, 430, assentos_texto)
+    
+    y_pos = 400 if len(assentos_texto) <= 50 else 390
+    
+    c.drawCentredString(largura/2, y_pos, f"Preço por assento: R$ {preco_por_assento:.2f}")
+    c.drawCentredString(largura/2, y_pos-25, f"Total: R$ {total:.2f}")
+    
+    data_compra = datetime.now().strftime('%d/%m/%Y %H:%M')
+    c.drawCentredString(largura/2, y_pos-50, f"Data da compra: {data_compra}")
+    
+    # === RODAPÉ COM INFORMAÇÕES DO QR CODE ===
+    c.setFont("Helvetica-Oblique", 10)
+    c.drawCentredString(largura/2, 280, "Use o QR Code para validação rápida na entrada")
+    
     c.setFont("Helvetica-Oblique", 12)
-    c.drawCentredString(420, 110, "Apresente este comprovante na entrada da sessão.")
-    c.drawCentredString(420, 90, "Agradecemos sua preferência! Bom filme! 🍿")
-
+    c.drawCentredString(largura/2, 120, "Apresente este comprovante na entrada da sessão.")
+    c.drawCentredString(largura/2, 100, "Agradecemos sua preferência! Bom filme! 🍿")
+    
+    # === INFORMAÇÕES ADICIONAIS ===
+    c.setFont("Helvetica", 9)
+    c.drawCentredString(largura/2, 70, "Em caso de dúvidas, entre em contato: (11) 9999-9999")
+    c.drawCentredString(largura/2, 55, "cinema@cineplus.com")
+    
+    # === LINHA DE SEGURANÇA ===
+    c.setFont("Helvetica", 8)
+    seguranca = "Documento válido apenas para a sessão e data especificadas"
+    c.drawCentredString(largura/2, 35, seguranca)
+    
     c.save()
     return nome_arquivo
-
 # === FUNÇÃO PARA GERAR IMAGEM DO COMPROVANTE ===
 def gerar_imagem_comprovante(filme, horario, assentos, preco_por_assento=25.00, tamanho=(400, 280)):
-    """
-    Gera uma imagem PNG do comprovante para exibir na interface
-    
-    Args:
-        filme: Nome do filme
-        horario: Horário da sessão
-        assentos: Lista de assentos
-        preco_por_assento: Preço por ingresso
-        tamanho: Tamanho da imagem (largura, altura)
-    
-    Returns:
-        CTkImage: Imagem do comprovante
-    """
     try:
         total = len(assentos) * preco_por_assento
         
