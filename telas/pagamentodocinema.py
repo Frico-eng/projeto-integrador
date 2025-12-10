@@ -137,15 +137,12 @@ def visualizar_pdf_janela(parent, caminho_pdf, dados_compra):
     pdf_frame.pack(fill="both", expand=True, padx=10, pady=5)
     canvas_frame = ctk.CTkFrame(pdf_frame, fg_color="#FFFFFF")
     canvas_frame.pack(fill="both", expand=True, padx=5, pady=5)
-    
-    # Canvas principal
     canvas = ctk.CTkCanvas(canvas_frame, bg="white")
     canvas.pack(side="left", fill="both", expand=True)
     images_frame = ctk.CTkFrame(canvas, fg_color="white")
     canvas.create_window((0, 0), window=images_frame, anchor="nw")
     imagens = pdf_para_imagens(caminho_pdf, zoom=0.8)
-    
-    # Exibir imagens no canvas
+
     photo_images = []
     y_offset = 10
     
@@ -187,24 +184,6 @@ def visualizar_pdf_janela(parent, caminho_pdf, dados_compra):
         if os.path.exists(caminho_pdf):
             if sys.platform == "win32":
                 os.startfile(caminho_pdf)
-            elif sys.platform == "darwin":
-                os.system(f"open '{caminho_pdf}'")
-            else:
-                os.system(f"xdg-open '{caminho_pdf}'")
-    
-    def salvar_como():
-
-        arquivo = filedialog.asksaveasfilename(
-            defaultextension=".pdf",
-            filetypes=[("PDF files", "*.pdf"), ("Todos os arquivos", "*.*")],
-            initialfile=os.path.basename(caminho_pdf)
-        )
-        if arquivo:
-            try:
-                shutil.copy2(caminho_pdf, arquivo)
-                messagebox.showinfo("Sucesso", f"PDF salvo em:\n{arquivo}")
-            except Exception as e:
-                messagebox.showerror("Erro", f"Não foi possível salvar:\n{str(e)}")
     
     def imprimir_pdf():
         if os.path.exists(caminho_pdf):
