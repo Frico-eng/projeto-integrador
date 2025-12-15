@@ -3,13 +3,11 @@ import qrcode
 import customtkinter as ctk
 from PIL import Image, ImageDraw, ImageTk
 from datetime import datetime
-from tkinter import messagebox, filedialog
+from tkinter import messagebox
 from reportlab.lib.pagesizes import A5, portrait
 from reportlab.pdfgen import canvas
-import shutil
 import sys
-import fitz  # PyMuPDF
-import tempfile
+import fitz 
 
 # Configurações básicas
 COR_FUNDO = "#1C1C1C"
@@ -56,7 +54,6 @@ def gerar_comprovante_pdf(filme, horario, assentos, preco_por_assento=25.00):
     return nome_arquivo
 
 def gerar_imagem_comprovante(filme, horario, assentos, preco_por_assento=25.00):
-    """Gera imagem do comprovante para preview"""
     total = len(assentos) * preco_por_assento
     largura, altura = 400, 280
     
@@ -93,7 +90,6 @@ def gerar_imagem_comprovante(filme, horario, assentos, preco_por_assento=25.00):
     return ctk.CTkImage(img, size=(largura, altura))
 
 def pdf_para_imagens(pdf_path, zoom=2.0):
-    """Converte páginas do PDF em imagens PIL com qualidade aprimorada"""
     images = []
     try:
         doc = fitz.open(pdf_path)
@@ -301,7 +297,6 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
     btn_frame.pack(fill="x", pady=30, padx=40)
     
     def finalizar_compra():
-        """Gera comprovante e atualiza interface"""
         nonlocal pdf_gerado
         
         try:
@@ -324,14 +319,12 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
             messagebox.showerror("Erro", f"Erro ao finalizar compra:\n{str(e)}")
     
     def visualizar_comprovante_btn():
-        """Abre visualização do comprovante dentro do programa"""
         if pdf_gerado and os.path.exists(pdf_gerado):
             visualizar_pdf_janela(frame, pdf_gerado, dados_compra)
         else:
             messagebox.showwarning("Atenção", "Finalize a compra primeiro para gerar o comprovante.")
     
     def voltar_ao_menu():
-        """Volta para tela anterior"""
         # Limpar arquivo temporário se existir
         if os.path.exists("temp_qr.png"):
             try:

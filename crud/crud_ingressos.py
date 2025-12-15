@@ -56,7 +56,6 @@ def listar_ingressos():
                 s.Hora_Sessao,
                 sa.Nome_Sala,
                 i.ID_Cliente,
-                u.Nome as Nome_Cliente,
                 i.ID_Assento_Sessao,
                 a.Linha,
                 a.Coluna,
@@ -228,10 +227,7 @@ def obter_resumo_vendas_sessao(id_sessao):
         con.close()
 
 def inserir_multiplos_ingressos(lista_ingressos):
-    """
-    Insere múltiplos ingressos de uma vez (transação)
-    Cada item da lista deve ser uma tupla: (id_sessao, id_cliente, id_assento_sessao, valor)
-    """
+
     con = conectar()
     if con is None: 
         return False
