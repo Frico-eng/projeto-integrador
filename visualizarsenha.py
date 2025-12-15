@@ -3,8 +3,8 @@ from tkinter import messagebox
 from PIL import Image, ImageTk # Importa Pillow (PIL) para lidar com JPG
 
 # --- Nomes dos Arquivos de Imagem ---
-CAMINHO_OLHO_ABERTO = "olho-aberto.jpg"
-CAMINHO_OLHO_FECHADO = "olho-fechado.jpg"
+CAMINHO_OLHO_ABERTO = "olho-aberto.png"
+CAMINHO_OLHO_FECHADO = "olho-fechado.png"
 TAMANHO_ICONE = (20, 20) # Tamanho desejado para o ícone
 
 # Variável para controlar o estado da senha (True = oculta/fechada, False = visível/aberta)

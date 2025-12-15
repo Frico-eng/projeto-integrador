@@ -16,9 +16,7 @@ def conectar():
         return None
 
 def listar_assentos_por_sessao(id_sessao):
-    """
-    Lista todos os assentos de uma sessão específica com seus status
-    """
+
     con = conectar()
     if con is None: 
         return []
@@ -47,9 +45,6 @@ def listar_assentos_por_sessao(id_sessao):
         con.close()
 
 def listar_assentos_disponiveis_por_sessao(id_sessao):
-    """
-    Lista apenas os assentos disponíveis de uma sessão
-    """
     con = conectar()
     if con is None: 
         return []
