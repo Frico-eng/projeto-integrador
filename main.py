@@ -5,7 +5,7 @@ from PIL import Image
 
 # Importações do seu utilitários
 from utilidades.config import *
-from utilidades.ui_helpers import carregar_fundo, carregar_logo, carregar_icone, criar_botao, criar_footer
+from utilidades.ui_helpers import carregar_fundo, carregar_logo, carregar_icone, criar_botao, criar_footer, criar_entry_senha
 
 # Importações das telas
 from telas.auth import fazer_login
@@ -118,10 +118,19 @@ def inicializar_telas():
     # --- Login ---
     login_container = ctk.CTkFrame(right_frame, fg_color="transparent")
     login_container.pack(pady=(0, 15))
-    email_entry = ctk.CTkEntry(login_container, placeholder_text="Seu email", width=300, height=35)
-    email_entry.pack(pady=5)
-    senha_entry = ctk.CTkEntry(login_container, placeholder_text="Sua senha", show="•", width=300, height=35)
-    senha_entry.pack(pady=5)
+    email_entry = ctk.CTkEntry(login_container, placeholder_text="Seu email", height=35)
+    email_entry.pack(fill='x', pady=5)
+    # Passar caminhos de ícone de exemplo (coloque as imagens em utilidades/images/)
+    senha_container, senha_entry, senha_toggle = criar_entry_senha(
+        login_container,
+        placeholder="Sua senha",
+        height=35,
+        show_char='•',
+        icone_fechado_path=os.path.join(os.path.dirname(__file__), "utilidades", "images", "olho-fechado.png"),
+        icone_aberto_path=os.path.join(os.path.dirname(__file__), "utilidades", "images", "olho-aberto.png"),
+        icon_size=(20, 20)
+    )
+    senha_container.pack(fill='x', pady=5)
     resultado_label = ctk.CTkLabel(login_container, text="", font=("Arial", 12))
     resultado_label.pack(pady=5)
 
