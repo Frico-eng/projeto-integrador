@@ -135,7 +135,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
     frame_dias_container.pack(anchor="center", pady=0)
 
     # FRAME MEIO: Lista de filmes (scroll horizontal)
-    frame_meio = ctk.CTkFrame(frame, height=320)
+    frame_meio = ctk.CTkFrame(frame, height=310)
     frame_meio.pack(fill="x", padx=12, pady=6)
     frame_meio.pack_propagate(False)
 
@@ -154,11 +154,11 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
     scrollbar.pack(side="bottom", fill="x")
 
     # FRAME INFERIOR: Detalhes do filme e Horários por Tipo
-    frame_inferior = ctk.CTkFrame(frame)
+    frame_inferior = ctk.CTkFrame(frame, height=660)
     frame_inferior.pack(fill="both", expand=True, padx=12, pady=(6, 12))
 
     # Frame esquerdo: detalhes do filme
-    frame_esquerdo = ctk.CTkFrame(frame_inferior, width=400)
+    frame_esquerdo = ctk.CTkFrame(frame_inferior, width=600)
     frame_esquerdo.pack(side="left", fill="both", expand=True, padx=(0, 6), pady=10)
     frame_esquerdo.pack_propagate(False)
 
