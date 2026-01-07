@@ -8,6 +8,8 @@ from reportlab.lib.pagesizes import A5, portrait
 from reportlab.pdfgen import canvas
 import sys
 import fitz 
+from crud.crud_ingressos import processar_compra_ingressos
+from utilidades.session import get_user_id
 
 # Configurações básicas
 COR_FUNDO = "#1C1C1C"
@@ -300,20 +302,40 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
         nonlocal pdf_gerado
         
         try:
-            # Gerar PDF
+            # Primeiro, salvar os ingressos no banco
+            id_cliente = get_user_id()
+            if not id_cliente:
+                messagebox.showerror("Erro", "Nenhum usuário logado. Faça login antes de finalizar a compra.")
+                return
+
+            id_sessao = dados_compra.get('sessao', {}).get('ID_Sessao')
+            lista_assentos_ids = dados_compra.get('assentos_ids_sessao', [])
+
+            success, ids_criados, mensagem = processar_compra_ingressos(
+                id_cliente,
+                id_sessao,
+                lista_assentos_ids,
+                preco_unit
+            )
+
+            if not success:
+                messagebox.showerror("Erro", f"Falha ao salvar ingressos: {mensagem}")
+                return
+
+            # Salvo com sucesso; anotar IDs no dados_compra e gerar comprovante
+            dados_compra['ids_ingressos'] = ids_criados
             pdf_gerado = gerar_comprovante_pdf(
                 filme, 
                 str(horario)[:5], 
                 assentos, 
                 preco_unit
             )
-            
+
             # Atualizar botões
             btn_finalizar.configure(state="disabled", text="✅ Compra Finalizada")
             btn_visualizar.configure(state="normal", text="📄 Abrir Comprovante")
-            
-            messagebox.showinfo("Sucesso", 
-                f"Compra finalizada!\nComprovante gerado: {os.path.basename(pdf_gerado)}")
+
+            messagebox.showinfo("Sucesso", mensagem)
             
         except Exception as e:
             messagebox.showerror("Erro", f"Erro ao finalizar compra:\n{str(e)}")

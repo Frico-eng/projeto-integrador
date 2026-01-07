@@ -11,6 +11,7 @@ from crud.crud_assento_sessao import (
     obter_resumo_ocupacao_sessao,
     obter_info_sessao
 )
+from utilidades.session import get_user_id
 
 BTN_COLOR = "#F6C148"
 BTN_HOVER = "#E2952D"
@@ -81,16 +82,27 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
             id_sessao = sessao_info["ID_Sessao"]
             print(f"DEBUG: Reservando assentos para sessão {id_sessao}...")
             
-            # Reservar cada assento individualmente
+            # Reservar cada assento individualmente e capturar ID_Assento_Sessao
             assentos_reservados = []
+            assentos_reservados_sessao = []
             for assento in selecionados:
+                id_cliente = get_user_id()
+                if not id_cliente:
+                    lista_selecionados.configure(text="Faça login para reservar assentos.")
+                    print("DEBUG: Usuário não logado ao tentar reservar")
+                    continue
+
                 sucesso = reservar_assento(
                     id_sessao, 
                     assento["id_assento"], 
-                    id_cliente=1  # TODO: Pegar ID do cliente logado
+                    id_cliente=id_cliente
                 )
                 if sucesso:
                     assentos_reservados.append(assento["codigo"])
+                    # usar o ID_Assento_Sessao armazenado na seleção
+                    id_assento_sessao = assento.get("id_assento_sessao")
+                    if id_assento_sessao:
+                        assentos_reservados_sessao.append(id_assento_sessao)
                     print(f"DEBUG: Assento {assento['codigo']} reservado com sucesso")
                 else:
                     print(f"DEBUG: Erro ao reservar assento {assento['codigo']}")
@@ -106,6 +118,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                         "sala": sala_info,
                         "sessao": sessao_info,
                         "assentos": assentos_reservados,
+                        "assentos_ids_sessao": assentos_reservados_sessao,
                         "quantidade": len(assentos_reservados),
                         "preco_unitario": preco,
                         "total": len(assentos_reservados) * preco
@@ -125,9 +138,9 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                 for assento in selecionados:
                     codigo = assento["codigo"]
                     if codigo in assentos:
-                        botao, _, id_assento = assentos[codigo]
+                        botao, _, id_assento, id_assento_sessao = assentos[codigo]
                         botao.configure(fg_color=COR_OCUPADO, state="disabled", image="")
-                        assentos[codigo] = (botao, "ocupado", id_assento)
+                        assentos[codigo] = (botao, "ocupado", id_assento, id_assento_sessao)
                 
                 selecionados.clear()
                 atualizar_resumo()
@@ -148,7 +161,8 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
         if codigo not in assentos:
             return
             
-        botao, status, id_assento = assentos[codigo]
+        # Desempacotar: (botao, status, ID_Assento, ID_Assento_Sessao)
+        botao, status, id_assento, id_assento_sessao = assentos[codigo]
         if status == "ocupado":
             return
             
@@ -156,16 +170,16 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
             # Verificar disponibilidade no banco
             if sessao_info and verificar_disponibilidade_assento(sessao_info["ID_Sessao"], id_assento):
                 botao.configure(fg_color=COR_SELECIONADO)
-                assentos[codigo] = (botao, "selecionado", id_assento)
-                selecionados.append({"codigo": codigo, "id_assento": id_assento})
+                assentos[codigo] = (botao, "selecionado", id_assento, id_assento_sessao)
+                selecionados.append({"codigo": codigo, "id_assento": id_assento, "id_assento_sessao": id_assento_sessao})
                 print(f"DEBUG: Assento {codigo} selecionado")
             else:
                 print(f"DEBUG: Assento {codigo} não está mais disponível")
                 botao.configure(fg_color=COR_OCUPADO, state="disabled", image="")
-                assentos[codigo] = (botao, "ocupado", id_assento)
+                assentos[codigo] = (botao, "ocupado", id_assento, id_assento_sessao)
         else:
             botao.configure(fg_color=COR_LIVRE)
-            assentos[codigo] = (botao, "livre", id_assento)
+            assentos[codigo] = (botao, "livre", id_assento, id_assento_sessao)
             selecionados = [item for item in selecionados if item["codigo"] != codigo]
             print(f"DEBUG: Assento {codigo} desselecionado")
             
@@ -523,7 +537,13 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                         command=lambda c=codigo, id=assento["ID_Assento"]: toggle_assento(c, id)
                     )
                     botao.pack(side="left", padx=2)
-                    assentos[codigo] = (botao, "ocupado" if status == "ocupado" else "livre", assento["ID_Assento"])
+                    # Armazenar também o ID_Assento_Sessao para uso posterior
+                    assentos[codigo] = (
+                        botao,
+                        "ocupado" if status == "ocupado" else "livre",
+                        assento.get("ID_Assento"),
+                        assento.get("ID_Assento_Sessao")
+                    )
             
             print(f"DEBUG: Grade criada com {len(assentos)} assentos")
         else:

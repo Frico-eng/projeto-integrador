@@ -2,6 +2,7 @@
 import customtkinter as ctk
 from PIL import Image, ImageTk
 import utilidades.config as config
+from utilidades.session import logout as session_logout
 import os
 import threading
 import time
@@ -183,6 +184,12 @@ def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, 
         nonlocal timer_ativo
         timer_ativo = False  # Para o timer
         
+        # Fazer logout do usuário quando voltar ao início
+        try:
+            session_logout()
+        except Exception:
+            pass
+
         if voltar_callback:
             voltar_callback()
 

@@ -270,3 +270,22 @@ JOIN Assentos_Sessao ass ON s.ID_Sessao = ass.ID_Sessao
 JOIN Assentos a ON ass.ID_Assento = a.ID_Assento
 WHERE s.ID_Sessao = 1
 ORDER BY a.Linha, a.Coluna;
+ALTER TABLE Usuarios 
+MODIFY Tipo_Usuario ENUM('admin', 'gerente', 'funcionario', 'cliente') 
+DEFAULT 'cliente';
+
+INSERT INTO Usuarios 
+(Nome_Usuario, Nome_Login, Senha, Email, Telefone, Genero, Data_Nascimento, Tipo_Usuario) 
+VALUES
+('Frederico Lopes', 'frederico_gerente', '@Caligula10', 'frederico.gerente@cineplus.com', '(91)98888-0001', 'M', '1996-08-19', 'gerente'),
+('Frederico Lopes', 'frederico_cliente', '@Caligula10', 'frederico.cliente@gmail.com', '(91)98888-0002', 'M', '1996-08-19', 'cliente');
+
+
+SELECT 
+    ID_Usuario,
+    Nome_Usuario,
+    Nome_Login,
+    Email,
+    Telefone,
+    Tipo_Usuario
+FROM Usuarios;
