@@ -7,7 +7,7 @@ import os
 import threading
 import time
 
-def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, feedback_callback=None):
+def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, feedback_callback=None, fonte_global=None):
     """
     Mostra a tela de agradecimento dentro de um frame existente
     
@@ -26,7 +26,7 @@ def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, 
     timer_ativo = True
 
     # ====== CONFIGURAR FRAME PRINCIPAL ======
-    frame = ctk.CTkFrame(parent, fg_color=config.COR_FUNDO, width=1800, height=900)
+    frame = ctk.CTkFrame(parent, fg_color=config.COR_FUNDO, width=1800, height=1200)
     frame.pack_propagate(False)
     frame.pack(fill="both", expand=True)
 
@@ -51,15 +51,15 @@ def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, 
         fg_color="#2b2b2b",
         bg_color="transparent",
         corner_radius=20,
-        width=550,  # Largura aumentada para botões
-        height=700
+        width=700,
+        height=1000
     )
     container_principal.place(relx=0.5, rely=0.5, anchor="center")
     container_principal.pack_propagate(False)
 
     # ====== CABEÇALHO ======
     header_frame = ctk.CTkFrame(container_principal, fg_color="transparent")
-    header_frame.pack(fill="x", pady=(40, 20), padx=40)
+    header_frame.pack(fill="x", pady=(20, 12), padx=20)
 
     # === LOGO CINEPLUS ===
     try:
@@ -77,9 +77,44 @@ def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, 
     ctk.CTkLabel(
         header_frame,
         text="✅ Pagamento Confirmado",
-        font=("Arial", 24, "bold"),
+        font=fonte_global if fonte_global else ("Arial", 24, "bold"),
         text_color="#27AE60"
     ).pack(pady=5)
+
+    # Se não foi passada `fonte_global`, tentar ler de main.fonte_global
+    if fonte_global is None:
+        try:
+            import main as main_mod
+            fonte_global = getattr(main_mod, "fonte_global", None)
+        except Exception:
+            fonte_global = None
+
+    # Controles de fonte no canto superior direito do header
+    def aumentar_fonte():
+        nonlocal current_font_size
+        if fonte_global:
+            if fonte_global.cget("size") < 22:
+                fonte_global.configure(size=fonte_global.cget("size") + 2)
+        else:
+            if current_font_size < 22:
+                current_font_size += 2
+                aplicar_fonte_local()
+
+    def diminuir_fonte():
+        nonlocal current_font_size
+        if fonte_global:
+            if fonte_global.cget("size") > 6:
+                fonte_global.configure(size=fonte_global.cget("size") - 2)
+        else:
+            if current_font_size > 6:
+                current_font_size -= 2
+                aplicar_fonte_local()
+
+    # Frame para os controles (sempre visível)
+    frame_controle_fonte = ctk.CTkFrame(header_frame, fg_color="transparent")
+    frame_controle_fonte.pack(side="right")
+    ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=50, font=fonte_global if fonte_global else None).pack(side="left", padx=5)
+    ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=50, font=fonte_global if fonte_global else None).pack(side="left", padx=5)
 
     # ====== TIMER DE REDIRECIONAMENTO ======
     timer_frame = ctk.CTkFrame(container_principal, fg_color="transparent")
@@ -206,5 +241,38 @@ def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, 
 
     # Configurar fullscreen
     parent.master.attributes('-fullscreen', True)
+
+    # Fonte local quando fonte_global não for fornecida
+    current_font_size = fonte_global.cget("size") if fonte_global else 14
+
+    def aplicar_fonte_local():
+        fs = current_font_size
+        try:
+            for w in container_principal.winfo_children():
+                try:
+                    w.configure(font=("Arial", fs))
+                except Exception:
+                    pass
+                try:
+                    for c in w.winfo_children():
+                        try:
+                            c.configure(font=("Arial", fs))
+                        except Exception:
+                            pass
+                        try:
+                            for d in c.winfo_children():
+                                try:
+                                    d.configure(font=("Arial", fs))
+                                except Exception:
+                                    pass
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    # Aplicar fonte inicial
+    aplicar_fonte_local()
 
     return frame

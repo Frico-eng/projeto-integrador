@@ -191,12 +191,12 @@ def visualizar_pdf_janela(parent, caminho_pdf, dados_compra):
                 abrir_externo()
     
     # Botões
-    ctk.CTkButton(btn_frame, text="Imprimir", command=imprimir_pdf,
-                  fg_color="#3498db", hover_color="#2980b9",
-                  width=120).pack(side="left", padx=5)
-    ctk.CTkButton(btn_frame, text="Abrir Externo", command=abrir_externo,
-                  fg_color="#9b59b6", hover_color="#8e44ad",
-                  width=120).pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame, text="Imprimir", command=imprimir_pdf,
+                      fg_color="#3498db", hover_color="#2980b9",
+                      width=120).pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame, text="Abrir Externo", command=abrir_externo,
+                      fg_color="#9b59b6", hover_color="#8e44ad",
+                      width=120).pack(side="left", padx=5)
 
     ctk.CTkButton(btn_frame, text="Fechar", command=janela.destroy,
                   fg_color="#e74c3c", hover_color="#c0392b",
@@ -206,7 +206,7 @@ def visualizar_pdf_janela(parent, caminho_pdf, dados_compra):
     janela.photo_images = photo_images
 
 # ============ TELA PRINCIPAL DE CONFIRMAÇÃO ============
-def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=None):
+def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=None, fonte_global=None):
     # Limpar tela anterior
     for widget in parent.winfo_children():
         widget.destroy()
@@ -235,17 +235,72 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
     frame = ctk.CTkFrame(parent, fg_color=COR_FUNDO, width=1800, height=900)
     frame.pack_propagate(False)
     frame.pack(fill="both", expand=True)
+
+    # Se não foi passada `fonte_global`, tentar obter a fonte global do módulo main
+    if fonte_global is None:
+        try:
+            import main as main_mod
+            fonte_global = getattr(main_mod, "fonte_global", None)
+        except Exception:
+            fonte_global = None
+
+    # Fonte local quando fonte_global não for fornecida
+    current_font_size = fonte_global.cget("size") if fonte_global else 14
+
+    def aplicar_fonte_local():
+        fs = current_font_size
+        def _apply_font(widget):
+            try:
+                widget.configure(font=("Arial", fs))
+            except Exception:
+                pass
+            for child in widget.winfo_children():
+                _apply_font(child)
+
+        try:
+            _apply_font(frame)
+        except Exception as e:
+            print(f"DEBUG: aplicar_fonte_local pagamentodocinema erro: {e}")
+
+    def aumentar_fonte():
+        nonlocal current_font_size
+        if fonte_global:
+            if fonte_global.cget("size") < 22:
+                fonte_global.configure(size=fonte_global.cget("size") + 2)
+        else:
+            if current_font_size < 22:
+                current_font_size += 2
+                aplicar_fonte_local()
+
+    def diminuir_fonte():
+        nonlocal current_font_size
+        if fonte_global:
+            if fonte_global.cget("size") > 6:
+                fonte_global.configure(size=fonte_global.cget("size") - 2)
+        else:
+            if current_font_size > 6:
+                current_font_size -= 2
+                aplicar_fonte_local()
     
     # Container principal
     container = ctk.CTkFrame(frame, fg_color="#2b2b2b", corner_radius=15, width=1100, height=800)
     container.place(relx=0.5, rely=0.5, anchor="center")
     container.pack_propagate(False)
     
-    # Título
-    ctk.CTkLabel(container, text="✅ Pagamento Confirmado!", 
-                 font=("Arial", 28, "bold"), text_color="#27AE60").pack(pady=(30, 10))
-    ctk.CTkLabel(container, text="Seu ingresso foi reservado com sucesso",
-                 font=("Arial", 18), text_color=COR_TEXTO).pack()
+    # Top bar: title left, font controls right
+    top_bar = ctk.CTkFrame(container, fg_color="transparent")
+    top_bar.pack(fill="x", pady=(20, 6), padx=20)
+
+    ctk.CTkLabel(top_bar, text="✅ Pagamento Confirmado!", 
+                 font=fonte_global if fonte_global else ("Arial", 28, "bold"), text_color="#27AE60").pack(side="left")
+    ctk.CTkLabel(top_bar, text="Seu ingresso foi reservado com sucesso",
+                 font=fonte_global if fonte_global else ("Arial", 18), text_color=COR_TEXTO).pack(side="left", padx=20)
+
+    # Font controls top-right (always visible)
+    controls_top = ctk.CTkFrame(top_bar, fg_color="transparent")
+    controls_top.pack(side="right")
+    ctk.CTkButton(controls_top, text="A+", command=aumentar_fonte, width=50, font=fonte_global if fonte_global else None).pack(side="left", padx=4)
+    ctk.CTkButton(controls_top, text="A-", command=diminuir_fonte, width=50, font=fonte_global if fonte_global else None).pack(side="left", padx=4)
     
     # Frame de conteúdo
     content_frame = ctk.CTkFrame(container, fg_color="transparent")
@@ -254,25 +309,49 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
     # ===== LADO ESQUERDO: INFORMAÇÕES =====
     info_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
     info_frame.pack(side="left", fill="both", expand=True, padx=(0, 20))
-    
     ctk.CTkLabel(info_frame, text="📋 Detalhes da Compra",
-                 font=("Arial", 20, "bold"), text_color=COR_DESTAQUE).pack(anchor="w", pady=(0, 20))
-    
-    informacoes = [
-        ("🎬 Filme:", filme),
-        ("🕒 Horário:", str(horario)[:5]),
-        ("💺 Assentos:", ", ".join(assentos) if assentos else "Nenhum"),
-        ("💰 Preço unitário:", f"R$ {preco_unit:.2f}"),
-        ("💵 Total:", f"R$ {total:.2f}")
-    ]
-    
-    for label, valor in informacoes:
-        linha = ctk.CTkFrame(info_frame, fg_color="transparent")
-        linha.pack(fill="x", pady=10)
-        ctk.CTkLabel(linha, text=label, font=("Arial", 16, "bold"), 
-                    text_color=COR_TEXTO, width=180, anchor="w").pack(side="left")
-        ctk.CTkLabel(linha, text=valor, font=("Arial", 16), 
-                    text_color=COR_TEXTO, anchor="w").pack(side="left")
+                font=fonte_global, text_color=COR_DESTAQUE).pack(anchor="w", pady=(0, 20))
+
+    # Frame para filme
+    filme_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+    filme_frame.pack(fill="x", pady=10)
+    ctk.CTkLabel(filme_frame, text="🎬 Filme:", font=fonte_global, 
+            text_color=COR_TEXTO, width=180, anchor="w").pack(side="left")
+    ctk.CTkLabel(filme_frame, text=filme, font=fonte_global, 
+            text_color=COR_TEXTO, anchor="w").pack(side="left")
+
+    # Frame para horário
+    horario_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+    horario_frame.pack(fill="x", pady=10)
+    ctk.CTkLabel(horario_frame, text="🕒 Horário:", font=fonte_global, 
+            text_color=COR_TEXTO, width=180, anchor="w").pack(side="left")
+    ctk.CTkLabel(horario_frame, text=str(horario)[:5], font=fonte_global, 
+            text_color=COR_TEXTO, anchor="w").pack(side="left")
+
+    # Frame para assentos
+    assentos_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+    assentos_frame.pack(fill="x", pady=10)
+    ctk.CTkLabel(assentos_frame, text="💺 Assentos:", font=fonte_global, 
+            text_color=COR_TEXTO, width=180, anchor="w").pack(side="left")
+    assentos_texto = ", ".join(assentos) if assentos else "Nenhum"
+    ctk.CTkLabel(assentos_frame, text=assentos_texto, font=fonte_global, 
+            text_color=COR_TEXTO, anchor="w").pack(side="left")
+
+    # Frame para preço unitário
+    preco_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+    preco_frame.pack(fill="x", pady=10)
+    ctk.CTkLabel(preco_frame, text="💰 Preço unitário:", font=fonte_global, 
+            text_color=COR_TEXTO, width=180, anchor="w").pack(side="left")
+    ctk.CTkLabel(preco_frame, text=f"R$ {preco_unit:.2f}", font=fonte_global, 
+            text_color=COR_TEXTO, anchor="w").pack(side="left")
+
+    # Frame para total
+    total_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+    total_frame.pack(fill="x", pady=10)
+    ctk.CTkLabel(total_frame, text="💵 Total:", font=fonte_global, 
+            text_color=COR_TEXTO, width=180, anchor="w").pack(side="left")
+    ctk.CTkLabel(total_frame, text=f"R$ {total:.2f}", font=fonte_global, 
+        text_color=COR_TEXTO, anchor="w").pack(side="left")
     
     # ===== LADO DIREITO: QR CODE =====
     qr_frame = ctk.CTkFrame(content_frame, fg_color="transparent", width=400)
@@ -289,7 +368,7 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
         
         ctk.CTkLabel(qr_frame, image=qr_photo, text="").pack()
         ctk.CTkLabel(qr_frame, text="QR Code do Ingresso",
-                     font=("Arial", 16, "bold"), text_color=COR_TEXTO).pack(pady=5)
+                 font=fonte_global if fonte_global else ("Arial", 16, "bold"), text_color=COR_TEXTO).pack(pady=5)
     except Exception as e:
         ctk.CTkLabel(qr_frame, text="Erro ao gerar QR Code",
                      font=("Arial", 14), text_color="#e74c3c").pack(pady=20)
@@ -362,7 +441,7 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
         btn_frame,
         text="✅ Finalizar Compra",
         command=finalizar_compra,
-        font=("Arial", 16, "bold"),
+        font=fonte_global if fonte_global else ("Arial", 16, "bold"),
         fg_color=COR_BOTAO,
         hover_color=COR_BOTAO_HOVER,
         text_color="#1C2732",
@@ -376,7 +455,7 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
         btn_frame,
         text="📄 Visualizar Comprovante",
         command=visualizar_comprovante_btn,
-        font=("Arial", 16, "bold"),
+        font=fonte_global if fonte_global else ("Arial", 16, "bold"),
         fg_color="#3498db",
         hover_color="#2980b9",
         text_color=COR_TEXTO,
@@ -391,7 +470,7 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
         btn_frame,
         text="Avançar",
         command=voltar_ao_menu,
-        font=("Arial", 16, "bold"),
+        font=fonte_global if fonte_global else ("Arial", 16, "bold"),
         fg_color="#7f8c8d",
         hover_color="#6c7a7d",
         text_color=COR_TEXTO,
@@ -400,4 +479,10 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
     )
     btn_voltar.pack(side="left", padx=10)
     
+    # Aplicar fonte inicial para caso de fonte local
+    try:
+        aplicar_fonte_local()
+    except Exception:
+        pass
+
     return frame

@@ -30,6 +30,18 @@ app = None
 footer_main = None
 footer_secondary = None
 
+# Fonte global será criada após inicializar o app
+fonte_global = None
+
+# Funções para aumentar/diminuir fonte (limite de 4 cliques em cada direção)
+def aumentar_fonte():
+    if fonte_global and fonte_global.cget("size") < 22:  # 14 + (4 * 2)
+        fonte_global.configure(size=fonte_global.cget("size") + 2)
+
+def diminuir_fonte():
+    if fonte_global and fonte_global.cget("size") > 6:  # 14 - (4 * 2)
+        fonte_global.configure(size=fonte_global.cget("size") - 2)
+
 # ========================= FUNÇÕES AUXILIARES =========================
 
 # main.py (apenas a função mostrar_pagamento precisa ser atualizada)
@@ -133,7 +145,7 @@ def inicializar_telas():
         icon_size=(20, 20)
     )
     senha_container.pack(fill='x', pady=5)
-    resultado_label = ctk.CTkLabel(login_container, text="", font=("Arial", 12))
+    resultado_label = ctk.CTkLabel(login_container, text="", font=fonte_global)
     resultado_label.pack(pady=5)
     # Registrar campos de login para limpeza automática (após criar resultado_label)
     from utilidades.gerenciador_telas import register_login_entries
@@ -149,21 +161,27 @@ def inicializar_telas():
     botoes_frame.pack(pady=5)
     criar_botao(botoes_frame, "Entrar",
                 lambda: fazer_login(email_entry, senha_entry, resultado_label),
-                icone_user).pack(side="left", padx=5)
+                icone_user, font=fonte_global).pack(side="left", padx=5)
     criar_botao(botoes_frame, "Cadastro",
                 lambda: show_screen("cadastro"),
-                icone_regist).pack(side="left", padx=5)
+                icone_regist, font=fonte_global).pack(side="left", padx=5)
 
     # Botões extras - APENAS Filmes em cartaz
-    criar_botao(right_frame, "Filmes em cartaz", lambda: show_screen("catalogo"), icone_compra, width=250).pack(pady=15)
+    criar_botao(right_frame, "Filmes em cartaz", lambda: show_screen("catalogo"), icone_compra, width=250, font=fonte_global).pack(pady=15)
+
+    # Botões para controle de fonte
+    frame_controle_fonte = ctk.CTkFrame(right_frame, fg_color="transparent")
+    frame_controle_fonte.pack(pady=(0, 10))
+    ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+    ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
 
     # Contato
     contato_frame = ctk.CTkFrame(right_frame, fg_color="transparent")
-    contato_frame.place(relx=0.5, rely=0.80, anchor="center")
-    ctk.CTkLabel(contato_frame, text="Entre em contato", font=("Arial", 12)).pack(pady=2)
-    ctk.CTkLabel(contato_frame, text="Telefone: 3022-2002", font=("Arial", 12)).pack(pady=2)
-    ctk.CTkLabel(contato_frame, text="Endereço: R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010", font=("Arial", 12)).pack(pady=2)
-    ctk.CTkLabel(contato_frame, text="E-mail: sistema@cineplus.com.br", font=("Arial", 12)).pack(pady=2)
+    contato_frame.place(relx=0.5, rely=0.82, anchor="center")
+    ctk.CTkLabel(contato_frame, text="Entre em contato", font=fonte_global).pack(pady=2)
+    ctk.CTkLabel(contato_frame, text="Telefone: 3022-2002", font=fonte_global).pack(pady=2)
+    ctk.CTkLabel(contato_frame, text="Endereço: R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010", font=fonte_global, wraplength=250).pack(pady=2)
+    ctk.CTkLabel(contato_frame, text="E-mail: sistema@cineplus.com.br", font=fonte_global).pack(pady=2)
 
     register_screen("main", tela_inicial)
 
@@ -172,7 +190,7 @@ def inicializar_telas():
     register_screen("feedback", feedback_frame)
 
     # --- Cadastro ---
-    cadastro_frame, btn_voltar_cadastro = abrir_cadastro(app)
+    cadastro_frame, btn_voltar_cadastro = abrir_cadastro(app, fonte_global)
     btn_voltar_cadastro.configure(command=lambda: show_screen("main"))
     register_screen("cadastro", cadastro_frame)
 
@@ -181,7 +199,8 @@ def inicializar_telas():
     catalogo_content = criar_tela_catalogo(
         catalogo_frame,
         voltar_callback=lambda: show_screen("main"),
-        confirmar_callback=on_confirmar_catalogo
+        confirmar_callback=on_confirmar_catalogo,
+        fonte_global=fonte_global
     )
     catalogo_content.pack(fill="both", expand=True)
     register_screen("catalogo", catalogo_frame)
@@ -223,11 +242,14 @@ def inicializar_telas():
 # ========================= INICIALIZAR APLICAÇÃO =========================
 
 def inicializar_app():
-    global app
+    global app, fonte_global
     app = ctk.CTk(fg_color=APP_BG)
     screen_width, screen_height = app.winfo_screenwidth(), app.winfo_screenheight()
     app.geometry(f"{screen_width+20}x{screen_height-80}-10+0")
     app.title("CinePlus - Sistema de Cinema")
+
+    # Criar fonte global após inicializar o app
+    fonte_global = ctk.CTkFont(family="Arial", size=14)
 
     inicializar_telas()
     show_screen("main")

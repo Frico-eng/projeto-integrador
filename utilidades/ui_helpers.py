@@ -36,12 +36,12 @@ def carregar_icone(path, size=(30, 30)):
     return ctk.CTkImage(Image.open(path), size=size) if os.path.exists(path) else None
 
 # --- Botão customizado ---
-def criar_botao(master, texto, comando=None, icone=None, width=150):
+def criar_botao(master, texto, comando=None, icone=None, width=150, font=("Arial", 16, "bold")):
     return ctk.CTkButton(
         master=master,
         text=texto,
         image=icone,
-        font=("Arial", 16, "bold"),
+        font=font,
         width=width,
         height=40,
         corner_radius=15,

@@ -19,10 +19,82 @@ BTN_TEXT = "#1C2732"
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
 
-def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme_selecionado=None):    
+def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme_selecionado=None, fonte_global=None):    
     """
     Cria e retorna o frame de seleção de assentos
     """
+    
+    # Funções para aumentar/diminuir fonte (usa fonte_global quando disponível, caso contrário aplica localmente)
+    def aplicar_fonte_local():
+        """Atualiza widgets desta tela com o tamanho local `current_font_size`."""
+        fs = current_font_size
+        try:
+            lista_selecionados.configure(font=("Arial", fs))
+        except Exception:
+            pass
+        try:
+            label_total.configure(font=("Arial", max(10, fs+6), "bold"))
+        except Exception:
+            pass
+        try:
+            label_titulo_resumo.configure(font=("Arial", max(10, fs+2), "bold"))
+            label_horario_resumo.configure(font=("Arial", fs))
+            label_sala_resumo.configure(font=("Arial", fs))
+            label_ocupacao.configure(font=("Arial", fs))
+        except Exception:
+            pass
+        # Atualiza botões de assento existentes
+        for codigo, (botao, status, id_assento, id_assento_sessao) in assentos.items():
+            try:
+                botao.configure(font=("Arial", fs, "bold"))
+            except Exception:
+                pass
+        # Atualiza labels e botões do frame esquerdo (detalhes do filme)
+        try:
+            for w in frame_esq.winfo_children():
+                try:
+                    w.configure(font=("Arial", max(10, fs)))
+                except Exception:
+                    pass
+                # filhos internos (info_frame, sessao_frame, etc.)
+                try:
+                    for c in w.winfo_children():
+                        try:
+                            c.configure(font=("Arial", max(10, fs)))
+                        except Exception:
+                            pass
+                        try:
+                            for d in c.winfo_children():
+                                try:
+                                    d.configure(font=("Arial", max(10, fs)))
+                                except Exception:
+                                    pass
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    def aumentar_fonte():
+        nonlocal current_font_size
+        if fonte_global:
+            if fonte_global.cget("size") < 22:
+                fonte_global.configure(size=fonte_global.cget("size") + 2)
+        else:
+            if current_font_size < 22:
+                current_font_size += 2
+                aplicar_fonte_local()
+
+    def diminuir_fonte():
+        nonlocal current_font_size
+        if fonte_global:
+            if fonte_global.cget("size") > 6:
+                fonte_global.configure(size=fonte_global.cget("size") - 2)
+        else:
+            if current_font_size > 6:
+                current_font_size -= 2
+                aplicar_fonte_local()
     
     # ================== CORES DOS ASSENTOS ==================
     COR_LIVRE = "#BDC3C7"
@@ -43,6 +115,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     selecionados = []
     preco = 25.00
     seat_icon = None  # Variável para armazenar o ícone do assento
+    current_font_size = fonte_global.cget("size") if fonte_global else 14
 
     # ================== FUNÇÕES PRINCIPAIS (DEFINIDAS PRIMEIRO) ==================
     
@@ -318,11 +391,22 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     ctk.CTkLabel(frame_esq, text="Detalhes do Filme", font=("Arial", 16, "bold"), text_color="black").pack(pady=(8,6))
 
     # Frame direito - Assentos e resumo
-    frame_dir = ctk.CTkFrame(frame, width=1800, height=700)
+    frame_dir = ctk.CTkFrame(frame, width=2000, height=700)
     frame_dir.pack(side="right", fill="both", padx=(6,12), pady=12)
     frame_dir.pack_propagate(False)
 
-    ctk.CTkLabel(frame_dir, text="Seleção de Assentos", font=("Arial", 24, "bold")).pack(pady=(10, 10))
+    # Top bar: title left, font controls right
+    frame_top_dir = ctk.CTkFrame(frame_dir, fg_color="transparent")
+    frame_top_dir.pack(fill="x", pady=(10, 10), padx=12)
+
+    ctk.CTkLabel(frame_top_dir, text="Seleção de Assentos", font=fonte_global if fonte_global else ("Arial", 24, "bold")).pack(side="left")
+
+    # Controles de fonte no canto superior direito (igual ao catálogo/main)
+    frame_controle_fonte_top = ctk.CTkFrame(frame_top_dir, fg_color="transparent")
+    frame_controle_fonte_top.pack(side="right", padx=6)
+    # Usar fonte_global quando disponível para manter consistência visual
+    ctk.CTkButton(frame_controle_fonte_top, text="A+", command=aumentar_fonte, width=50, font=fonte_global if fonte_global else None).pack(side="left", padx=5)
+    ctk.CTkButton(frame_controle_fonte_top, text="A-", command=diminuir_fonte, width=50, font=fonte_global if fonte_global else None).pack(side="left", padx=5)
 
     # Container principal
     container_conteudo = ctk.CTkFrame(frame_dir, fg_color="transparent")
@@ -354,27 +438,27 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     
     # Labels para informações do filme no resumo
     label_titulo_resumo = ctk.CTkLabel(info_compra_frame, text="", 
-                                      font=("Arial", 14, "bold"), wraplength=250, justify="left")
+                                      font=fonte_global if fonte_global else ("Arial", 14, "bold"), wraplength=250, justify="left")
     label_titulo_resumo.pack(anchor="w")
     
     label_horario_resumo = ctk.CTkLabel(info_compra_frame, text="", 
-                                       font=("Arial", 12), justify="left")
+                                       font=fonte_global if fonte_global else ("Arial", 12), justify="left")
     label_horario_resumo.pack(anchor="w", pady=2)
     
     label_sala_resumo = ctk.CTkLabel(info_compra_frame, text="", 
-                                    font=("Arial", 12), justify="left")
+                                    font=fonte_global if fonte_global else ("Arial", 12), justify="left")
     label_sala_resumo.pack(anchor="w", pady=2)
     
     # Label para ocupação
     label_ocupacao = ctk.CTkLabel(info_compra_frame, text="", 
-                                 font=("Arial", 11), justify="left")
+                                 font=fonte_global if fonte_global else ("Arial", 11), justify="left")
     label_ocupacao.pack(anchor="w", pady=2)
     
     frame_lista = ctk.CTkScrollableFrame(painel_resumo, fg_color="transparent", height=120)
     frame_lista.pack(fill="both", expand=True, padx=15, pady=10)
     
     lista_selecionados = ctk.CTkLabel(frame_lista, text="Nenhum assento selecionado", 
-                                     font=("Arial", 14), justify="left", wraplength=250)
+                                     font=fonte_global if fonte_global else ("Arial", 14), justify="left", wraplength=250)
     lista_selecionados.pack(anchor="w")
     
     preco_info_frame = ctk.CTkFrame(painel_resumo, fg_color="transparent")
@@ -382,7 +466,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     
     ctk.CTkLabel(preco_info_frame, text="Preço por assento: R$ 25,00", font=("Arial", 12)).pack(anchor="w", pady=2)
     
-    label_total = ctk.CTkLabel(painel_resumo, text="Total: R$ 0,00", font=("Arial", 20, "bold"))
+    label_total = ctk.CTkLabel(painel_resumo, text="Total: R$ 0,00", font=fonte_global if fonte_global else ("Arial", 20, "bold"))
     label_total.pack(pady=15)
     
     # Botões
@@ -399,6 +483,8 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                                  font=("Arial", 14, "bold"), command=confirmar, 
                                  fg_color=BTN_COLOR, hover_color=BTN_HOVER, text_color=BTN_TEXT)
     btn_confirmar.pack(side="left", padx=20)
+
+    # (font controls moved to top-right)
 
     # ================== FUNÇÕES RESTANTES DA INTERFACE ==================
     def atualizar_interface():
@@ -528,8 +614,8 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                         width=70, 
                         height=70, 
                         fg_color=cor, 
-                        text_color=COR_TEXTO, 
-                        font=("Arial", 11, "bold"), 
+                        text_color="black", 
+                        font=fonte_global if fonte_global else ("Arial", current_font_size, "bold"), 
                         corner_radius=8,
                         state=estado,
                         image=seat_icon,  # Adiciona o ícone aqui
@@ -560,7 +646,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
         frame_legenda.pack(pady=20, padx=20, fill="x")
         
         ctk.CTkLabel(frame_legenda, text="Legenda dos Assentos", 
-                    font=("Arial", 14, "bold"), text_color=COR_TEXTO).pack(pady=(10, 8))
+                font=("Arial", 14, "bold"), text_color="white").pack(pady=(10, 8))
         
         legenda_frame = ctk.CTkFrame(frame_legenda, fg_color="transparent")
         legenda_frame.pack(fill="x", padx=15, pady=(0, 10))
@@ -569,22 +655,22 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
         item1 = ctk.CTkFrame(legenda_frame, fg_color="transparent")
         item1.pack(side="left", expand=True, padx=10)
         ctk.CTkLabel(item1, text="●", font=("Arial", 20), text_color=COR_LIVRE).pack(side="left", padx=(0, 5))
-        ctk.CTkLabel(item1, text="Disponível", font=("Arial", 12), text_color=COR_TEXTO).pack(side="left")
+        ctk.CTkLabel(item1, text="Disponível", font=("Arial", 12), text_color="white").pack(side="left")
         
         # Selecionado
         item2 = ctk.CTkFrame(legenda_frame, fg_color="transparent")
         item2.pack(side="left", expand=True, padx=10)
         ctk.CTkLabel(item2, text="●", font=("Arial", 20), text_color=COR_SELECIONADO).pack(side="left", padx=(0, 5))
-        ctk.CTkLabel(item2, text="Selecionado", font=("Arial", 12), text_color=COR_TEXTO).pack(side="left")
+        ctk.CTkLabel(item2, text="Selecionado", font=("Arial", 12), text_color="white").pack(side="left")
         
         # Ocupado
         item3 = ctk.CTkFrame(legenda_frame, fg_color="transparent")
         item3.pack(side="left", expand=True, padx=10)
         ctk.CTkLabel(item3, text="●", font=("Arial", 20), text_color=COR_OCUPADO).pack(side="left", padx=(0, 5))
-        ctk.CTkLabel(item3, text="Ocupado", font=("Arial", 12), text_color=COR_TEXTO).pack(side="left")
+        ctk.CTkLabel(item3, text="Ocupado", font=("Arial", 12), text_color="white").pack(side="left")
 
     # ================== INICIALIZAÇÃO ==================
-    # Carregar ícone e dados
-    frame.after(100, lambda: [carregar_icone_assento(), carregar_dados_banco()])
+    # Carregar ícone, dados e aplicar fonte inicial
+    frame.after(100, lambda: [carregar_icone_assento(), carregar_dados_banco(), aplicar_fonte_local()])
     
     return frame

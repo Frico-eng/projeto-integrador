@@ -4,8 +4,17 @@ from PIL import Image
 import os
 from crud.crud_usuario import inserir_usuario
 
-def abrir_cadastro(root):
+def abrir_cadastro(root, fonte_global=None):
     """Cria e retorna o frame de cadastro dentro da janela root"""
+
+    # Funções para aumentar/diminuir fonte se fonte_global for fornecida
+    def aumentar_fonte():
+        if fonte_global and fonte_global.cget("size") < 22:  # 14 + (4 * 2)
+            fonte_global.configure(size=fonte_global.cget("size") + 2)
+
+    def diminuir_fonte():
+        if fonte_global and fonte_global.cget("size") > 6:  # 14 - (4 * 2)
+            fonte_global.configure(size=fonte_global.cget("size") - 2)
 
     frame = ctk.CTkFrame(root, fg_color="#1C1C1C")
 
@@ -40,9 +49,16 @@ def abrir_cadastro(root):
     titulo = ctk.CTkLabel(
         frame_direito,
         text="Cadastro - CinePlus 🎬",
-        font=("Arial", 24, "bold")
+        font=fonte_global if fonte_global else ("Arial", 24, "bold")
     )
     titulo.pack(pady=20)
+
+    # Botões para controle de fonte se fonte_global for fornecida
+    if fonte_global:
+        frame_controle_fonte = ctk.CTkFrame(frame_direito, fg_color="transparent")
+        frame_controle_fonte.pack(pady=(0, 10))
+        ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+        ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
 
     # ======== FUNÇÃO REGISTRAR ========
     def registrar():
@@ -106,7 +122,7 @@ def abrir_cadastro(root):
     entry_senha.pack(pady=8)
 
     # Data de nascimento
-    label_nasc = ctk.CTkLabel(campos_frame, text="Data de nascimento:", font=("Arial", 13))
+    label_nasc = ctk.CTkLabel(campos_frame, text="Data de nascimento:", font=fonte_global if fonte_global else ("Arial", 13))
     label_nasc.pack(pady=(15, 5))
 
     frame_data = ctk.CTkFrame(campos_frame, fg_color="transparent")
@@ -126,7 +142,7 @@ def abrir_cadastro(root):
     combo_ano.grid(row=0, column=2, padx=5)
 
     # Gênero
-    label_genero = ctk.CTkLabel(campos_frame, text="Gênero:", font=("Arial", 13))
+    label_genero = ctk.CTkLabel(campos_frame, text="Gênero:", font=fonte_global if fonte_global else ("Arial", 13))
     label_genero.pack(pady=(15, 5))
 
     var_genero = ctk.StringVar(value="Outro")
@@ -144,7 +160,7 @@ def abrir_cadastro(root):
     btn_registrar = ctk.CTkButton(
         frame_botoes, 
         text="🎟 Registrar", 
-        font=("Arial", 16, "bold"),
+        font=fonte_global if fonte_global else ("Arial", 16, "bold"),
         command=registrar,
         fg_color="#F6C148", 
         hover_color="#E2952D", 
@@ -159,7 +175,7 @@ def abrir_cadastro(root):
     btn_voltar = ctk.CTkButton(
         frame_botoes, 
         text="Voltar", 
-        font=("Arial", 16, "bold"),
+        font=fonte_global if fonte_global else ("Arial", 16, "bold"),
         fg_color="#F6C148", 
         hover_color="#E2952D", 
         text_color="#1C2732", 

@@ -76,8 +76,17 @@ def carregar_sessoes_do_banco(id_filme):
         print(f"Erro ao carregar sessões do banco: {e}")
         return {"dublado": [], "legendado": []}
 
-def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
+def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, fonte_global=None):
     """Cria e retorna o frame do catálogo de filmes"""
+    
+    # Funções para aumentar/diminuir fonte se fonte_global for fornecida
+    def aumentar_fonte():
+        if fonte_global and fonte_global.cget("size") < 22:  # 14 + (4 * 2)
+            fonte_global.configure(size=fonte_global.cget("size") + 2)
+
+    def diminuir_fonte():
+        if fonte_global and fonte_global.cget("size") > 6:  # 14 - (4 * 2)
+            fonte_global.configure(size=fonte_global.cget("size") - 2)
     
     # Frame principal
     frame = ctk.CTkFrame(parent, fg_color="transparent", width=1800, height=900)
@@ -106,27 +115,34 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     # ================== LAYOUT PRINCIPAL ==================
     
     # FRAME SUPERIOR: Apenas Dias
-    frame_superior = ctk.CTkFrame(frame, height=120)
+    frame_superior = ctk.CTkFrame(frame, height=90)
     frame_superior.pack(fill="x", padx=12, pady=(12, 6))
     frame_superior.pack_propagate(False)
+
+    # Botões para controle de fonte se fonte_global for fornecida
+    if fonte_global:
+        frame_controle_fonte = ctk.CTkFrame(frame_superior, fg_color="transparent")
+        frame_controle_fonte.pack(side="right", padx=10, pady=5)
+        ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+        ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
 
     # Dias
     frame_dias = ctk.CTkFrame(frame_superior, fg_color="transparent")
     frame_dias.pack(fill="x", pady=5)
-    ctk.CTkLabel(frame_dias, text="Dias:", font=("Arial", 14, "bold")).pack(pady=(0, 0))
+    ctk.CTkLabel(frame_dias, text="Dias:", font=fonte_global if fonte_global else ("Arial", 14, "bold")).pack(pady=(0, 0))
     
     frame_dias_container = ctk.CTkFrame(frame_dias, fg_color="transparent")
     frame_dias_container.pack(anchor="center", pady=0)
 
     # FRAME MEIO: Lista de filmes (scroll horizontal)
-    frame_meio = ctk.CTkFrame(frame, height=260)
+    frame_meio = ctk.CTkFrame(frame, height=320)
     frame_meio.pack(fill="x", padx=12, pady=6)
     frame_meio.pack_propagate(False)
 
     scroll_container = ctk.CTkFrame(frame_meio, fg_color="transparent")
     scroll_container.pack(fill="both", expand=True, padx=10, pady=0)
 
-    canvas = tk.Canvas(scroll_container, height=200, bg='#2b2b2b', highlightthickness=0)
+    canvas = tk.Canvas(scroll_container, height=350, bg='#2b2b2b', highlightthickness=0)
     scrollbar = ctk.CTkScrollbar(scroll_container, orientation="horizontal", command=canvas.xview)
     scrollable_frame = ctk.CTkFrame(canvas, fg_color="transparent")
 
@@ -156,7 +172,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     frame_top.pack(fill="x", padx=12, pady=10)
 
     # Imagem do filme
-    frame_imagem = ctk.CTkFrame(frame_top, width=200, height=280)
+    frame_imagem = ctk.CTkFrame(frame_top, width=200, height=320)
     frame_imagem.pack(side="left", padx=0, pady=0)
     frame_imagem.pack_propagate(False)
 
@@ -165,44 +181,44 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
 
     # Textos do filme
     frame_textos = ctk.CTkFrame(frame_top, fg_color="transparent")
-    frame_textos.pack(side="left", fill="both", expand=True, padx=0)
+    frame_textos.pack(side="left", fill="both", expand=True, padx=20)
 
-    label_titulo = ctk.CTkLabel(frame_textos, textvariable=titulo_var, font=("Arial", 18, "bold"))
+    label_titulo = ctk.CTkLabel(frame_textos, textvariable=titulo_var, font=fonte_global if fonte_global else ("Arial", 18, "bold"))
     label_titulo.pack(anchor="nw", pady=(0,6))
 
     frame_info_basica = ctk.CTkFrame(frame_textos, fg_color="transparent")
     frame_info_basica.pack(anchor="nw", fill="x", pady=(0,6))
 
     # Direção
-    ctk.CTkLabel(frame_info_basica, text="Direção:", font=("Arial", 14, "bold")).pack(anchor="nw")
-    label_direcao = ctk.CTkLabel(frame_info_basica, textvariable=direcao_var, wraplength=400, justify="left")
+    ctk.CTkLabel(frame_info_basica, text="Direção:", font=fonte_global if fonte_global else ("Arial", 14, "bold")).pack(anchor="nw")
+    label_direcao = ctk.CTkLabel(frame_info_basica, textvariable=direcao_var, wraplength=400, justify="left", font=fonte_global)
     label_direcao.pack(anchor="nw", pady=(0,6))
 
     # Duração
-    ctk.CTkLabel(frame_info_basica, text="Duração:", font=("Arial", 14, "bold")).pack(anchor="nw")
-    label_duracao = ctk.CTkLabel(frame_info_basica, textvariable=duracao_var, wraplength=400, justify="left")
+    ctk.CTkLabel(frame_info_basica, text="Duração:", font=fonte_global if fonte_global else ("Arial", 14, "bold")).pack(anchor="nw")
+    label_duracao = ctk.CTkLabel(frame_info_basica, textvariable=duracao_var, wraplength=400, justify="left", font=fonte_global)
     label_duracao.pack(anchor="nw", pady=(0,0))
 
     # Gênero
-    ctk.CTkLabel(frame_info_basica, text="Gênero:", font=("Arial", 14, "bold")).pack(anchor="nw")
-    label_genero = ctk.CTkLabel(frame_info_basica, textvariable=genero_var, wraplength=400, justify="left")
+    ctk.CTkLabel(frame_info_basica, text="Gênero:", font=fonte_global if fonte_global else ("Arial", 14, "bold")).pack(anchor="nw")
+    label_genero = ctk.CTkLabel(frame_info_basica, textvariable=genero_var, wraplength=400, justify="left", font=fonte_global)
     label_genero.pack(anchor="nw", pady=(0,6))
 
     # Sinopse
-    ctk.CTkLabel(frame_textos, text="Sinopse:", font=("Arial", 14, "bold")).pack(anchor="nw", pady=(0,0))
-    label_sinopse = ctk.CTkLabel(frame_textos, textvariable=sinopse_var, wraplength=850, justify="left")
+    ctk.CTkLabel(frame_textos, text="Sinopse:", font=fonte_global if fonte_global else ("Arial", 14, "bold")).pack(anchor="nw", pady=(0,0))
+    label_sinopse = ctk.CTkLabel(frame_textos, textvariable=sinopse_var, wraplength=850, justify="left", font=fonte_global)
     label_sinopse.pack(anchor="nw", pady=(0,0))
 
     # Classificação
     frame_classificacao = ctk.CTkFrame(frame_textos, fg_color="transparent")
     frame_classificacao.pack(anchor="nw", pady=(0,0))
     
-    ctk.CTkLabel(frame_classificacao, text="Classificação:", font=("Arial", 14, "bold")).pack(side="left")
+    ctk.CTkLabel(frame_classificacao, text="Classificação:", font=fonte_global if fonte_global else ("Arial", 14, "bold")).pack(side="left")
     label_classificacao = ctk.CTkLabel(frame_classificacao, text="", width=50, height=50)
     label_classificacao.pack(side="left", padx=10)
 
     # ===== CONTEÚDO DO FRAME DIREITO (HORÁRIOS POR TIPO) =====
-    ctk.CTkLabel(frame_direito, text="Horários por Tipo de Sessão", font=("Arial", 16, "bold")).pack(pady=(10, 5))
+    ctk.CTkLabel(frame_direito, text="Horários por Tipo de Sessão", font=fonte_global if fonte_global else ("Arial", 16, "bold")).pack(pady=(10, 5))
 
     # Container principal para os tipos
     frame_tipos_container = ctk.CTkFrame(frame_direito, fg_color="transparent")
@@ -212,7 +228,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     frame_dublado = ctk.CTkFrame(frame_tipos_container, fg_color="transparent")
     frame_dublado.pack(fill="x", pady=(0, 20))
 
-    ctk.CTkLabel(frame_dublado, text="Dublado", font=("Arial", 14, "bold")).pack(anchor="w", pady=(0, 5))
+    ctk.CTkLabel(frame_dublado, text="Dublado", font=fonte_global if fonte_global else ("Arial", 14, "bold")).pack(anchor="w", pady=(0, 5))
     
     frame_horarios_dublado = ctk.CTkFrame(frame_dublado, fg_color="transparent")
     frame_horarios_dublado.pack(fill="x")
@@ -221,13 +237,13 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
     frame_legendado = ctk.CTkFrame(frame_tipos_container, fg_color="transparent")
     frame_legendado.pack(fill="x", pady=(0, 10))
 
-    ctk.CTkLabel(frame_legendado, text="Legendado", font=("Arial", 14, "bold")).pack(anchor="w", pady=(0, 5))
+    ctk.CTkLabel(frame_legendado, text="Legendado", font=fonte_global if fonte_global else ("Arial", 14, "bold")).pack(anchor="w", pady=(0, 5))
     
     frame_horarios_legendado = ctk.CTkFrame(frame_legendado, fg_color="transparent")
     frame_horarios_legendado.pack(fill="x")
 
     # Label para mostrar seleção atual
-    label_selecao = ctk.CTkLabel(frame_direito, text="", font=("Arial", 12, "bold"))
+    label_selecao = ctk.CTkLabel(frame_direito, text="", font=fonte_global if fonte_global else ("Arial", 12, "bold"))
     label_selecao.pack(anchor="w", pady=10)
 
     # ===== BOTÕES DE NAVEGAÇÃO =====
@@ -256,14 +272,14 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
         btn = ctk.CTkButton(parent, text=f"{dia_info['nome']}:{dia_info['label']}", 
                            width=200, height=40, corner_radius=10,
                            fg_color=BTN_COLOR, hover_color=BTN_HOVER, text_color=BTN_TEXT,
-                           font=("Arial", 18), command=lambda: selecionar_dia(dia_info))
+                           font=fonte_global if fonte_global else ("Arial", 18), command=lambda: selecionar_dia(dia_info))
         btn.pack(side="left", padx=5, pady=5)
         return btn
 
     def criar_botao_horario(parent, horario, tipo):
         btn = ctk.CTkButton(parent, text=horario, width=120, height=35, corner_radius=8,
                            fg_color=BTN_COLOR, hover_color=BTN_HOVER, text_color=BTN_TEXT,
-                           font=("Arial", 14), 
+                           font=fonte_global if fonte_global else ("Arial", 14), 
                            command=lambda: selecionar_horario(horario, tipo))
         btn.pack(side="left", padx=3, pady=2)
         return btn
@@ -437,7 +453,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
         for filme in filmes:
             # Frame para cada filme
             item_frame = ctk.CTkFrame(scrollable_frame, fg_color=FILME_NORMAL_COLOR, 
-                                    height=300, width=160, corner_radius=8)
+                                    height=380, width=200, corner_radius=8)
             item_frame.pack(side="left", pady=10, padx=8)
             item_frame.pack_propagate(False)
             
@@ -448,14 +464,14 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
             if caminho_imagem and os.path.isfile(caminho_imagem):
                 try:
                     img = Image.open(caminho_imagem)
-                    img = img.resize((140, 180), Image.LANCZOS)
-                    foto = ctk.CTkImage(img, size=(140, 180))
+                    img = img.resize((160, 200), Image.LANCZOS)
+                    foto = ctk.CTkImage(img, size=(160, 200))
                 except Exception as e:
-                    img = Image.new("RGB", (140, 180), (40, 40, 40))
-                    foto = ctk.CTkImage(img, size=(140, 180))
+                    img = Image.new("RGB", (160, 200), (40, 40, 40))
+                    foto = ctk.CTkImage(img, size=(160, 200))
             else:
-                img = Image.new("RGB", (140, 180), (40, 40, 40))
-                foto = ctk.CTkImage(img, size=(140, 180))
+                img = Image.new("RGB", (160, 200), (40, 40, 40))
+                foto = ctk.CTkImage(img, size=(160, 200))
 
             # Conteúdo do frame
             content_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
@@ -467,7 +483,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
                 image=foto, text="",
                 fg_color="transparent", hover_color=BTN_HOVER,
                 command=lambda f=filme: mostrar_filme(f),
-                height=180, width=140
+                height=200, width=160
             )
             btn_imagem.pack(pady=(5, 5))
 
@@ -476,7 +492,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
                 content_frame,
                 text=filme["titulo"].title(),
                 anchor="center", text_color=BTN_TEXT,
-                font=("Arial", 12, "bold"), height=30, wraplength=140
+                font=fonte_global if fonte_global else ("Arial", 12, "bold"), height=60, wraplength=180
             )
             label_titulo.pack(fill="x", expand=False)
 
@@ -533,13 +549,13 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None):
 
     # Botões de navegação
     btn_voltar = ctk.CTkButton(botoes_frame, text="Voltar", 
-                              fg_color=BTN_COLOR, font=("Arial", 14, "bold"),
+                              fg_color=BTN_COLOR, font=fonte_global if fonte_global else ("Arial", 14, "bold"),
                               hover_color=BTN_HOVER, text_color=BTN_TEXT,
                               height=40, width=150, command=voltar_callback)
     btn_voltar.pack(side="left", padx=10)
 
     btn_confirmar = ctk.CTkButton(botoes_frame, text="Selecionar Assentos", 
-                                 fg_color=BTN_COLOR, font=("Arial", 14, "bold"),
+                                 fg_color=BTN_COLOR, font=fonte_global if fonte_global else ("Arial", 14, "bold"),
                                  hover_color=BTN_HOVER, text_color=BTN_TEXT,
                                  height=40, width=150, command=on_confirmar)
     btn_confirmar.pack(side="left", padx=20)
