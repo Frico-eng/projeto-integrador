@@ -49,3 +49,33 @@ def atualizar_status_assento(id_assento, status):
         return False
     finally:
         con.close()
+
+def buscar_assento_sessao_por_numero(id_sessao, fileira, numero):
+    conexao = conectar()
+    if conexao is None:
+        return None
+    
+    try:
+        cursor = conexao.cursor()
+        
+        cursor.execute("""
+            SELECT ass.ID_Assento_Sessao
+            FROM Assentos_Sessao ass
+            JOIN Assentos a ON ass.ID_Assento = a.ID_Assento
+            WHERE ass.ID_Sessao = %s 
+            AND a.Fileira_Assento = %s 
+            AND a.Numero_Assento = %s
+        """, (id_sessao, fileira, numero))
+        
+        resultado = cursor.fetchone()
+        
+        cursor.close()
+        conexao.close()
+        
+        return resultado[0] if resultado else None
+        
+    except Error as e:
+        print("Erro ao buscar assento_sessao:", e)
+        if conexao:
+            conexao.close()
+        return None

@@ -49,17 +49,18 @@ def criar_tela_feedback(parent, voltar_callback=None):
 
 
     # ===== LOGO =====
+    # Carregar imagem de feedback se existir, caso contrário usar placeholder
     try:
-        logo_img = ctk.CTkImage(
-            light_image=Image.open(FEEDBACK_IMAGE_PATH),
-            dark_image=Image.open(FEEDBACK_IMAGE_PATH),
-            size=(150,150)
-        )
+        if os.path.exists(FEEDBACK_IMAGE_PATH):
+            img = Image.open(FEEDBACK_IMAGE_PATH).resize((150, 150), Image.LANCZOS)
+        else:
+            # Gerar placeholder simples
+            img = Image.new('RGBA', (150, 150), (246, 193, 72, 255))
+        logo_img = ctk.CTkImage(light_image=img, dark_image=img, size=(150, 150))
         logo_label = ctk.CTkLabel(frame, image=logo_img, text="")
         logo_label.pack(pady=20)
     except Exception as e:
         print(f"Erro ao carregar imagem do feedback: {e}")
-        # Fallback: label textual se a imagem não carregar
         logo_label = ctk.CTkLabel(frame, text="💬", font=("Arial", 60))
         logo_label.pack(pady=20)
 

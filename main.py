@@ -13,12 +13,14 @@ from telas.abrir_cadastro import abrir_cadastro
 from telas.catalogo import criar_tela_catalogo
 from telas.feedback import criar_tela_feedback
 from telas.funcionario import criar_tela_funcionario
+from telas.gerente import criar_tela_gerente
 from telas.pagamentodocinema import mostrar_confirmacao_pagamento
 from telas.agradecimento import mostrar_tela_agradecimento
 from telas.seletor_assento import criar_tela_assentos
 
 # Gerenciador de telas
-from utilidades.gerenciador_telas import register_screen, show_screen
+from utilidades.gerenciador_telas import register_screen, show_screen, register_login_entries
+import utilidades.gerenciador_telas as gerenciador_telas
 
 # Configurações do CustomTkinter
 ctk.set_appearance_mode("dark")
@@ -133,6 +135,15 @@ def inicializar_telas():
     senha_container.pack(fill='x', pady=5)
     resultado_label = ctk.CTkLabel(login_container, text="", font=("Arial", 12))
     resultado_label.pack(pady=5)
+    # Registrar campos de login para limpeza automática (após criar resultado_label)
+    from utilidades.gerenciador_telas import register_login_entries
+    register_login_entries(
+        email_entry,
+        senha_entry,
+        email_placeholder="Seu email",
+        senha_placeholder="Sua senha",
+        resultado_label=resultado_label
+    )
 
     botoes_frame = ctk.CTkFrame(login_container, fg_color="transparent")
     botoes_frame.pack(pady=5)
@@ -181,6 +192,12 @@ def inicializar_telas():
     funcionario_content.pack(fill="both", expand=True)
     register_screen("funcionario", funcionario_frame)
 
+    # --- Gerente ---
+    gerente_frame = ctk.CTkFrame(app, fg_color="transparent")
+    gerente_content = criar_tela_gerente(gerente_frame, voltar_callback=lambda: show_screen("main"))
+    gerente_content.pack(fill="both", expand=True)
+    register_screen("gerente", gerente_frame)
+
     # --- Assentos ---
     assentos_frame = ctk.CTkFrame(app, fg_color="transparent")
     register_screen("assentos", assentos_frame)
@@ -195,6 +212,13 @@ def inicializar_telas():
 
     # --- Footers ---
     footer_main, footer_secondary = criar_footer(app)
+    # Registrar footers no módulo de gerenciador para que show_screen
+    # possa manipular e também limpar campos ao retornar para 'main'.
+    try:
+        gerenciador_telas.footer_main = footer_main
+        gerenciador_telas.footer_secondary = footer_secondary
+    except Exception:
+        pass
 
 # ========================= INICIALIZAR APLICAÇÃO =========================
 
