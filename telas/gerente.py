@@ -50,7 +50,7 @@ def criar_tela_gerente(parent, voltar_callback):
         gerenciador_telas.show_screen("relatorio")
     
     def gerenciar_funcionarios():
-        messagebox.showinfo("Funcionários", "Abrindo painel de gerenciamento de funcionários...")
+        gerenciador_telas.show_screen("gestao_funcionarios")
     
     def gerenciar_sessoes():
         gerenciador_telas.show_screen("funcionario")

@@ -372,3 +372,178 @@ def verificar_lugares_disponiveis(id_sessao):
         return 0
     finally:
         con.close()
+
+def inserir_sessao(id_filme, id_sala, data_sessao, hora_sessao, tipo_sessao):
+    """
+    Insere uma nova sessão no banco de dados
+    
+    Args:
+        id_filme: ID do filme
+        id_sala: ID da sala
+        data_sessao: Data da sessão (formato YYYY-MM-DD)
+        hora_sessao: Hora da sessão (formato HH:MM)
+        tipo_sessao: Tipo da sessão ('dublado' ou 'legendado')
+    
+    Returns:
+        ID da sessão criada ou False se erro
+    """
+    con = conectar()
+    if con is None: 
+        return False
+    try:
+        cursor = con.cursor()
+        cursor.execute("""
+            INSERT INTO Sessoes (ID_Filme, ID_Sala, Data_Sessao, Hora_Sessao, Tipo_Sessao) 
+            VALUES (%s, %s, %s, %s, %s)
+        """, (id_filme, id_sala, data_sessao, hora_sessao, tipo_sessao))
+        con.commit()
+        return cursor.lastrowid
+    except Error as e:
+        print("Erro ao inserir sessão:", e)
+        return False
+    finally:
+        con.close()
+
+def editar_sessao(id_sessao, id_filme, id_sala, data_sessao, hora_sessao, tipo_sessao):
+    """
+    Edita uma sessão existente
+    
+    Args:
+        id_sessao: ID da sessão a ser editada
+        id_filme: ID do filme
+        id_sala: ID da sala
+        data_sessao: Data da sessão (formato YYYY-MM-DD)
+        hora_sessao: Hora da sessão (formato HH:MM)
+        tipo_sessao: Tipo da sessão ('dublado' ou 'legendado')
+    
+    Returns:
+        True se sucesso, False se erro
+    """
+    con = conectar()
+    if con is None: 
+        return False
+    try:
+        cursor = con.cursor()
+        cursor.execute("""
+            UPDATE Sessoes 
+            SET ID_Filme=%s, ID_Sala=%s, Data_Sessao=%s, Hora_Sessao=%s, Tipo_Sessao=%s 
+            WHERE ID_Sessao=%s
+        """, (id_filme, id_sala, data_sessao, hora_sessao, tipo_sessao, id_sessao))
+        con.commit()
+        return True
+    except Error as e:
+        print("Erro ao editar sessão:", e)
+        return False
+    finally:
+        con.close()
+
+def excluir_sessao(id_sessao):
+    """
+    Exclui uma sessão do banco de dados
+    
+    Args:
+        id_sessao: ID da sessão a ser excluída
+    
+    Returns:
+        True se sucesso, False se erro
+    """
+    con = conectar()
+    if con is None: 
+        return False
+    try:
+        cursor = con.cursor()
+        cursor.execute("DELETE FROM Sessoes WHERE ID_Sessao=%s", (id_sessao,))
+        con.commit()
+        return True
+    except Error as e:
+        print("Erro ao excluir sessão:", e)
+        return False
+    finally:
+        con.close()
+
+def buscar_sessao_por_id(id_sessao):
+    """
+    Busca uma sessão específica por ID
+    
+    Args:
+        id_sessao: ID da sessão
+    
+    Returns:
+        Dict com dados da sessão ou None se não encontrada
+    """
+    con = conectar()
+    if con is None: 
+        return None
+    try:
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                s.ID_Sessao,
+                s.ID_Filme,
+                s.ID_Sala,
+                s.Data_Sessao,
+                s.Hora_Sessao,
+                s.Tipo_Sessao,
+                f.Titulo_Filme,
+                sa.Nome_Sala
+            FROM Sessoes s
+            INNER JOIN Filmes f ON s.ID_Filme = f.ID_Filme
+            INNER JOIN Salas sa ON s.ID_Sala = sa.ID_Sala
+            WHERE s.ID_Sessao=%s
+        """, (id_sessao,))
+        resultado = cursor.fetchone()
+        return resultado
+    except Error as e:
+        print("Erro ao buscar sessão:", e)
+        return None
+    finally:
+        con.close()
+
+def listar_todas_sessoes():
+    """
+    Lista todas as sessões com informações completas
+    
+    Returns:
+        Lista de dicionários com dados das sessões
+    """
+    con = conectar()
+    if con is None: 
+        return []
+    try:
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                s.ID_Sessao,
+                s.ID_Filme,
+                s.ID_Sala,
+                s.Data_Sessao,
+                s.Hora_Sessao,
+                s.Tipo_Sessao,
+                f.Titulo_Filme,
+                sa.Nome_Sala
+            FROM Sessoes s
+            INNER JOIN Filmes f ON s.ID_Filme = f.ID_Filme
+            INNER JOIN Salas sa ON s.ID_Sala = sa.ID_Sala
+            ORDER BY s.Data_Sessao ASC, s.Hora_Sessao ASC
+        """)
+        resultado = cursor.fetchall()
+        
+        # Formatar horas
+        for sessao in resultado:
+            hora = sessao['Hora_Sessao']
+            if hasattr(hora, 'total_seconds'):
+                total_seconds = int(hora.total_seconds())
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                sessao['Hora_Formatada'] = f"{hours:02d}:{minutes:02d}"
+            elif hasattr(hora, 'strftime'):
+                sessao['Hora_Formatada'] = hora.strftime("%H:%M")
+            else:
+                sessao['Hora_Formatada'] = str(hora)
+        
+        return resultado
+    except Error as e:
+        print("Erro ao listar todas as sessões:", e)
+        return []
+    finally:
+        con.close()
