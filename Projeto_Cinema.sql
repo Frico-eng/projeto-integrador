@@ -275,6 +275,6 @@ MODIFY Tipo_Usuario ENUM('admin', 'gerente', 'funcionario', 'cliente')
 DEFAULT 'cliente';
 
 INSERT INTO Usuarios (Nome_Usuario, Nome_Login, Senha, Email, Telefone, Genero, Data_Nascimento, Tipo_Usuario) VALUES
-('Gerente Cinema', 'gerente', 'gerente123', 'gerente', '(11)99999-0002', 'M', '1985-05-15', 'gerente'),
-('Atendente 1', 'funcionario1', 'func123', 'func', '(11)99999-0003', 'F', '1995-08-20', 'funcionario'),
-('Cliente Regular', 'cliente1', 'cliente123', 'cliente', '(11)99999-0005', 'F', '2000-07-25', 'cliente');
+('Gerente Cinema', 'gerente', 'senha', 'gerente', '(11)99999-0002', 'M', '1985-05-15', 'gerente'),
+('Atendente 1', 'func', 'senha', 'func', '(11)99999-0003', 'F', '1995-08-20', 'funcionario'),
+('Cliente Regular', 'cliente1', 'senha', 'cliente', '(11)99999-0005', 'F', '2000-07-25', 'cliente');

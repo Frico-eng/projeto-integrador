@@ -47,7 +47,7 @@ def criar_tela_gerente(parent, voltar_callback):
     botoes_frame.pack(fill="both", expand=True, padx=15, pady=10)
     
     def gerar_relatorio():
-        messagebox.showinfo("Relatório", "Gerando relatório de vendas...")
+        gerenciador_telas.show_screen("relatorio")
     
     def gerenciar_funcionarios():
         messagebox.showinfo("Funcionários", "Abrindo painel de gerenciamento de funcionários...")
