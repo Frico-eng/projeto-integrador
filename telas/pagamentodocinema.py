@@ -17,6 +17,7 @@ COR_TEXTO = "#ECF0F1"
 COR_DESTAQUE = "#F6C148"
 COR_BOTAO = "#F6C148"
 COR_BOTAO_HOVER = "#E2952D"
+COR_BOTAO_DESABILITADO = "#555555"  # Cinza para botões desabilitados
 
 # ============ FUNÇÕES AUXILIARES ============
 def gerar_comprovante_pdf(filme, horario, assentos, preco_por_assento=25.00):
@@ -411,9 +412,9 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
             )
 
             # Atualizar botões
-            btn_finalizar.configure(state="disabled", text="✅ Compra Finalizada")
-            btn_visualizar.configure(state="normal", text="📄 Abrir Comprovante")
-            btn_voltar.configure(state="normal", fg_color=COR_BOTAO, hover_color=COR_BOTAO_HOVER, text="Avançar")
+            btn_finalizar.configure(state="disabled", fg_color=COR_BOTAO_DESABILITADO, hover_color=COR_BOTAO_DESABILITADO, text="✅ Compra Finalizada")
+            btn_visualizar.configure(state="normal", fg_color="#3498db", hover_color="#2980b9", text="📄 Abrir Comprovante")
+            btn_voltar.configure(state="normal", fg_color="#7f8c8d", hover_color="#6c7a7d", text="Avançar")
 
             messagebox.showinfo("Sucesso", mensagem)
             
@@ -457,8 +458,8 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
         text="📄 Visualizar Comprovante",
         command=visualizar_comprovante_btn,
         font=fonte_global if fonte_global else ("Arial", 16, "bold"),
-        fg_color="#3498db",
-        hover_color="#2980b9",
+        fg_color=COR_BOTAO_DESABILITADO,
+        hover_color=COR_BOTAO_DESABILITADO,
         text_color=COR_TEXTO,
         height=50,
         width=250,
@@ -472,8 +473,8 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
         text="Avançar",
         command=voltar_ao_menu,
         font=fonte_global if fonte_global else ("Arial", 16, "bold"),
-        fg_color="gray",
-        hover_color="gray",
+        fg_color=COR_BOTAO_DESABILITADO,
+        hover_color=COR_BOTAO_DESABILITADO,
         text_color=COR_TEXTO,
         height=50,
         width=200,
