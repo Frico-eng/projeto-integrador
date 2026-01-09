@@ -446,7 +446,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
                 selecao_texto = f"Sessão: {horario} - {tipo.capitalize()}"
             label_selecao.configure(text=selecao_texto)
             # Habilitar botão quando tudo estiver selecionado
-            btn_confirmar.configure(state="normal", fg_color=BTN_COLOR)
+            btn_confirmar.configure(state="normal", fg_color=BTN_COLOR, hover_color="#E2952D")
         else:
             label_selecao.configure(text="Selecione filme, dia, horário e tipo")
             # Desabilitar botão quando seleção estiver incompleta
