@@ -413,8 +413,8 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
 
             # Atualizar botões
             btn_finalizar.configure(state="disabled", fg_color=COR_BOTAO_DESABILITADO, hover_color=COR_BOTAO_DESABILITADO, text="✅ Compra Finalizada")
-            btn_visualizar.configure(state="normal", fg_color="#F6C148", hover_color="#2980b9", text="📄 Abrir Comprovante")
-            btn_voltar.configure(state="normal", fg_color="#F6C148", hover_color="#6c7a7d", text="Avançar")
+            btn_visualizar.configure(state="normal", fg_color="#F6C148", hover_color="#E2952D", text="📄 Abrir Comprovante")
+            btn_voltar.configure(state="normal", fg_color="#F6C148", hover_color="#E2952D", text="Avançar")
 
             messagebox.showinfo("Sucesso", mensagem)
             
