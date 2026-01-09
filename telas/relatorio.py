@@ -11,6 +11,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.patches as mpatches
 from PIL import Image, ImageTk
 import io
+import math
 
 # ================== CONSTANTES DE CORES ==================
 BTN_COLOR = "#F6C148"
@@ -157,11 +158,26 @@ def criar_grafico_filmes_populares(dados, periodo):
     
     fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
     
+    # Filtrar apenas filmes com ingressos vendidos > 0
+    dados_filtrados = [d for d in dados if (d.get('total_ingressos', 0) or 0) > 0 and not (isinstance(d.get('total_ingressos'), float) and math.isnan(d.get('total_ingressos', 0)))]
+    
     # Limitar a top 5 filmes
-    dados_top5 = dados[:5]
+    dados_top5 = dados_filtrados[:5]
+    
+    if not dados_top5:
+        # Se não há filmes com vendas, mostrar mensagem
+        ax.text(0.5, 0.5, 'Nenhum filme\ncom vendas\nno período', 
+                ha='center', va='center', color='white', fontsize=12, transform=ax.transAxes)
+        ax.set_title(f'Filmes Mais Populares - {periodo.upper()}', color='white', fontsize=12, pad=20)
+        return fig
     
     filmes = [d.get('Titulo_Filme', 'N/A')[:15] + '...' if len(d.get('Titulo_Filme', 'N/A')) > 15 else d.get('Titulo_Filme', 'N/A') for d in dados_top5]
-    vendas = [d.get('total_ingressos', 0) or 0 for d in dados_top5]
+    vendas = []
+    for d in dados_top5:
+        val = d.get('total_ingressos', 0) or 0
+        if isinstance(val, float) and math.isnan(val):
+            val = 0
+        vendas.append(int(val))
     
     # Cores para o gráfico de pizza
     cores = ['#F6C148', '#E2952D', '#B6D8F1', '#8B5CF6', '#10B981']
