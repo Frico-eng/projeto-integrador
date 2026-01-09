@@ -18,6 +18,7 @@ from telas.pagamentodocinema import mostrar_confirmacao_pagamento
 from telas.agradecimento import mostrar_tela_agradecimento
 from telas.seletor_assento import criar_tela_assentos
 from telas.relatorio import criar_tela_dashboard
+from telas.gestao_funcionarios import criar_tela_gestao_funcionarios
 
 # Gerenciador de telas
 from utilidades.gerenciador_telas import register_screen, show_screen, register_login_entries
@@ -217,6 +218,12 @@ def inicializar_telas():
     gerente_content = criar_tela_gerente(gerente_frame, voltar_callback=lambda: show_screen("main"))
     gerente_content.pack(fill="both", expand=True)
     register_screen("gerente", gerente_frame)
+
+    # --- Gestão de Funcionários ---
+    gestao_funcionarios_frame = ctk.CTkFrame(app, fg_color="transparent")
+    gestao_funcionarios_content = criar_tela_gestao_funcionarios(gestao_funcionarios_frame, voltar_callback=lambda: show_screen("gerente"))
+    gestao_funcionarios_content.pack(fill="both", expand=True)
+    register_screen("gestao_funcionarios", gestao_funcionarios_frame)
 
     # --- Relatorio ---
     relatorio_frame = ctk.CTkFrame(app, fg_color="transparent")
