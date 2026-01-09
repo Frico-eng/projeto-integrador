@@ -439,14 +439,18 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
         tipo = tipo_selecionado.get()
         horario = horario_selecionado.get()
         
-        if dia and tipo and horario:
+        if dia and tipo and horario and filme_selecionado[0]:
             if isinstance(dia, dict):
                 selecao_texto = f"Sessão: {dia['nome']} ({dia['label']}) - {horario} - {tipo.capitalize()}"
             else:
                 selecao_texto = f"Sessão: {horario} - {tipo.capitalize()}"
             label_selecao.configure(text=selecao_texto)
+            # Habilitar botão quando tudo estiver selecionado
+            btn_confirmar.configure(state="normal", fg_color=BTN_COLOR)
         else:
-            label_selecao.configure(text="Selecione dia, horário e tipo")
+            label_selecao.configure(text="Selecione filme, dia, horário e tipo")
+            # Desabilitar botão quando seleção estiver incompleta
+            btn_confirmar.configure(state="disabled", fg_color="gray")
 
     def criar_botoes_filmes():
         """Cria os botões para cada filme na lista horizontal"""
@@ -555,9 +559,9 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
     btn_voltar.pack(side="left", padx=10)
 
     btn_confirmar = ctk.CTkButton(botoes_frame, text="Selecionar Assentos", 
-                                 fg_color=BTN_COLOR, font=fonte_global if fonte_global else ("Arial", 14, "bold"),
-                                 hover_color=BTN_HOVER, text_color=BTN_TEXT,
-                                 height=40, width=150, command=on_confirmar)
+                                 fg_color="gray", font=fonte_global if fonte_global else ("Arial", 14, "bold"),
+                                 hover_color="gray", text_color=BTN_TEXT,
+                                 height=40, width=150, command=on_confirmar, state="disabled")
     btn_confirmar.pack(side="left", padx=20)
 
     # Selecionar primeiro filme

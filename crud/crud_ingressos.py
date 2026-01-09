@@ -413,6 +413,269 @@ def obter_detalhes_ingresso_completo(id_ingresso):
             conexao.close()
         return None
 
+# ============ FUNÇÕES PARA RELATÓRIOS ============
+
+def obter_vendas_por_filme(periodo="mensal"):
+    """Retorna vendas agrupadas por filme para o período especificado"""
+    conexao = conectar()
+    if conexao is None:
+        return []
+    
+    try:
+        cursor = conexao.cursor(dictionary=True)
+        
+        # Definir período baseado no parâmetro
+        if periodo == "diário":
+            date_filter = "DATE(i.Data_Compra) = CURDATE()"
+        elif periodo == "mensal":
+            date_filter = "MONTH(i.Data_Compra) = MONTH(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        elif periodo == "quatrenal":
+            date_filter = "QUARTER(i.Data_Compra) = QUARTER(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        elif periodo == "anual":
+            date_filter = "YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        else:
+            date_filter = "1=1"  # Todos os registros
+        
+        cursor.execute(f"""
+            SELECT 
+                f.Titulo_Filme,
+                COUNT(i.ID_Ingresso) as total_ingressos,
+                COALESCE(SUM(i.Valor), 0) as faturamento_total,
+                COALESCE(AVG(i.Valor), 0) as preco_medio
+            FROM Ingressos i
+            JOIN Sessoes s ON i.ID_Sessao = s.ID_Sessao
+            JOIN Filmes f ON s.ID_Filme = f.ID_Filme
+            WHERE {date_filter}
+            GROUP BY f.ID_Filme, f.Titulo_Filme
+            ORDER BY total_ingressos DESC
+        """)
+        
+        resultados = cursor.fetchall()
+        cursor.close()
+        conexao.close()
+        
+        return resultados
+        
+    except Error as e:
+        print("Erro ao obter vendas por filme:", e)
+        if conexao:
+            conexao.close()
+        return []
+
+def obter_faturamento_por_periodo(periodo="mensal"):
+    """Retorna faturamento agrupado por período"""
+    conexao = conectar()
+    if conexao is None:
+        return []
+    
+    try:
+        cursor = conexao.cursor(dictionary=True)
+        
+        if periodo == "diário":
+            group_by = "DATE(i.Data_Compra)"
+            select_date = "DATE(i.Data_Compra) as periodo"
+        elif periodo == "mensal":
+            group_by = "DATE_FORMAT(i.Data_Compra, '%Y-%m')"
+            select_date = "DATE_FORMAT(i.Data_Compra, '%Y-%m') as periodo"
+        elif periodo == "quatrenal":
+            group_by = "CONCAT(YEAR(i.Data_Compra), '-Q', QUARTER(i.Data_Compra))"
+            select_date = "CONCAT(YEAR(i.Data_Compra), '-Q', QUARTER(i.Data_Compra)) as periodo"
+        elif periodo == "anual":
+            group_by = "YEAR(i.Data_Compra)"
+            select_date = "YEAR(i.Data_Compra) as periodo"
+        else:
+            group_by = "DATE(i.Data_Compra)"
+            select_date = "DATE(i.Data_Compra) as periodo"
+        
+        cursor.execute(f"""
+            SELECT 
+                {select_date},
+                COUNT(i.ID_Ingresso) as total_ingressos,
+                COALESCE(SUM(i.Valor), 0) as faturamento_total,
+                COALESCE(AVG(i.Valor), 0) as preco_medio
+            FROM Ingressos i
+            GROUP BY {group_by}
+            ORDER BY {group_by} DESC
+            LIMIT 30
+        """)
+        
+        resultados = cursor.fetchall()
+        cursor.close()
+        conexao.close()
+        
+        return resultados
+        
+    except Error as e:
+        print("Erro ao obter faturamento por período:", e)
+        if conexao:
+            conexao.close()
+        return []
+
+def obter_ingressos_por_sessao(periodo="mensal"):
+    """Retorna ingressos vendidos por sessão"""
+    conexao = conectar()
+    if conexao is None:
+        return []
+    
+    try:
+        cursor = conexao.cursor(dictionary=True)
+        
+        # Definir período baseado no parâmetro
+        if periodo == "diário":
+            date_filter = "DATE(i.Data_Compra) = CURDATE()"
+        elif periodo == "mensal":
+            date_filter = "MONTH(i.Data_Compra) = MONTH(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        elif periodo == "quatrenal":
+            date_filter = "QUARTER(i.Data_Compra) = QUARTER(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        elif periodo == "anual":
+            date_filter = "YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        else:
+            date_filter = "1=1"
+        
+        cursor.execute(f"""
+            SELECT 
+                f.Titulo_Filme,
+                s.Data_Sessao,
+                s.Hora_Sessao,
+                sa.Nome_Sala,
+                COUNT(i.ID_Ingresso) as ingressos_vendidos,
+                (SELECT COUNT(*) FROM Assentos_Sessao ass WHERE ass.ID_Sessao = s.ID_Sessao) as capacidade_total,
+                COALESCE(SUM(i.Valor), 0) as faturamento_sessao
+            FROM Sessoes s
+            LEFT JOIN Ingressos i ON s.ID_Sessao = i.ID_Sessao AND {date_filter}
+            JOIN Filmes f ON s.ID_Filme = f.ID_Filme
+            JOIN Salas sa ON s.ID_Sala = sa.ID_Sala
+            GROUP BY s.ID_Sessao, f.Titulo_Filme, s.Data_Sessao, s.Hora_Sessao, sa.Nome_Sala
+            ORDER BY s.Data_Sessao DESC, s.Hora_Sessao DESC
+            LIMIT 50
+        """)
+        
+        resultados = cursor.fetchall()
+        cursor.close()
+        conexao.close()
+        
+        return resultados
+        
+    except Error as e:
+        print("Erro ao obter ingressos por sessão:", e)
+        if conexao:
+            conexao.close()
+        return []
+
+def obter_filmes_mais_populares(periodo="mensal", limite=10):
+    """Retorna os filmes mais populares baseado em ingressos vendidos"""
+    conexao = conectar()
+    if conexao is None:
+        return []
+    
+    try:
+        cursor = conexao.cursor(dictionary=True)
+        
+        # Definir período baseado no parâmetro
+        if periodo == "diário":
+            date_filter = "DATE(i.Data_Compra) = CURDATE()"
+        elif periodo == "mensal":
+            date_filter = "MONTH(i.Data_Compra) = MONTH(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        elif periodo == "quatrenal":
+            date_filter = "QUARTER(i.Data_Compra) = QUARTER(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        elif periodo == "anual":
+            date_filter = "YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        else:
+            date_filter = "1=1"
+        
+        cursor.execute(f"""
+            SELECT 
+                f.Titulo_Filme,
+                f.Genero,
+                f.Classificacao,
+                COUNT(i.ID_Ingresso) as total_ingressos,
+                COALESCE(SUM(i.Valor), 0) as faturamento_total,
+                COALESCE(AVG(i.Valor), 0) as preco_medio,
+                COUNT(DISTINCT s.ID_Sessao) as sessoes_realizadas
+            FROM Filmes f
+            LEFT JOIN Sessoes s ON f.ID_Filme = s.ID_Filme
+            LEFT JOIN Ingressos i ON s.ID_Sessao = i.ID_Sessao AND {date_filter}
+            GROUP BY f.ID_Filme, f.Titulo_Filme, f.Genero, f.Classificacao
+            ORDER BY total_ingressos DESC
+            LIMIT {limite}
+        """)
+        
+        resultados = cursor.fetchall()
+        cursor.close()
+        conexao.close()
+        
+        return resultados
+        
+    except Error as e:
+        print("Erro ao obter filmes mais populares:", e)
+        if conexao:
+            conexao.close()
+        return []
+
+def obter_estatisticas_gerais(periodo="mensal"):
+    """Retorna estatísticas gerais do cinema"""
+    conexao = conectar()
+    if conexao is None:
+        return {}
+    
+    try:
+        cursor = conexao.cursor(dictionary=True)
+        
+        # Definir período baseado no parâmetro
+        if periodo == "diário":
+            date_filter = "DATE(i.Data_Compra) = CURDATE()"
+        elif periodo == "mensal":
+            date_filter = "MONTH(i.Data_Compra) = MONTH(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        elif periodo == "quatrenal":
+            date_filter = "QUARTER(i.Data_Compra) = QUARTER(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        elif periodo == "anual":
+            date_filter = "YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        else:
+            date_filter = "1=1"
+        
+        # Estatísticas gerais
+        cursor.execute(f"""
+            SELECT 
+                COUNT(DISTINCT i.ID_Ingresso) as total_ingressos_vendidos,
+                COALESCE(SUM(i.Valor), 0) as faturamento_total,
+                COALESCE(AVG(i.Valor), 0) as preco_medio_ingresso,
+                COUNT(DISTINCT i.ID_Cliente) as total_clientes_unicos,
+                COUNT(DISTINCT s.ID_Sessao) as total_sessoes_realizadas
+            FROM Ingressos i
+            JOIN Sessoes s ON i.ID_Sessao = s.ID_Sessao
+            WHERE {date_filter}
+        """)
+        
+        estatisticas = cursor.fetchone() or {}
+        
+        # Filme mais vendido
+        cursor.execute(f"""
+            SELECT f.Titulo_Filme, COUNT(i.ID_Ingresso) as ingressos
+            FROM Ingressos i
+            JOIN Sessoes s ON i.ID_Sessao = s.ID_Sessao
+            JOIN Filmes f ON s.ID_Filme = f.ID_Filme
+            WHERE {date_filter}
+            GROUP BY f.ID_Filme, f.Titulo_Filme
+            ORDER BY ingressos DESC
+            LIMIT 1
+        """)
+        
+        filme_mais_vendido = cursor.fetchone()
+        if filme_mais_vendido:
+            estatisticas['filme_mais_vendido'] = filme_mais_vendido['Titulo_Filme']
+            estatisticas['ingressos_filme_mais_vendido'] = filme_mais_vendido['ingressos']
+        
+        cursor.close()
+        conexao.close()
+        
+        return estatisticas
+        
+    except Error as e:
+        print("Erro ao obter estatísticas gerais:", e)
+        if conexao:
+            conexao.close()
+        return {}
+
 # ============ TESTES ============
 if __name__ == "__main__":
     # Teste das funções

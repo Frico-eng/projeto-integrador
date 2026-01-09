@@ -413,6 +413,7 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
             # Atualizar botões
             btn_finalizar.configure(state="disabled", text="✅ Compra Finalizada")
             btn_visualizar.configure(state="normal", text="📄 Abrir Comprovante")
+            btn_voltar.configure(state="normal", fg_color=COR_BOTAO, hover_color=COR_BOTAO_HOVER, text="Avançar")
 
             messagebox.showinfo("Sucesso", mensagem)
             
@@ -471,11 +472,12 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
         text="Avançar",
         command=voltar_ao_menu,
         font=fonte_global if fonte_global else ("Arial", 16, "bold"),
-        fg_color="#7f8c8d",
-        hover_color="#6c7a7d",
+        fg_color="gray",
+        hover_color="gray",
         text_color=COR_TEXTO,
         height=50,
-        width=200
+        width=200,
+        state="disabled"
     )
     btn_voltar.pack(side="left", padx=10)
     

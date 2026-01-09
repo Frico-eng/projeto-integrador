@@ -17,6 +17,7 @@ from telas.gerente import criar_tela_gerente
 from telas.pagamentodocinema import mostrar_confirmacao_pagamento
 from telas.agradecimento import mostrar_tela_agradecimento
 from telas.seletor_assento import criar_tela_assentos
+from telas.relatorio import criar_tela_dashboard
 
 # Gerenciador de telas
 from utilidades.gerenciador_telas import register_screen, show_screen, register_login_entries
@@ -217,6 +218,12 @@ def inicializar_telas():
     gerente_content.pack(fill="both", expand=True)
     register_screen("gerente", gerente_frame)
 
+    # --- Relatorio ---
+    relatorio_frame = ctk.CTkFrame(app, fg_color="transparent")
+    relatorio_content = criar_tela_dashboard(relatorio_frame, voltar_callback=lambda: show_screen("main"), fonte_global=fonte_global)
+    relatorio_content.pack(fill="both", expand=True)
+    register_screen("relatorio", relatorio_frame)
+
     # --- Assentos ---
     assentos_frame = ctk.CTkFrame(app, fg_color="transparent")
     register_screen("assentos", assentos_frame)
@@ -250,6 +257,15 @@ def inicializar_app():
 
     # Criar fonte global após inicializar o app
     fonte_global = ctk.CTkFont(family="Arial", size=14)
+
+    # Adicionar handler para limpeza ao fechar a aplicação
+    def on_closing():
+        import matplotlib.pyplot as plt
+        # Fechar todas as figuras matplotlib abertas para liberar memória
+        plt.close('all')
+        app.destroy()
+
+    app.protocol("WM_DELETE_WINDOW", on_closing)
 
     inicializar_telas()
     show_screen("main")
