@@ -23,7 +23,14 @@ INSERT INTO Filmes (Titulo_Filme, Genero, Duracao, Classificacao, Cartaz_Path, D
 ('Jumanji', 'Comédia, Infantil, Aventura, Ação', 90, 'LIVRE', 'utilidades/images/jumanji.jpg', 'Joe Johnston', 'Dois crianças descobrem um jogo de tabuleiro mágico chamado Jumanji e, ao começarem a jogar, liberam um homem que estava preso no jogo há décadas. Juntos, eles precisam completar a partida para reverter o caos causado pelas perigosas criaturas e fenômenos que escaparam do jogo para o mundo real.'),
 ('Demon Slayer - Castelo Infinito', 'Ação, Aventura, Fantasia Sombria e Artes Marciais', 156, '18', 'utilidades/images/Demon Slayer.jpg', 'Haruo Sotozaki', 'Tanjiro Kamado e seus companheiros do Corpo de Caçadores de Demônios invadem o Castelo Infinito para enfrentar os Quatro Lunares Superiores e o próprio Muzan Kibutsuji. Nesta batalha épica, eles precisa usar todas as suas habilidades para derrotar os demônios mais poderosos e salvar a irmã de Tanjiro, Nezuko.'),
 ('Homem-Aranha Sem Volta Para Casa', 'Filme super-herói, Ação, Aventura, Comédia, Suspense', 98, '12', 'utilidades/images/Homem-aranha Sem volta para casa.jpg', 'Jon Watts', 'Peter Parker pede ao Dr. Estranho para fazer o mundo esquecer que ele é o Homem-Aranha, mas quando o feitiço dá errado, multiversos são abertos trazendo vilões e heróis de outras realidades. Agora, Peter deve enfrentar ameaças de universos alternativos enquanto lida com consequências devastadoras para seu mundo.'),
-('Invocação do Mal', 'Terror, Sobrenatural, Mistério, Suspense', 135, '14', 'utilidades/images/invocação do mal.jpg', 'James Wan', 'Baseado em uma história real, os investigadores paranormais Ed e Lorraine Warren são chamados para ajudar uma família aterrorizada por uma presença obscura em sua fazenda. Eles descobrem que a casa está assombrada por uma entidade demoníaca que ameaça não apenas a família, mas todos que se aproximam do local.');
+('Invocação do Mal', 'Terror, Sobrenatural, Mistério, Suspense', 135, '14', 'utilidades/images/invocação do mal.jpg', 'James Wan', 'Baseado em uma história real, os investigadores paranormais Ed e Lorraine Warren são chamados para ajudar uma família aterrorizada por uma presença obscura em sua fazenda. Eles descobrem que a casa está assombrada por uma entidade demoníaca que ameaça não apenas a família, mas todos que se aproximam do local.'),
+('Avatar', 'Ficção Científica, Aventura', 162, '12', 'utilidades/images/avatar.jpg', 'James Cameron', 'Em um futuro distante, um ex-marine paraplégico é enviado a Pandora, um mundo extraterrestre habitado por seres azuis chamados Navi. Ele deve navegar por este mundo estranho e ameaçador para cumprir sua missão.'),
+('Vingadores: Ultimato', 'Ação, Aventura, Ficção Científica', 181, '12', 'utilidades/images/vingadores.jpg', 'Anthony Russo, Joe Russo', 'Após os eventos devastadores de \'Vingadores: Guerra Infinita\', o universo está em ruínas. Com a ajuda de aliados remanescentes, os Vingadores se reúnem para reverter as ações de Thanos e restaurar a ordem no universo.'),
+('Jurassic Park', 'Aventura, Ficção Científica, Suspense', 127, '10', 'utilidades/images/jurassic_park.jpg', 'Steven Spielberg', 'Um parque temático com dinossauros clonados se torna um pesadelo quando os sistemas de segurança falham, libertando as criaturas pré-históricas.'),
+('O Senhor dos Anéis', 'Fantasia, Aventura', 178, '12', 'utilidades/images/senhor_dos_aneis.jpg', 'Peter Jackson', 'Um jovem hobbit chamado Frodo herda um anel mágico que pode destruir o mundo. Ele embarca em uma jornada épica para destruí-lo na Montanha da Perdição.'),
+('Batman: O Cavaleiro das Trevas', 'Ação, Crime, Drama', 152, '14', 'utilidades/images/batman_cavaleiro.jpg', 'Christopher Nolan', 'Batman enfrenta o Coringa, um criminoso psicótico que deseja mergulhar Gotham City no caos. Enquanto luta contra o vilão, Bruce Wayne também lida com questões pessoais.'),
+('Star Wars', 'Ficção Científica, Aventura', 121, 'LIVRE', 'utilidades/images/star_wars.jpg', 'George Lucas', 'Em uma galáxia muito distante, Luke Skywalker descobre seu destino como Jedi e se junta à Aliança Rebelde para derrotar o Império Galáctico.'),
+('Mad Max: Estrada da Fúria', 'Ação, Ficção Científica', 120, '16', 'utilidades/images/mad_max.jpg', 'George Miller', 'Em um mundo pós-apocalíptico, Max Rockatansky se une a uma mulher fugitiva para escapar de um senhor da guerra tirano.');
 
 -- Tabela de Salas
 DROP TABLE IF EXISTS Salas;
@@ -239,7 +246,56 @@ INSERT INTO Sessoes (ID_Filme, ID_Sala, Data_Sessao, Hora_Sessao, Tipo_Sessao) V
 (8, 8, '2025-09-04', '22:00', 'dublado'), (8, 8, '2025-09-04', '23:30', 'dublado'),
 -- Invocação do Mal - Sala 8 (Legendado)
 (8, 8, '2025-09-04', '17:00', 'legendado'), (8, 8, '2025-09-04', '19:45', 'legendado'), 
-(8, 8, '2025-09-04', '23:00', 'legendado');
+(8, 8, '2025-09-04', '23:00', 'legendado'),
+
+-- Avatar - Sala 1 (Dublado)
+(9, 1, '2026-01-15', '14:00', 'dublado'), (9, 1, '2026-01-15', '17:30', 'dublado'), 
+(9, 1, '2026-01-15', '21:00', 'dublado'),
+-- Avatar - Sala 1 (Legendado)
+(9, 1, '2026-01-15', '16:00', 'legendado'), (9, 1, '2026-01-15', '19:30', 'legendado'), 
+(9, 1, '2026-01-15', '23:00', 'legendado'),
+
+-- Vingadores: Ultimato - Sala 2 (Dublado)
+(10, 2, '2026-01-16', '13:30', 'dublado'), (10, 2, '2026-01-16', '17:00', 'dublado'), 
+(10, 2, '2026-01-16', '20:30', 'dublado'),
+-- Vingadores: Ultimato - Sala 2 (Legendado)
+(10, 2, '2026-01-16', '15:30', 'legendado'), (10, 2, '2026-01-16', '19:00', 'legendado'), 
+(10, 2, '2026-01-16', '22:30', 'legendado'),
+
+-- Jurassic Park - Sala 3 (Dublado)
+(11, 3, '2026-01-17', '14:15', 'dublado'), (11, 3, '2026-01-17', '17:45', 'dublado'), 
+(11, 3, '2026-01-17', '21:15', 'dublado'),
+-- Jurassic Park - Sala 3 (Legendado)
+(11, 3, '2026-01-17', '16:00', 'legendado'), (11, 3, '2026-01-17', '19:30', 'legendado'), 
+(11, 3, '2026-01-17', '23:00', 'legendado'),
+
+-- O Senhor dos Anéis - Sala 4 (Dublado)
+(12, 4, '2026-01-18', '13:00', 'dublado'), (12, 4, '2026-01-18', '16:30', 'dublado'), 
+(12, 4, '2026-01-18', '20:00', 'dublado'),
+-- O Senhor dos Anéis - Sala 4 (Legendado)
+(12, 4, '2026-01-18', '15:00', 'legendado'), (12, 4, '2026-01-18', '18:30', 'legendado'), 
+(12, 4, '2026-01-18', '22:00', 'legendado'),
+
+-- Batman: O Cavaleiro das Trevas - Sala 5 (Dublado)
+(13, 5, '2026-01-19', '14:30', 'dublado'), (13, 5, '2026-01-19', '18:00', 'dublado'), 
+(13, 5, '2026-01-19', '21:30', 'dublado'),
+-- Batman: O Cavaleiro das Trevas - Sala 5 (Legendado)
+(13, 5, '2026-01-19', '16:30', 'legendado'), (13, 5, '2026-01-19', '20:00', 'legendado'), 
+(13, 5, '2026-01-19', '23:30', 'legendado'),
+
+-- Star Wars - Sala 6 (Dublado)
+(14, 6, '2026-01-20', '13:15', 'dublado'), (14, 6, '2026-01-20', '16:45', 'dublado'), 
+(14, 6, '2026-01-20', '20:15', 'dublado'),
+-- Star Wars - Sala 6 (Legendado)
+(14, 6, '2026-01-20', '15:00', 'legendado'), (14, 6, '2026-01-20', '18:30', 'legendado'), 
+(14, 6, '2026-01-20', '22:00', 'legendado'),
+
+-- Mad Max: Estrada da Fúria - Sala 7 (Dublado)
+(15, 7, '2026-01-21', '14:45', 'dublado'), (15, 7, '2026-01-21', '18:15', 'dublado'), 
+(15, 7, '2026-01-21', '21:45', 'dublado'),
+-- Mad Max: Estrada da Fúria - Sala 7 (Legendado)
+(15, 7, '2026-01-21', '16:45', 'legendado'), (15, 7, '2026-01-21', '20:15', 'legendado'), 
+(15, 7, '2026-01-21', '23:45', 'legendado');
 
 -- Popular assentos para todas as sessões
 CALL PopularAssentosSessao();
