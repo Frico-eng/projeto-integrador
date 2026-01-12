@@ -139,8 +139,19 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
     frame_meio.pack(fill="x", padx=12, pady=6)
     frame_meio.pack_propagate(False)
 
-    scroll_container = ctk.CTkFrame(frame_meio, fg_color="transparent")
-    scroll_container.pack(fill="both", expand=True, padx=10, pady=0)
+    # Container para botões de navegação e scroll
+    nav_container = ctk.CTkFrame(frame_meio, fg_color="transparent")
+    nav_container.pack(fill="both", expand=True)
+
+    # Botão esquerda
+    btn_left = ctk.CTkButton(nav_container, text="←", width=40, height=40, corner_radius=20,
+                            fg_color=BTN_COLOR, hover_color=BTN_HOVER, text_color=BTN_TEXT,
+                            font=fonte_global if fonte_global else ("Arial", 18),
+                            command=lambda: canvas.xview_scroll(-1, "units"))
+    btn_left.pack(side="left", padx=(0, 5), pady=10)
+
+    scroll_container = ctk.CTkFrame(nav_container, fg_color="transparent")
+    scroll_container.pack(fill="both", expand=True, side="left", padx=0, pady=0)
 
     canvas = tk.Canvas(scroll_container, height=350, bg='#2b2b2b', highlightthickness=0)
     scrollbar = ctk.CTkScrollbar(scroll_container, orientation="horizontal", command=canvas.xview)
@@ -152,6 +163,13 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
 
     canvas.pack(side="top", fill="both", expand=True)
     scrollbar.pack(side="bottom", fill="x")
+
+    # Botão direita
+    btn_right = ctk.CTkButton(nav_container, text="→", width=40, height=40, corner_radius=20,
+                             fg_color=BTN_COLOR, hover_color=BTN_HOVER, text_color=BTN_TEXT,
+                             font=fonte_global if fonte_global else ("Arial", 18),
+                             command=lambda: canvas.xview_scroll(1, "units"))
+    btn_right.pack(side="right", padx=(5, 0), pady=10)
 
     # FRAME INFERIOR: Detalhes do filme e Horários por Tipo
     frame_inferior = ctk.CTkFrame(frame, height=660)
@@ -172,7 +190,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
     frame_top.pack(fill="x", padx=12, pady=10)
 
     # Imagem do filme
-    frame_imagem = ctk.CTkFrame(frame_top, width=200, height=320)
+    frame_imagem = ctk.CTkFrame(frame_top, width=200, height=290)
     frame_imagem.pack(side="left", padx=0, pady=0)
     frame_imagem.pack_propagate(False)
 
