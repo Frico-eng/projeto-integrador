@@ -426,25 +426,26 @@ def obter_vendas_por_filme(periodo="mensal"):
         
         # Definir período baseado no parâmetro
         if periodo == "diário":
-            date_filter = "DATE(i.Data_Compra) = CURDATE()"
+            date_filter = "DATE(s.Data_Sessao) = CURDATE()"
         elif periodo == "mensal":
-            date_filter = "MONTH(i.Data_Compra) = MONTH(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+            date_filter = "MONTH(s.Data_Sessao) = MONTH(CURDATE()) AND YEAR(s.Data_Sessao) = YEAR(CURDATE())"
         elif periodo == "quatrenal":
-            date_filter = "QUARTER(i.Data_Compra) = QUARTER(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+            date_filter = "QUARTER(s.Data_Sessao) = QUARTER(CURDATE()) AND YEAR(s.Data_Sessao) = YEAR(CURDATE())"
         elif periodo == "anual":
-            date_filter = "YEAR(i.Data_Compra) = YEAR(CURDATE())"
+            date_filter = "YEAR(s.Data_Sessao) = YEAR(CURDATE())"
         else:
             date_filter = "1=1"  # Todos os registros
         
         cursor.execute(f"""
             SELECT 
+                f.ID_Filme,
                 f.Titulo_Filme,
                 COUNT(i.ID_Ingresso) as total_ingressos,
                 COALESCE(SUM(i.Valor), 0) as faturamento_total,
                 COALESCE(AVG(i.Valor), 0) as preco_medio
-            FROM Ingressos i
-            JOIN Sessoes s ON i.ID_Sessao = s.ID_Sessao
-            JOIN Filmes f ON s.ID_Filme = f.ID_Filme
+            FROM Filmes f
+            LEFT JOIN Sessoes s ON f.ID_Filme = s.ID_Filme
+            LEFT JOIN Ingressos i ON s.ID_Sessao = i.ID_Sessao
             WHERE {date_filter}
             GROUP BY f.ID_Filme, f.Titulo_Filme
             ORDER BY total_ingressos DESC
@@ -472,20 +473,26 @@ def obter_faturamento_por_periodo(periodo="mensal"):
         cursor = conexao.cursor(dictionary=True)
         
         if periodo == "diário":
-            group_by = "DATE(i.Data_Compra)"
-            select_date = "DATE(i.Data_Compra) as periodo"
+            group_by = "HOUR(s.Data_Sessao)"
+            select_date = "HOUR(s.Data_Sessao) as periodo"
+            # Para diário, filtrar apenas o dia atual
+            date_filter = "DATE(s.Data_Sessao) = CURDATE()"
         elif periodo == "mensal":
-            group_by = "DATE_FORMAT(i.Data_Compra, '%Y-%m')"
-            select_date = "DATE_FORMAT(i.Data_Compra, '%Y-%m') as periodo"
+            group_by = "DATE_FORMAT(s.Data_Sessao, '%Y-%m')"
+            select_date = "DATE_FORMAT(s.Data_Sessao, '%Y-%m') as periodo"
+            date_filter = "1=1"
         elif periodo == "quatrenal":
-            group_by = "CONCAT(YEAR(i.Data_Compra), '-Q', QUARTER(i.Data_Compra))"
-            select_date = "CONCAT(YEAR(i.Data_Compra), '-Q', QUARTER(i.Data_Compra)) as periodo"
+            group_by = "CONCAT(YEAR(s.Data_Sessao), '-Q', QUARTER(s.Data_Sessao))"
+            select_date = "CONCAT(YEAR(s.Data_Sessao), '-Q', QUARTER(s.Data_Sessao)) as periodo"
+            date_filter = "1=1"
         elif periodo == "anual":
-            group_by = "YEAR(i.Data_Compra)"
-            select_date = "YEAR(i.Data_Compra) as periodo"
+            group_by = "YEAR(s.Data_Sessao)"
+            select_date = "YEAR(s.Data_Sessao) as periodo"
+            date_filter = "1=1"
         else:
-            group_by = "DATE(i.Data_Compra)"
-            select_date = "DATE(i.Data_Compra) as periodo"
+            group_by = "DATE(s.Data_Sessao)"
+            select_date = "DATE(s.Data_Sessao) as periodo"
+            date_filter = "1=1"
         
         cursor.execute(f"""
             SELECT 
@@ -494,8 +501,10 @@ def obter_faturamento_por_periodo(periodo="mensal"):
                 COALESCE(SUM(i.Valor), 0) as faturamento_total,
                 COALESCE(AVG(i.Valor), 0) as preco_medio
             FROM Ingressos i
+            JOIN Sessoes s ON i.ID_Sessao = s.ID_Sessao
+            WHERE {date_filter}
             GROUP BY {group_by}
-            ORDER BY {group_by} DESC
+            ORDER BY {group_by} ASC
             LIMIT 30
         """)
         
@@ -532,6 +541,18 @@ def obter_ingressos_por_sessao(periodo="mensal"):
         else:
             date_filter = "1=1"
         
+        # Definir filtro de data para sessões
+        if periodo == "diário":
+            sessao_filter = "DATE(s.Data_Sessao) = CURDATE()"
+        elif periodo == "mensal":
+            sessao_filter = "s.Data_Sessao >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+        elif periodo == "quatrenal":
+            sessao_filter = "s.Data_Sessao >= DATE_SUB(CURDATE(), INTERVAL 120 DAY)"
+        elif periodo == "anual":
+            sessao_filter = "s.Data_Sessao >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)"
+        else:
+            sessao_filter = "s.Data_Sessao >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+        
         cursor.execute(f"""
             SELECT 
                 f.Titulo_Filme,
@@ -545,6 +566,7 @@ def obter_ingressos_por_sessao(periodo="mensal"):
             LEFT JOIN Ingressos i ON s.ID_Sessao = i.ID_Sessao AND {date_filter}
             JOIN Filmes f ON s.ID_Filme = f.ID_Filme
             JOIN Salas sa ON s.ID_Sala = sa.ID_Sala
+            WHERE {sessao_filter}
             GROUP BY s.ID_Sessao, f.Titulo_Filme, s.Data_Sessao, s.Hora_Sessao, sa.Nome_Sala
             ORDER BY s.Data_Sessao DESC, s.Hora_Sessao DESC
             LIMIT 50
@@ -573,13 +595,13 @@ def obter_filmes_mais_populares(periodo="mensal", limite=10):
         
         # Definir período baseado no parâmetro
         if periodo == "diário":
-            date_filter = "DATE(i.Data_Compra) = CURDATE()"
+            date_filter = "DATE(s.Data_Sessao) = CURDATE()"
         elif periodo == "mensal":
-            date_filter = "MONTH(i.Data_Compra) = MONTH(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+            date_filter = "MONTH(s.Data_Sessao) = MONTH(CURDATE()) AND YEAR(s.Data_Sessao) = YEAR(CURDATE())"
         elif periodo == "quatrenal":
-            date_filter = "QUARTER(i.Data_Compra) = QUARTER(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+            date_filter = "QUARTER(s.Data_Sessao) = QUARTER(CURDATE()) AND YEAR(s.Data_Sessao) = YEAR(CURDATE())"
         elif periodo == "anual":
-            date_filter = "YEAR(i.Data_Compra) = YEAR(CURDATE())"
+            date_filter = "YEAR(s.Data_Sessao) = YEAR(CURDATE())"
         else:
             date_filter = "1=1"
         
@@ -594,7 +616,8 @@ def obter_filmes_mais_populares(periodo="mensal", limite=10):
                 COUNT(DISTINCT s.ID_Sessao) as sessoes_realizadas
             FROM Filmes f
             LEFT JOIN Sessoes s ON f.ID_Filme = s.ID_Filme
-            LEFT JOIN Ingressos i ON s.ID_Sessao = i.ID_Sessao AND {date_filter}
+            LEFT JOIN Ingressos i ON s.ID_Sessao = i.ID_Sessao
+            WHERE {date_filter}
             GROUP BY f.ID_Filme, f.Titulo_Filme, f.Genero, f.Classificacao
             ORDER BY total_ingressos DESC
             LIMIT {limite}
@@ -675,6 +698,81 @@ def obter_estatisticas_gerais(periodo="mensal"):
         if conexao:
             conexao.close()
         return {}
+
+def get_dados_relatorio(periodo="mensal"):
+    """Retorna lista simplificada de ingressos para relatórios"""
+    conexao = conectar()
+    if conexao is None:
+        return []
+    
+    try:
+        cursor = conexao.cursor(dictionary=True)
+        
+        # Definir filtro de período baseado em Data_Compra (todos os períodos)
+        if periodo == "diário":
+            date_filter = "DATE(i.Data_Compra) = CURDATE()"
+        elif periodo == "mensal":
+            date_filter = "MONTH(i.Data_Compra) = MONTH(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        elif periodo == "quatrenal":
+            date_filter = "QUARTER(i.Data_Compra) = QUARTER(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        elif periodo == "anual":
+            date_filter = "YEAR(i.Data_Compra) = YEAR(CURDATE())"
+        else:
+            date_filter = "1=1"
+        
+        cursor.execute(f"""
+            SELECT 
+                i.ID_Ingresso as id_compra,
+                f.Titulo_Filme as nome_filme,
+                s.Data_Sessao as data_sessao,
+                sa.Nome_Sala as sala,
+                i.Valor as valor,
+                s.Hora_Sessao as hora_sessao
+            FROM Ingressos i
+            JOIN Sessoes s ON i.ID_Sessao = s.ID_Sessao
+            JOIN Filmes f ON s.ID_Filme = f.ID_Filme
+            JOIN Salas sa ON s.ID_Sala = sa.ID_Sala
+            WHERE {date_filter}
+            ORDER BY s.Data_Sessao, s.Hora_Sessao
+        """)
+        
+        resultados = cursor.fetchall()
+        
+        # Se não há dados para o período atual, buscar dados históricos
+        if not resultados and periodo in ["diário", "mensal"]:
+            if periodo == "diário":
+                fallback_filter = "i.Data_Compra >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
+            else:
+                fallback_filter = "i.Data_Compra >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+            
+            cursor.execute(f"""
+                SELECT 
+                    i.ID_Ingresso as id_compra,
+                    f.Titulo_Filme as nome_filme,
+                    s.Data_Sessao as data_sessao,
+                    sa.Nome_Sala as sala,
+                    i.Valor as valor,
+                    s.Hora_Sessao as hora_sessao
+                FROM Ingressos i
+                JOIN Sessoes s ON i.ID_Sessao = s.ID_Sessao
+                JOIN Filmes f ON s.ID_Filme = f.ID_Filme
+                JOIN Salas sa ON s.ID_Sala = sa.ID_Sala
+                WHERE {fallback_filter}
+                ORDER BY i.Data_Compra DESC, s.Data_Sessao DESC, s.Hora_Sessao
+                LIMIT 100
+            """)
+            resultados = cursor.fetchall()
+        
+        cursor.close()
+        conexao.close()
+        
+        return resultados
+        
+    except Error as e:
+        print("Erro ao obter dados do relatório:", e)
+        if conexao:
+            conexao.close()
+        return []
 
 # ============ TESTES ============
 if __name__ == "__main__":

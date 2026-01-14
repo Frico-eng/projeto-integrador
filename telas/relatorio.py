@@ -1,10 +1,6 @@
 import customtkinter as ctk
 from crud.crud_ingressos import (
-    obter_vendas_por_filme, 
-    obter_faturamento_por_periodo, 
-    obter_ingressos_por_sessao, 
-    obter_filmes_mais_populares,
-    obter_estatisticas_gerais
+    get_dados_relatorio
 )
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -19,27 +15,45 @@ BTN_HOVER = "#E2952D"
 BTN_TEXT = "#1C2732"
 SELECTED_COLOR = "#B6D8F1"
 
-def criar_grafico_vendas_filme(dados, periodo):
+def criar_grafico_vendas_filme(dados_relatorio, periodo):
     """Cria gráfico de barras para vendas por filme"""
-    if not dados:
+    if not dados_relatorio:
+        return None
+    
+    # Agregar vendas por filme
+    vendas_por_filme = {}
+    for item in dados_relatorio:
+        filme = item['nome_filme']
+        if filme not in vendas_por_filme:
+            vendas_por_filme[filme] = 0
+        vendas_por_filme[filme] += 1
+    
+    # Ordenar e limitar top 10
+    sorted_filmes = sorted(vendas_por_filme.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    if not sorted_filmes:
         return None
     
     fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
     ax.set_facecolor('#2B2B2B')
     
-    # Limitar a top 5 filmes
-    dados_top5 = dados[:5]
+    ids_filmes = [f"ID {i+1}" for i in range(len(sorted_filmes))]
+    nomes_filmes = [filme[:20] + '...' if len(filme) > 20 else filme for filme, _ in sorted_filmes]
+    vendas = [venda for _, venda in sorted_filmes]
     
-    filmes = [d.get('Titulo_Filme', 'N/A')[:15] + '...' if len(d.get('Titulo_Filme', 'N/A')) > 15 else d.get('Titulo_Filme', 'N/A') for d in dados_top5]
-    vendas = [d.get('total_ingressos', 0) or 0 for d in dados_top5]
+    # Cores para as barras (expandido para 10)
+    cores_barras = ['#F6C148', '#E2952D', '#B6D8F1', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16']
     
-    bars = ax.bar(range(len(filmes)), vendas, color=BTN_COLOR, alpha=0.8)
+    bars = ax.bar(range(len(ids_filmes)), vendas, color=cores_barras[:len(ids_filmes)], width=0.6, alpha=0.8)
     
     ax.set_title(f'Vendas por Filme - {periodo.upper()}', color='white', fontsize=12, pad=20)
-    ax.set_xlabel('Filmes', color='white', fontsize=10)
+    ax.set_xlabel('ID do Filme', color='white', fontsize=10)
     ax.set_ylabel('Ingressos Vendidos', color='white', fontsize=10)
-    ax.set_xticks(range(len(filmes)))
-    ax.set_xticklabels(filmes, rotation=45, ha='right', color='white', fontsize=8)
+    ax.set_xticks(range(len(ids_filmes)))
+    ax.set_xticklabels(ids_filmes, rotation=45, ha='right', color='white', fontsize=8)
+    
+    # Adicionar legenda com os nomes dos filmes
+    ax.legend(bars, nomes_filmes, title="Filmes", loc="upper right", fontsize=7)
     
     # Adicionar valores nas barras
     for bar, venda in zip(bars, vendas):
@@ -58,23 +72,57 @@ def criar_grafico_vendas_filme(dados, periodo):
         plt.tight_layout()
     except ValueError:
         # Se tight_layout falhar, ajustar manualmente
-        plt.subplots_adjust(bottom=0.2, top=0.9, left=0.1, right=0.95)
+        plt.subplots_adjust(bottom=0.2, top=0.9, left=0.1, right=0.75)
     
     return fig
 
-def criar_grafico_faturamento_periodo(dados, periodo):
+def criar_grafico_faturamento_periodo(dados_relatorio, periodo):
     """Cria gráfico de linha para faturamento por período"""
-    if not dados:
+    if not dados_relatorio:
+        return None
+    
+    # Agregar faturamento por período
+    faturamento_por_periodo = {}
+    for item in dados_relatorio:
+        if periodo == "diário":
+            # Para diário, agrupar por hora (hora_sessao é timedelta)
+            if item['hora_sessao']:
+                horas = int(item['hora_sessao'].total_seconds() // 3600)
+                periodo_key = f"{horas:02d}"
+            else:
+                periodo_key = '00'
+        elif periodo == "mensal":
+            periodo_key = item['data_sessao'].strftime('%Y-%m') if item['data_sessao'] else 'N/A'
+        elif periodo == "quatrenal":
+            periodo_key = f"{item['data_sessao'].year}-Q{((item['data_sessao'].month-1)//3)+1}" if item['data_sessao'] else 'N/A'
+        elif periodo == "anual":
+            periodo_key = str(item['data_sessao'].year) if item['data_sessao'] else 'N/A'
+        else:
+            periodo_key = item['data_sessao'].strftime('%Y-%m-%d') if item['data_sessao'] else 'N/A'
+        
+        if periodo_key not in faturamento_por_periodo:
+            faturamento_por_periodo[periodo_key] = 0
+        faturamento_por_periodo[periodo_key] += item['valor'] or 0
+    
+    # Ordenar períodos
+    sorted_periodos = sorted(faturamento_por_periodo.items(), key=lambda x: x[0])
+    
+    # Limitar a últimos 5 períodos
+    dados_top5 = sorted_periodos[-5:] if len(sorted_periodos) > 5 else sorted_periodos
+    
+    if not dados_top5:
         return None
     
     fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
     ax.set_facecolor('#2B2B2B')
     
-    # Limitar a últimos 5 períodos
-    dados_top5 = dados[:5]
-    
-    periodos = [d.get('periodo', 'N/A') for d in dados_top5]
-    faturamento = [d.get('faturamento_total', 0) or 0 for d in dados_top5]
+    periodos = [p for p, _ in dados_top5]
+    # Para diário, formatar como hora
+    if periodo == "diário":
+        periodos_labels = [f"{int(p):02d}:00" if p != 'N/A' else 'N/A' for p in periodos]
+    else:
+        periodos_labels = periodos
+    faturamento = [f for _, f in dados_top5]
     
     ax.plot(range(len(periodos)), faturamento, marker='o', color=BTN_COLOR, linewidth=2, markersize=6)
     
@@ -82,7 +130,7 @@ def criar_grafico_faturamento_periodo(dados, periodo):
     ax.set_xlabel('Períodos', color='white', fontsize=10)
     ax.set_ylabel('Faturamento (R$)', color='white', fontsize=10)
     ax.set_xticks(range(len(periodos)))
-    ax.set_xticklabels(periodos, rotation=45, ha='right', color='white', fontsize=8)
+    ax.set_xticklabels(periodos_labels, rotation=45, ha='right', color='white', fontsize=8)
     
     # Formatar valores no eixo Y
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x:.0f}'))
@@ -102,39 +150,44 @@ def criar_grafico_faturamento_periodo(dados, periodo):
     
     return fig
 
-def criar_grafico_ocupacao_sessoes(dados, periodo):
-    """Cria gráfico de barras para ocupação das sessões"""
-    if not dados:
+def criar_grafico_ocupacao_sessoes(dados_relatorio, periodo):
+    """Cria gráfico de barras para vendas por sessão"""
+    if not dados_relatorio:
+        return None
+    
+    # Agregar vendas por sessão
+    vendas_por_sessao = {}
+    for item in dados_relatorio:
+        sessao_key = f"{item['nome_filme'][:10]}... {item['data_sessao']} {item['hora_sessao']}"
+        if sessao_key not in vendas_por_sessao:
+            vendas_por_sessao[sessao_key] = 0
+        vendas_por_sessao[sessao_key] += 1
+    
+    # Ordenar e limitar top 10 sessões
+    sorted_sessoes = sorted(vendas_por_sessao.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    if not sorted_sessoes:
         return None
     
     fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
     ax.set_facecolor('#2B2B2B')
     
-    # Limitar a top 5 sessões
-    dados_top5 = dados[:5]
+    sessoes_labels = [f"Sessão {i+1}" for i in range(len(sorted_sessoes))]
+    vendas = [venda for _, venda in sorted_sessoes]
     
-    sessoes = [f"{d.get('Titulo_Filme', 'N/A')[:10]}...\n{d.get('Data_Sessao', 'N/A')} {d.get('Hora_Sessao', 'N/A')}" for d in dados_top5]
-    ocupacao = []
+    bars = ax.bar(range(len(sessoes_labels)), vendas, color=BTN_COLOR, width=0.8, alpha=0.8)
     
-    for d in dados_top5:
-        vendidos = d.get('ingressos_vendidos', 0) or 0
-        capacidade = d.get('capacidade_total', 1) or 1
-        perc = (vendidos / capacidade * 100) if capacidade > 0 else 0
-        ocupacao.append(perc)
-    
-    bars = ax.bar(range(len(sessoes)), ocupacao, color=BTN_COLOR, alpha=0.8)
-    
-    ax.set_title(f'Ocupação das Sessões - {periodo.upper()}', color='white', fontsize=12, pad=20)
+    ax.set_title(f'Vendas por Sessão - {periodo.upper()}', color='white', fontsize=12, pad=20)
     ax.set_xlabel('Sessões', color='white', fontsize=10)
-    ax.set_ylabel('Ocupação (%)', color='white', fontsize=10)
-    ax.set_xticks(range(len(sessoes)))
-    ax.set_xticklabels(sessoes, rotation=45, ha='right', color='white', fontsize=7)
+    ax.set_ylabel('Ingressos Vendidos', color='white', fontsize=10)
+    ax.set_xticks(range(len(sessoes_labels)))
+    ax.set_xticklabels(sessoes_labels, rotation=45, ha='right', color='white', fontsize=7)
     
     # Adicionar valores nas barras
-    for bar, perc in zip(bars, ocupacao):
+    for bar, venda in zip(bars, vendas):
         height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2., height + 1,
-                f'{perc:.1f}%', ha='center', va='bottom', color='white', fontsize=8)
+        ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                f'{int(venda)}', ha='center', va='bottom', color='white', fontsize=8)
     
     ax.tick_params(colors='white')
     ax.spines['top'].set_visible(False)
@@ -151,41 +204,44 @@ def criar_grafico_ocupacao_sessoes(dados, periodo):
     
     return fig
 
-def criar_grafico_filmes_populares(dados, periodo):
+def criar_grafico_filmes_populares(dados_relatorio, periodo):
     """Cria gráfico de pizza para filmes mais populares"""
-    if not dados:
+    if not dados_relatorio:
         return None
     
-    fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
+    # Agregar vendas por filme
+    vendas_por_filme = {}
+    for item in dados_relatorio:
+        filme = item['nome_filme']
+        if filme not in vendas_por_filme:
+            vendas_por_filme[filme] = 0
+        vendas_por_filme[filme] += 1
     
-    # Filtrar apenas filmes com ingressos vendidos > 0
-    dados_filtrados = [d for d in dados if (d.get('total_ingressos', 0) or 0) > 0 and not (isinstance(d.get('total_ingressos'), float) and math.isnan(d.get('total_ingressos', 0)))]
+    # Filtrar apenas filmes com vendas > 0 e limitar top 10
+    sorted_filmes = sorted([(f, v) for f, v in vendas_por_filme.items() if v > 0], key=lambda x: x[1], reverse=True)[:10]
     
-    # Limitar a top 5 filmes
-    dados_top5 = dados_filtrados[:5]
-    
-    if not dados_top5:
-        # Se não há filmes com vendas, mostrar mensagem
+    if not sorted_filmes:
+        fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
         ax.text(0.5, 0.5, 'Nenhum filme\ncom vendas\nno período', 
                 ha='center', va='center', color='white', fontsize=12, transform=ax.transAxes)
         ax.set_title(f'Filmes Mais Populares - {periodo.upper()}', color='white', fontsize=12, pad=20)
         return fig
     
-    filmes = [d.get('Titulo_Filme', 'N/A')[:15] + '...' if len(d.get('Titulo_Filme', 'N/A')) > 15 else d.get('Titulo_Filme', 'N/A') for d in dados_top5]
-    vendas = []
-    for d in dados_top5:
-        val = d.get('total_ingressos', 0) or 0
-        if isinstance(val, float) and math.isnan(val):
-            val = 0
-        vendas.append(int(val))
+    fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
     
-    # Cores para o gráfico de pizza
-    cores = ['#F6C148', '#E2952D', '#B6D8F1', '#8B5CF6', '#10B981']
+    filmes = [filme[:15] + '...' if len(filme) > 15 else filme for filme, _ in sorted_filmes]
+    vendas = [venda for _, venda in sorted_filmes]
     
-    wedges, texts, autotexts = ax.pie(vendas, labels=filmes, autopct='%1.1f%%', 
+    # Cores para o gráfico de pizza (expandido)
+    cores = ['#F6C148', '#E2952D', '#B6D8F1', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16']
+    
+    wedges, texts, autotexts = ax.pie(vendas, labels=None, autopct='%1.1f%%', 
                                       colors=cores[:len(vendas)], startangle=90)
     
     ax.set_title(f'Filmes Mais Populares - {periodo.upper()}', color='white', fontsize=12, pad=20)
+    
+    # Adicionar legenda com os nomes dos filmes
+    ax.legend(wedges, filmes, title="Filmes", loc="upper left", bbox_to_anchor=(-0.1, 1), fontsize=7)
     
     # Ajustar cores dos textos
     for text in texts:
@@ -200,7 +256,76 @@ def criar_grafico_filmes_populares(dados, periodo):
         plt.tight_layout()
     except ValueError:
         # Se tight_layout falhar, ajustar manualmente
-        plt.subplots_adjust(bottom=0.1, top=0.9, left=0.1, right=0.9)
+        plt.subplots_adjust(bottom=0.1, top=0.9, left=0.1, right=0.8)
+    
+    return fig
+
+def criar_grafico_ingressos_horario(dados_relatorio, periodo):
+    """Cria gráfico de barras para ingressos vendidos por horário"""
+    if not dados_relatorio:
+        return None
+    
+    # Agregar vendas por horário
+    vendas_por_horario = {}
+    for item in dados_relatorio:
+        horario = item['hora_sessao']
+        if horario not in vendas_por_horario:
+            vendas_por_horario[horario] = 0
+        vendas_por_horario[horario] += 1
+    
+    # Ordenar por horário
+    sorted_horarios = sorted(vendas_por_horario.items(), key=lambda x: x[0])
+    
+    if not sorted_horarios:
+        fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
+        ax.text(0.5, 0.5, 'Nenhum ingresso\nvendido\nno período', 
+                ha='center', va='center', color='white', fontsize=12, transform=ax.transAxes)
+        ax.set_title(f'Ingressos por Horário - {periodo.upper()}', color='white', fontsize=12, pad=20)
+        return fig
+    
+    fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
+    ax.set_facecolor('#2B2B2B')
+    
+    # Converter horários para strings formatadas
+    horarios_str = []
+    vendas = []
+    for horario, venda in sorted_horarios:
+        if horario:
+            # Converter timedelta para string HH:MM
+            total_seconds = int(horario.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            horario_str = f"{hours:02d}:{minutes:02d}"
+        else:
+            horario_str = "00:00"
+        horarios_str.append(horario_str)
+        vendas.append(venda)
+    
+    bars = ax.bar(horarios_str, vendas, color='#F6C148', width=0.6)
+    
+    ax.set_title(f'Ingressos por Horário - {periodo.upper()}', color='white', fontsize=12, pad=20)
+    ax.set_xlabel('Horário', color='white', fontsize=10)
+    ax.set_ylabel('Ingressos Vendidos', color='white', fontsize=10)
+    ax.tick_params(colors='white', labelsize=8)
+    
+    # Adicionar valores nas barras
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                f'{int(height)}', ha='center', va='bottom', color='white', fontsize=8)
+    
+    ax.tick_params(colors='white')
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('white')
+    ax.spines['bottom'].set_color('white')
+    
+    # Aplicar tight_layout com tratamento de erro
+    try:
+        plt.tight_layout()
+    except ValueError:
+        # Se tight_layout falhar, ajustar manualmente
+        plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.95)
     
     return fig
 
@@ -315,60 +440,42 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
     ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=40, height=35,
                   font=fonte_global if fonte_global else ("Arial", 12, "bold")).pack(side="left", padx=3)
     
-    # FRAME INFERIOR: Gráficos
+    # FRAME INFERIOR: Abas para Gráficos
     frame_inferior = ctk.CTkFrame(frame)
     frame_inferior.pack(fill="both", expand=True, padx=12, pady=(6, 12))
     
-    # Container para gráficos (2x2 grid)
-    frame_graficos_container = ctk.CTkFrame(frame_inferior, fg_color="transparent")
-    frame_graficos_container.pack(fill="both", expand=True, padx=10, pady=10)
+    # Criar tabview para os gráficos
+    tabview = ctk.CTkTabview(frame_inferior, width=1800, height=700)
+    tabview.pack(fill="both", expand=True, padx=10, pady=10)
     
-    # Configurar grid para os gráficos
-    frame_graficos_container.grid_columnconfigure(0, weight=1)
-    frame_graficos_container.grid_columnconfigure(1, weight=1)
-    frame_graficos_container.grid_rowconfigure(0, weight=1)
-    frame_graficos_container.grid_rowconfigure(1, weight=1)
+    # Criar abas para cada gráfico
+    abas = [
+        "Vendas por Filme",
+        "Faturamento por Período", 
+        "Ocupação das Sessões",
+        "Filmes Mais Populares",
+        "Ingressos por Horário"
+    ]
     
-    # Frames para os gráficos (placeholders)
-    graficos = []
-    for row in range(2):
-        for col in range(2):
-            frame_grafico = ctk.CTkFrame(
-                frame_graficos_container,
-                border_width=2,
-                border_color="#444444",
-                corner_radius=10
-            )
-            frame_grafico.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
-            
-            # Título do gráfico
-            titulos = [
-                "Vendas por Filme",
-                "Faturamento por Período",
-                "Ingressos por Sessão",
-                "Filmes Mais Populares"
-            ]
-            ctk.CTkLabel(
-                frame_grafico,
-                text=titulos[row * 2 + col],
-                font=fonte_global if fonte_global else ("Arial", 14, "bold")
-            ).pack(pady=10)
-            
-            # Placeholder para o gráfico
-            placeholder_text = f"Gráfico {titulos[row * 2 + col]} será exibido aqui"
-            ctk.CTkLabel(
-                frame_grafico,
-                text=placeholder_text,
-                text_color="gray",
-                font=fonte_global if fonte_global else ("Arial", 12)
-            ).pack(expand=True, fill="both", padx=20, pady=20)
-            
-            graficos.append(frame_grafico)
-    
-    # ================== BOTÕES DE NAVEGAÇÃO ==================
-    botoes_frame = ctk.CTkFrame(frame, height=50)
-    botoes_frame.pack(side="bottom", fill="x", padx=20, pady=10)
-    botoes_frame.pack_propagate(False)
+    frames_abas = {}
+    for aba in abas:
+        tabview.add(aba)
+        frame_aba = ctk.CTkFrame(tabview.tab(aba), fg_color="transparent")
+        frame_aba.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Frame para o gráfico
+        frame_grafico_aba = ctk.CTkFrame(frame_aba, border_width=2, border_color="#444444", corner_radius=10)
+        frame_grafico_aba.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Placeholder para o gráfico
+        ctk.CTkLabel(
+            frame_grafico_aba,
+            text=f"Gráfico {aba} será exibido aqui",
+            text_color="gray",
+            font=fonte_global if fonte_global else ("Arial", 12)
+        ).pack(expand=True, fill="both", padx=20, pady=20)
+        
+        frames_abas[aba] = frame_grafico_aba
     
     # ================== FUNÇÕES ==================
     
@@ -416,34 +523,35 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
         periodo_atual = periodo_selecionado.get()
         
         # Obter dados
-        vendas_filme = obter_vendas_por_filme(periodo_atual)
-        faturamento_periodo = obter_faturamento_por_periodo(periodo_atual)
-        ingressos_sessao = obter_ingressos_por_sessao(periodo_atual)
-        filmes_populares = obter_filmes_mais_populares(periodo_atual)
-        estatisticas = obter_estatisticas_gerais(periodo_atual)
+        dados_relatorio = get_dados_relatorio(periodo_atual)
         
         # Atualizar gráfico 1: Vendas por Filme
-        fig1 = criar_grafico_vendas_filme(vendas_filme, periodo_atual)
-        atualizar_frame_grafico(graficos[0], fig1, "Vendas por Filme")
+        fig1 = criar_grafico_vendas_filme(dados_relatorio, periodo_atual)
+        atualizar_frame_grafico(frames_abas["Vendas por Filme"], fig1, "Vendas por Filme")
         
         # Atualizar gráfico 2: Faturamento por Período
-        fig2 = criar_grafico_faturamento_periodo(faturamento_periodo, periodo_atual)
-        atualizar_frame_grafico(graficos[1], fig2, "Faturamento por Período")
+        fig2 = criar_grafico_faturamento_periodo(dados_relatorio, periodo_atual)
+        atualizar_frame_grafico(frames_abas["Faturamento por Período"], fig2, "Faturamento por Período")
         
         # Atualizar gráfico 3: Ocupação das Sessões
-        fig3 = criar_grafico_ocupacao_sessoes(ingressos_sessao, periodo_atual)
-        atualizar_frame_grafico(graficos[2], fig3, "Ocupação das Sessões")
+        fig3 = criar_grafico_ocupacao_sessoes(dados_relatorio, periodo_atual)
+        atualizar_frame_grafico(frames_abas["Ocupação das Sessões"], fig3, "Ocupação das Sessões")
         
         # Atualizar gráfico 4: Filmes Mais Populares
-        fig4 = criar_grafico_filmes_populares(filmes_populares, periodo_atual)
-        atualizar_frame_grafico(graficos[3], fig4, "Filmes Mais Populares")
+        fig4 = criar_grafico_filmes_populares(dados_relatorio, periodo_atual)
+        atualizar_frame_grafico(frames_abas["Filmes Mais Populares"], fig4, "Filmes Mais Populares")
         
-        # Atualizar estatísticas gerais no título
-        if estatisticas:
+        # Atualizar gráfico 5: Ingressos por Horário
+        fig5 = criar_grafico_ingressos_horario(dados_relatorio, periodo_atual)
+        atualizar_frame_grafico(frames_abas["Ingressos por Horário"], fig5, "Ingressos por Horário")
+        
+        # Calcular estatísticas gerais dos dados
+        if dados_relatorio:
+            ingressos_total = len(dados_relatorio)
+            faturamento_total = sum(item['valor'] or 0 for item in dados_relatorio)
+            clientes_unicos = len(set(item['id_compra'] for item in dados_relatorio))
+            
             titulo_texto = f"RELATÓRIOS - {periodo_atual.upper()}\n"
-            ingressos_total = estatisticas.get('total_ingressos_vendidos', 0) or 0
-            faturamento_total = estatisticas.get('faturamento_total', 0) or 0
-            clientes_unicos = estatisticas.get('total_clientes_unicos', 0) or 0
             titulo_texto += f"Ingressos: {ingressos_total} | "
             titulo_texto += f"Faturamento: R$ {faturamento_total:.2f} | "
             titulo_texto += f"Clientes: {clientes_unicos}"
@@ -466,33 +574,6 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
         
         # Atualizar gráficos com dados do período selecionado
         atualizar_graficos()
-    
-    # Botão de exportar relatório (opcional)
-    btn_exportar = ctk.CTkButton(
-        botoes_frame,
-        text="Exportar Relatório",
-        fg_color=BTN_COLOR,
-        font=fonte_global if fonte_global else ("Arial", 14, "bold"),
-        hover_color=BTN_HOVER,
-        text_color=BTN_TEXT,
-        height=40,
-        width=150
-    )
-    btn_exportar.pack(side="right", padx=10)
-    
-    # Botão de atualizar (opcional)
-    btn_atualizar = ctk.CTkButton(
-        botoes_frame,
-        text="Atualizar Dados",
-        fg_color=BTN_COLOR,
-        font=fonte_global if fonte_global else ("Arial", 14, "bold"),
-        hover_color=BTN_HOVER,
-        text_color=BTN_TEXT,
-        height=40,
-        width=150,
-        command=atualizar_graficos
-    )
-    btn_atualizar.pack(side="right", padx=10)
     
     # Carregar dados iniciais
     atualizar_graficos()

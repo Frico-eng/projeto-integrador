@@ -335,4 +335,6 @@ INSERT INTO Usuarios (Nome_Usuario, Nome_Login, Senha, Email, Telefone, Genero, 
 ('Atendente 1', 'func', 'senha', 'func', '(11)99999-0003', 'F', '1995-08-20', 'funcionario'),
 ('Cliente Regular', 'cliente1', 'senha', 'cliente', '(11)99999-0005', 'F', '2000-07-25', 'cliente');
 
+-- Inserir ingressos de exemplo para um ano inteiro (5 dias por mês)
+SELECT * from sessoes
 
