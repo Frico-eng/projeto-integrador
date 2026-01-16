@@ -700,7 +700,6 @@ def obter_estatisticas_gerais(periodo="mensal"):
         return {}
 
 def get_dados_relatorio(periodo="mensal"):
-    """Retorna lista simplificada de ingressos para relatórios"""
     conexao = conectar()
     if conexao is None:
         return []
@@ -723,6 +722,7 @@ def get_dados_relatorio(periodo="mensal"):
         cursor.execute(f"""
             SELECT 
                 i.ID_Ingresso as id_compra,
+                i.ID_Cliente as id_cliente,
                 f.Titulo_Filme as nome_filme,
                 s.Data_Sessao as data_sessao,
                 sa.Nome_Sala as sala,
@@ -748,6 +748,7 @@ def get_dados_relatorio(periodo="mensal"):
             cursor.execute(f"""
                 SELECT 
                     i.ID_Ingresso as id_compra,
+                    i.ID_Cliente as id_cliente,
                     f.Titulo_Filme as nome_filme,
                     s.Data_Sessao as data_sessao,
                     sa.Nome_Sala as sala,

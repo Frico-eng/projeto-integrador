@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from PIL import Image
 import os
-from utilidades.config import BTN_COLOR, BTN_HOVER, BTN_TEXT
+from utilidades.config import BTN_COLOR, BTN_HOVER, BTN_TEXT, DARK_MODE, LIGHT_MODE
 
 # --- Fundo ---
 def carregar_fundo(frame, path):
@@ -126,3 +126,43 @@ def criar_entry_senha(master, placeholder="Sua senha", width=300, height=35, sho
     toggle.grid(row=0, column=1, pady=5, padx=(0,2))
 
     return container, entry, toggle
+
+# --- Alternância de Tema ---
+def alternar_tema(app, botao_tema=None):
+    """Alterna entre tema claro e escuro e atualiza a aparência da aplicação.
+    
+    Args:
+        app: A janela principal da aplicação
+        botao_tema: O botão de alternância de tema (para atualizar seu texto)
+    """
+    from utilidades import config
+    
+    # Alternar o tema
+    if config.tema_atual == "dark":
+        config.tema_atual = "light"
+        ctk.set_appearance_mode("light")
+        modo_novo = "light"
+    else:
+        config.tema_atual = "dark"
+        ctk.set_appearance_mode("dark")
+        modo_novo = "dark"
+    
+    # Atualizar cores na config
+    cores = LIGHT_MODE if modo_novo == "light" else DARK_MODE
+    config.APP_BG = cores["APP_BG"]
+    config.BTN_COLOR = cores["BTN_COLOR"]
+    config.BTN_HOVER = cores["BTN_HOVER"]
+    config.BTN_TEXT = cores["BTN_TEXT"]
+    config.COR_FUNDO = cores["COR_FUNDO"]
+    config.COR_TEXTO = cores["COR_TEXTO"]
+    config.COR_DESTAQUE = cores["COR_DESTAQUE"]
+    
+    # Atualizar a janela principal
+    app.configure(fg_color=cores["APP_BG"])
+    
+    # Atualizar o botão de tema se fornecido
+    if botao_tema:
+        texto_botao = "🌙" if modo_novo == "dark" else "☀️"
+        botao_tema.configure(text=texto_botao)
+    
+    return modo_novo

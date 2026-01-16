@@ -41,16 +41,26 @@ def criar_grafico_vendas_filme(dados_relatorio, periodo):
     nomes_filmes = [filme[:20] + '...' if len(filme) > 20 else filme for filme, _ in sorted_filmes]
     vendas = [venda for _, venda in sorted_filmes]
     
-    # Cores para as barras (expandido para 10)
-    cores_barras = ['#F6C148', '#E2952D', '#B6D8F1', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16']
-    
-    bars = ax.bar(range(len(ids_filmes)), vendas, color=cores_barras[:len(ids_filmes)], width=0.6, alpha=0.8)
+    # Para até 10 categorias
+    if len(ids_filmes) <= 10:
+        # Tab10 - ótimo para até 10 categorias
+        colormap = plt.cm.tab10
+        cores_barras = [colormap(i % 10) for i in range(len(ids_filmes))]
+    else:
+        # Set3 para mais categorias - cores mais suaves
+        colormap = plt.cm.Set3
+        cores_barras = [colormap(i % 12) for i in range(len(ids_filmes))]
+
+    bars = ax.bar(range(len(ids_filmes)), vendas, 
+                color=cores_barras[:len(ids_filmes)], 
+                width=0.8,
+                alpha=0.85)
     
     ax.set_title(f'Vendas por Filme - {periodo.upper()}', color='white', fontsize=12, pad=20)
-    ax.set_xlabel('ID do Filme', color='white', fontsize=10)
+    ax.set_xlabel('Filme', color='white', fontsize=10)
     ax.set_ylabel('Ingressos Vendidos', color='white', fontsize=10)
     ax.set_xticks(range(len(ids_filmes)))
-    ax.set_xticklabels(ids_filmes, rotation=45, ha='right', color='white', fontsize=8)
+    ax.set_xticklabels(nomes_filmes, rotation=45, ha='right', color='white', fontsize=8)
     
     # Adicionar legenda com os nomes dos filmes
     ax.legend(bars, nomes_filmes, title="Filmes", loc="upper right", fontsize=7)
@@ -58,7 +68,7 @@ def criar_grafico_vendas_filme(dados_relatorio, periodo):
     # Adicionar valores nas barras
     for bar, venda in zip(bars, vendas):
         height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+        ax.text(bar.get_x() + bar.get_width()/3., height + 0.1,
                 f'{int(venda)}', ha='center', va='bottom', color='white', fontsize=8)
     
     ax.tick_params(colors='white')
@@ -280,7 +290,7 @@ def criar_grafico_ingressos_horario(dados_relatorio, periodo):
         fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
         ax.text(0.5, 0.5, 'Nenhum ingresso\nvendido\nno período', 
                 ha='center', va='center', color='white', fontsize=12, transform=ax.transAxes)
-        ax.set_title(f'Ingressos por Horário - {periodo.upper()}', color='white', fontsize=12, pad=20)
+        ax.set_title(f'Ingressos por Horário da sessão da sessão- {periodo.upper()}', color='white', fontsize=12, pad=20)
         return fig
     
     fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
@@ -303,7 +313,7 @@ def criar_grafico_ingressos_horario(dados_relatorio, periodo):
     
     bars = ax.bar(horarios_str, vendas, color='#F6C148', width=0.6)
     
-    ax.set_title(f'Ingressos por Horário - {periodo.upper()}', color='white', fontsize=12, pad=20)
+    ax.set_title(f'Ingressos por Horário da sessão - {periodo.upper()}', color='white', fontsize=12, pad=20)
     ax.set_xlabel('Horário', color='white', fontsize=10)
     ax.set_ylabel('Ingressos Vendidos', color='white', fontsize=10)
     ax.tick_params(colors='white', labelsize=8)
@@ -390,6 +400,10 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
     frame_botoes_periodo = ctk.CTkFrame(frame_centro, fg_color="transparent")
     frame_botoes_periodo.pack(expand=True, fill="both", pady=10)
     
+    # Container interno para centralizar os botões
+    frame_botoes_interno = ctk.CTkFrame(frame_botoes_periodo, fg_color="transparent")
+    frame_botoes_interno.pack(expand=True)
+    
     # Botões de período
     botoes_periodo = []
     periodos = [
@@ -401,7 +415,7 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
     
     for texto, valor in periodos:
         btn = ctk.CTkButton(
-            frame_botoes_periodo,
+            frame_botoes_interno,
             text=texto,
             width=120,
             height=40,
@@ -419,34 +433,43 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
     frame_direita = ctk.CTkFrame(frame_meio, fg_color="transparent")
     frame_direita.grid(row=0, column=2, sticky="e", padx=(10, 20))
     
-    # Importar funções de fonte do main.py
-    try:
-        from main import aumentar_fonte, diminuir_fonte
-    except ImportError:
-        # Fallback se não conseguir importar
-        def aumentar_fonte():
-            if fonte_global and fonte_global.cget("size") < 22:
-                fonte_global.configure(size=fonte_global.cget("size") + 2)
-        
-        def diminuir_fonte():
-            if fonte_global and fonte_global.cget("size") > 6:
-                fonte_global.configure(size=fonte_global.cget("size") - 2)
+    # Funções para aumentar/diminuir fonte em TODA a tela
+    def aumentar_fonte_relatorio():
+        if fonte_global and fonte_global.cget("size") < 22:
+            fonte_global.configure(size=fonte_global.cget("size") + 2)
+            # Atualizar fonte das abas também
+            fonte_abas.configure(size=fonte_global.cget("size") + 2)
+            tabview._segmented_button.configure(font=fonte_abas)
+    
+    def diminuir_fonte_relatorio():
+        if fonte_global and fonte_global.cget("size") > 6:
+            fonte_global.configure(size=fonte_global.cget("size") - 2)
+            # Atualizar fonte das abas também
+            fonte_abas.configure(size=fonte_global.cget("size") + 2)
+            tabview._segmented_button.configure(font=fonte_abas)
     
     # Botões para controle de fonte
     frame_controle_fonte = ctk.CTkFrame(frame_direita, fg_color="transparent")
     frame_controle_fonte.pack(pady=10)
-    ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=40, height=35, 
+    ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte_relatorio, width=40, height=35, 
                   font=fonte_global if fonte_global else ("Arial", 12, "bold")).pack(side="left", padx=3)
-    ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=40, height=35,
+    ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte_relatorio, width=40, height=35,
                   font=fonte_global if fonte_global else ("Arial", 12, "bold")).pack(side="left", padx=3)
     
     # FRAME INFERIOR: Abas para Gráficos
     frame_inferior = ctk.CTkFrame(frame)
-    frame_inferior.pack(fill="both", expand=True, padx=12, pady=(6, 12))
+    frame_inferior.pack(fill="both", expand=True, padx=12, pady=(0, 0))
     
     # Criar tabview para os gráficos
-    tabview = ctk.CTkTabview(frame_inferior, width=1800, height=700)
+    tabview = ctk.CTkTabview(frame_inferior, width=1800, height=600)
     tabview.pack(fill="both", expand=True, padx=10, pady=10)
+    
+    # Aumentar fonte das abas
+    if fonte_global:
+        fonte_abas = ctk.CTkFont(family=fonte_global.cget("family"), size=fonte_global.cget("size") + 2)
+    else:
+        fonte_abas = ctk.CTkFont(family="Arial", size=16)
+    tabview._segmented_button.configure(font=fonte_abas)
     
     # Criar abas para cada gráfico
     abas = [
@@ -454,14 +477,14 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
         "Faturamento por Período", 
         "Ocupação das Sessões",
         "Filmes Mais Populares",
-        "Ingressos por Horário"
+        "Ingressos por Horário da sessão"
     ]
     
     frames_abas = {}
     for aba in abas:
         tabview.add(aba)
         frame_aba = ctk.CTkFrame(tabview.tab(aba), fg_color="transparent")
-        frame_aba.pack(fill="both", expand=True, padx=10, pady=10)
+        frame_aba.pack(fill="both", expand=True, padx=10, pady=20)
         
         # Frame para o gráfico
         frame_grafico_aba = ctk.CTkFrame(frame_aba, border_width=2, border_color="#444444", corner_radius=10)
@@ -472,7 +495,7 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
             frame_grafico_aba,
             text=f"Gráfico {aba} será exibido aqui",
             text_color="gray",
-            font=fonte_global if fonte_global else ("Arial", 12)
+            font=fonte_global if fonte_global else ("Arial", 18)
         ).pack(expand=True, fill="both", padx=20, pady=20)
         
         frames_abas[aba] = frame_grafico_aba
@@ -541,15 +564,15 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
         fig4 = criar_grafico_filmes_populares(dados_relatorio, periodo_atual)
         atualizar_frame_grafico(frames_abas["Filmes Mais Populares"], fig4, "Filmes Mais Populares")
         
-        # Atualizar gráfico 5: Ingressos por Horário
+        # Atualizar gráfico 5: Ingressos por Horário da sessão
         fig5 = criar_grafico_ingressos_horario(dados_relatorio, periodo_atual)
-        atualizar_frame_grafico(frames_abas["Ingressos por Horário"], fig5, "Ingressos por Horário")
+        atualizar_frame_grafico(frames_abas["Ingressos por Horário da sessão"], fig5, "Ingressos por Horário da sessão")
         
         # Calcular estatísticas gerais dos dados
         if dados_relatorio:
             ingressos_total = len(dados_relatorio)
             faturamento_total = sum(item['valor'] or 0 for item in dados_relatorio)
-            clientes_unicos = len(set(item['id_compra'] for item in dados_relatorio))
+            clientes_unicos = len(set(item['id_cliente'] for item in dados_relatorio))
             
             titulo_texto = f"RELATÓRIOS - {periodo_atual.upper()}\n"
             titulo_texto += f"Ingressos: {ingressos_total} | "

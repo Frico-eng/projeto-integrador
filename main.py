@@ -5,7 +5,7 @@ from PIL import Image
 
 # Importações do seu utilitários
 from utilidades.config import *
-from utilidades.ui_helpers import carregar_fundo, carregar_logo, carregar_icone, criar_botao, criar_footer, criar_entry_senha
+from utilidades.ui_helpers import carregar_fundo, carregar_logo, carregar_icone, criar_botao, criar_footer, criar_entry_senha, alternar_tema
 
 # Importações das telas
 from telas.auth import fazer_login
@@ -176,6 +176,20 @@ def inicializar_telas():
     frame_controle_fonte.pack(pady=(0, 10))
     ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
     ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+
+    # Botão para alternar tema claro e escuro
+    from utilidades.ui_helpers import alternar_tema
+    botao_tema = ctk.CTkButton(
+        frame_controle_fonte,
+        text="🌙",
+        command=lambda: alternar_tema(app, botao_tema),
+        width=50,
+        font=fonte_global,
+        fg_color=BTN_COLOR,
+        hover_color=BTN_HOVER,
+        text_color=BTN_TEXT
+    )
+    botao_tema.pack(side="left", padx=5)
 
     # Contato
     contato_frame = ctk.CTkFrame(right_frame, fg_color="transparent")
