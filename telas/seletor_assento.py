@@ -12,10 +12,8 @@ from crud.crud_assento_sessao import (
 )
 from crud.crud_sessao_assento import obter_sessao_completa, alertar_pouca_disponibilidade
 from utilidades.session import get_user_id
-
-BTN_COLOR = "#F6C148"
-BTN_HOVER = "#E2952D"
-BTN_TEXT = "#1C2732"
+from utilidades.ui_helpers import carregar_logo, carregar_fundo, alternar_tema
+from utilidades.config import BTN_COLOR, BTN_HOVER, BTN_TEXT
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
 
@@ -469,6 +467,19 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     # Usar fonte_global quando disponível para manter consistência visual
     ctk.CTkButton(frame_controle_fonte_top, text="A+", command=aumentar_fonte, width=50, font=fonte_global if fonte_global else None).pack(side="left", padx=5)
     ctk.CTkButton(frame_controle_fonte_top, text="A-", command=diminuir_fonte, width=50, font=fonte_global if fonte_global else None).pack(side="left", padx=5)
+    
+    # Botão para alternar tema claro e escuro
+    botao_tema = ctk.CTkButton(
+        frame_controle_fonte_top,
+        text="🌙",
+        command=lambda: alternar_tema(root, botao_tema),
+        width=50,
+        font=fonte_global,
+        fg_color=BTN_COLOR,
+        hover_color=BTN_HOVER,
+        text_color=BTN_TEXT
+    )
+    botao_tema.pack(side="left", padx=5)
 
     # Container principal
     container_conteudo = ctk.CTkFrame(frame_dir, fg_color="transparent")

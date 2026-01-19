@@ -2,15 +2,26 @@ import customtkinter as ctk
 from tkinter import messagebox
 from PIL import Image
 import os
+from utilidades.ui_helpers import alternar_tema
+from utilidades.config import BTN_COLOR, BTN_HOVER, BTN_TEXT
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Sobe para a pasta pai de 'telas'
 IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
 FEEDBACK_IMAGE_PATH = os.path.join(IMAGE_DIR, "feedback.png")
 
 
-def criar_tela_feedback(parent, voltar_callback=None):
+def criar_tela_feedback(parent, voltar_callback=None, fonte_global=None):
     """Cria e retorna o frame da tela de feedback"""
    
     frame = ctk.CTkFrame(parent, fg_color="transparent")
+   
+    # Funções para aumentar/diminuir fonte se fonte_global for fornecida
+    def aumentar_fonte():
+        if fonte_global and fonte_global.cget("size") < 22:  # 14 + (4 * 2)
+            fonte_global.configure(size=fonte_global.cget("size") + 2)
+
+    def diminuir_fonte():
+        if fonte_global and fonte_global.cget("size") > 6:  # 14 - (4 * 2)
+            fonte_global.configure(size=fonte_global.cget("size") - 2)
    
     # ===== FUNÇÕES =====
     def fade_out():
@@ -105,7 +116,26 @@ def criar_tela_feedback(parent, voltar_callback=None):
     # ===== BOTÕES =====
     botoes_frame = ctk.CTkFrame(frame, fg_color="transparent")
     botoes_frame.pack(pady=20)
-
+    
+    # Botões para controle de fonte
+    if fonte_global:
+        frame_controle_fonte = ctk.CTkFrame(botoes_frame, fg_color="transparent")
+        frame_controle_fonte.pack(side="left", padx=(10, 20))
+        ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+        ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+        
+        # Botão para alternar tema claro e escuro
+        botao_tema = ctk.CTkButton(
+            frame_controle_fonte,
+            text="🌙",
+            command=lambda: alternar_tema(parent, botao_tema),
+            width=50,
+            font=fonte_global,
+            fg_color=BTN_COLOR,
+            hover_color=BTN_HOVER,
+            text_color=BTN_TEXT
+        )
+        botao_tema.pack(side="left", padx=5)
 
     btn_enviar = ctk.CTkButton(botoes_frame, text="ENVIAR SUGESTÃO", command=enviar_sugestao)
     btn_enviar.pack(side="left", padx=10)

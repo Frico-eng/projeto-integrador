@@ -8,6 +8,7 @@ import matplotlib.patches as mpatches
 from PIL import Image, ImageTk
 import io
 import math
+from utilidades.ui_helpers import alternar_tema
 import hashlib
 
 # ================== CONSTANTES DE CORES ==================
@@ -431,7 +432,7 @@ def criar_grafico_ingressos_horario(dados_relatorio, periodo, cache_cores=None):
         horarios_str.append(horario_str)
         vendas.append(venda)
         # Obter cor consistente para o filme deste horário
-        cores_barras.append(obter_cor_filme(filme_por_horario[horario], cache_cores))
+    cores_barras.append(obter_cor_filme(filme_por_horario[horario], cache_cores))
     
     bars = ax.bar(horarios_str, vendas, color=cores_barras, width=0.6)
     
@@ -458,6 +459,68 @@ def criar_grafico_ingressos_horario(dados_relatorio, periodo, cache_cores=None):
     except ValueError:
         # Se tight_layout falhar, ajustar manualmente
         plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.95)
+    
+    return fig
+
+def criar_grafico_vendas_cliente(dados_relatorio, periodo, cache_cores=None):
+    """Cria gráfico de barras horizontais para top 10 clientes com mais vendas"""
+    if not dados_relatorio:
+        return None
+    
+    if cache_cores is None:
+        cache_cores = {}
+    
+    # Agregar vendas por cliente
+    vendas_por_cliente = {}
+    for item in dados_relatorio:
+        cliente_id = item['id_cliente']
+        if cliente_id not in vendas_por_cliente:
+            vendas_por_cliente[cliente_id] = 0
+        vendas_por_cliente[cliente_id] += 1
+    
+    # Top 10 clientes
+    sorted_clientes = sorted([(c, v) for c, v in vendas_por_cliente.items()], key=lambda x: x[1], reverse=True)[:10]
+    
+    if not sorted_clientes:
+        fig, ax = plt.subplots(figsize=(6, 5), facecolor='#2B2B2B')
+        ax.text(0.5, 0.5, 'Nenhum cliente\ncom vendas\nno período', 
+                ha='center', va='center', color='white', fontsize=12, transform=ax.transAxes)
+        ax.set_title(f'Top Clientes - {periodo.upper()}', color='white', fontsize=12, pad=20)
+        return fig
+    
+    fig, ax = plt.subplots(figsize=(6, 5), facecolor='#2B2B2B')
+    ax.set_facecolor('#2B2B2B')
+    
+    clientes = [f"Cliente {cliente}" for cliente, _ in sorted_clientes]
+    vendas = [venda for _, venda in sorted_clientes]
+    
+    # Usar cores do cache para os clientes
+    cores = [obter_cor_filme(f"Cliente {cliente}", cache_cores) for cliente, _ in sorted_clientes]
+    
+    bars = ax.barh(clientes, vendas, color=cores, height=0.6)
+    
+    ax.set_title(f'Top Clientes - {periodo.upper()}', color='white', fontsize=12, pad=20)
+    ax.set_xlabel('Ingressos Vendidos', color='white', fontsize=10)
+    ax.tick_params(colors='white', labelsize=9)
+    
+    # Adicionar valores nas barras
+    for i, bar in enumerate(bars):
+        width = bar.get_width()
+        ax.text(width + 0.1, bar.get_y() + bar.get_height()/2.,
+                f'{int(width)}', ha='left', va='center', color='white', fontsize=9)
+    
+    ax.tick_params(colors='white')
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('white')
+    ax.spines['bottom'].set_color('white')
+    
+    # Aplicar tight_layout com tratamento de erro
+    try:
+        plt.tight_layout()
+    except ValueError:
+        # Se tight_layout falhar, ajustar manualmente
+        plt.subplots_adjust(bottom=0.15, top=0.9, left=0.2, right=0.95)
     
     return fig
 
@@ -579,8 +642,20 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
     ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte_relatorio, width=40, height=35, 
                   font=fonte_global if fonte_global else ("Arial", 12, "bold")).pack(side="left", padx=3)
     ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte_relatorio, width=40, height=35,
-                  font=fonte_global if fonte_global else ("Arial", 12, "bold")).pack(side="left", padx=3)
-    
+                  font=fonte_global if fonte_global else ("Arial", 12, "bold")).pack(side="left", padx=3)    
+    # Botão para alternar tema claro e escuro
+    botao_tema = ctk.CTkButton(
+        frame_controle_fonte,
+        text="🌙",
+        command=lambda: alternar_tema(parent, botao_tema),
+        width=40,
+        height=35,
+        font=fonte_global,
+        fg_color=BTN_COLOR,
+        hover_color=BTN_HOVER,
+        text_color=BTN_TEXT
+    )
+    botao_tema.pack(side="left", padx=3)    
     # FRAME INFERIOR: Abas para Gráficos
     frame_inferior = ctk.CTkFrame(frame)
     frame_inferior.pack(fill="both", expand=True, padx=12, pady=(0, 0))
@@ -602,7 +677,8 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
         "Faturamento por Período", 
         "Ocupação das Sessões",
         "Filmes Mais Populares",
-        "Ingressos por Horário da sessão"
+        "Ingressos por Horário da sessão",
+        "Vendas por Cliente"
     ]
     
     frames_abas = {}
@@ -693,6 +769,10 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
         fig5 = criar_grafico_ingressos_horario(dados_relatorio, periodo_atual, cache_cores_filmes)
         atualizar_frame_grafico(frames_abas["Ingressos por Horário da sessão"], fig5, "Ingressos por Horário da sessão")
         
+        # Atualizar gráfico 6: Vendas por Cliente (com cache de cores)
+        fig6 = criar_grafico_vendas_cliente(dados_relatorio, periodo_atual, cache_cores_filmes)
+        atualizar_frame_grafico(frames_abas["Vendas por Cliente"], fig6, "Vendas por Cliente")
+        
         # Calcular estatísticas gerais dos dados
         if dados_relatorio:
             ingressos_total = len(dados_relatorio)
@@ -700,9 +780,9 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
             clientes_unicos = len(set(item['id_cliente'] for item in dados_relatorio))
             
             titulo_texto = f"RELATÓRIOS - {periodo_atual.upper()}\n"
-            titulo_texto += f"Ingressos: {ingressos_total} | "
-            titulo_texto += f"Faturamento: R$ {faturamento_total:.2f} | "
-            titulo_texto += f"Clientes: {clientes_unicos}"
+            titulo_texto += f"Ingressos: {ingressos_total:,}".replace(",", ".") + " | "
+            titulo_texto += f"Faturamento: R$ {faturamento_total:,.2f}".replace(",", ".") + " | "
+            titulo_texto += f"Clientes: {clientes_unicos:,}".replace(",", ".")
             
             # Atualizar o título
             for widget in frame_superior.winfo_children():

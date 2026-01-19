@@ -2,13 +2,39 @@ import customtkinter as ctk
 from tkinter import messagebox, filedialog, ttk
 from PIL import Image
 from crud.crud_filme import listar_filmes
-from utilidades.ui_helpers import criar_botao
+from utilidades.ui_helpers import criar_botao, alternar_tema
 from crud.crud_ingressos import conectar
 from utilidades.config import BTN_COLOR, BTN_HOVER, BTN_TEXT
 from utilidades import gerenciador_telas
+import utilidades.config as config_module
 
-def criar_tela_gerente(parent, voltar_callback):
+def criar_tela_gerente(parent, voltar_callback, fonte_global=None):
     """Cria a tela de gerente para visualizar relatórios e estatísticas"""
+    
+    # Funções para aumentar/diminuir fonte se fonte_global for fornecida
+    def aumentar_fonte():
+        if fonte_global and fonte_global.cget("size") < 22:  # 14 + (4 * 2)
+            fonte_global.configure(size=fonte_global.cget("size") + 2)
+
+    def diminuir_fonte():
+        if fonte_global and fonte_global.cget("size") > 6:  # 14 - (4 * 2)
+            fonte_global.configure(size=fonte_global.cget("size") - 2)
+    
+    # Função para atualizar cores baseado no tema
+    def atualizar_cores_tema():
+        tema_escuro = config_module.tema_atual == "dark"
+        
+        if tema_escuro:
+            bg_frame = "#2B2B2B"
+            text_color = "white"
+        else:
+            bg_frame = "#E8E8E8"
+            text_color = "black"
+        
+        # Atualizar cores dos elementos
+        col_direita.configure(fg_color=bg_frame)
+        titulo_acoes.configure(text_color=text_color)
+        titulo.configure(text_color=text_color)
     
     frame = ctk.CTkFrame(parent, fg_color="transparent")
     
@@ -23,6 +49,26 @@ def criar_tela_gerente(parent, voltar_callback):
         text_color="white"
     )
     titulo.pack()
+    
+    # Botões para controle de fonte
+    if fonte_global:
+        frame_controle_fonte = ctk.CTkFrame(titulo_frame, fg_color="transparent")
+        frame_controle_fonte.pack(side="right", padx=10, pady=5)
+        ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+        ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+        
+        # Botão para alternar tema claro e escuro
+        botao_tema = ctk.CTkButton(
+            frame_controle_fonte,
+            text="🌙",
+            command=lambda: [alternar_tema(parent, botao_tema), atualizar_cores_tema()],
+            width=50,
+            font=fonte_global,
+            fg_color=BTN_COLOR,
+            hover_color=BTN_HOVER,
+            text_color=BTN_TEXT
+        )
+        botao_tema.pack(side="left", padx=5)
     
     # Frame principal com duas colunas
     conteudo_frame = ctk.CTkFrame(frame, fg_color="transparent")
@@ -41,6 +87,9 @@ def criar_tela_gerente(parent, voltar_callback):
         text_color=BTN_COLOR
     )
     titulo_acoes.pack(pady=15, padx=15)
+    
+    # Atualizar cores iniciais
+    atualizar_cores_tema()
     
     # Botões de ações
     botoes_frame = ctk.CTkFrame(col_direita, fg_color="transparent")
