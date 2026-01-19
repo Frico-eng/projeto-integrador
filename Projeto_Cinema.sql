@@ -336,42 +336,76 @@ INSERT INTO Usuarios (Nome_Usuario, Nome_Login, Senha, Email, Telefone, Genero, 
 ('Cliente Regular', 'cliente1', 'senha', 'cliente', '(11)99999-0005', 'F', '2000-07-25', 'cliente');
 
 
--- Limpar a tabela se necessário (CUIDADO: isso apaga dados existentes!)
--- TRUNCATE TABLE ingressos;
+-- Configuração inicial
+SET @id_atual = (SELECT COALESCE(MAX(ID_Ingresso), 0) FROM ingressos);
+SET @data_base = '2026-01-19';
+SET @ano_dias = 365;
+SET @max_sessoes = (SELECT MAX(ID_Sessao) FROM sessoes);
 
--- Inserir dados para 31 dias
-SET @data_base = '2027-01-16';
-SET @id_atual = (SELECT IFNULL(MAX(ID_Ingresso), 0) FROM ingressos) + 1;
-
+-- Inserir ingressos para um ano inteiro
 INSERT INTO ingressos (ID_Ingresso, ID_Sessao, ID_Cliente, ID_Assento_Sessao, Valor, Data_Compra)
 SELECT 
     @id_atual := @id_atual + 1,
-    FLOOR(73 + (RAND() * 27)),
+    -- Distribuir sessões uniformemente (todas as sessões disponíveis)
+    FLOOR(1 + (RAND() * (@max_sessoes - 0.999999))),
+    
+    -- Clientes existentes (ajuste conforme sua tabela clientes)
     FLOOR(4 + (RAND() * 96)),
-    FLOOR(4000 + (RAND() * 1000)),
-    25.00,
+    
+    -- Assentos disponíveis (ajuste conforme sua capacidade)
+    FLOOR(1 + (RAND() * 500)),
+    
+    -- Valor variável com base no tipo de sessão (exemplo)
+    CASE 
+        WHEN RAND() < 0.3 THEN 25.00  -- Sessão normal
+        WHEN RAND() < 0.6 THEN 35.00  -- 3D
+        ELSE 45.00                    -- VIP/IMAX
+    END,
+    
+    -- Data de compra (horários distribuídos ao longo do dia)
     TIMESTAMPADD(SECOND, FLOOR(RAND() * 86400), 
                 DATE_ADD(@data_base, INTERVAL n.day_offset DAY))
 FROM (
-    SELECT 0 as day_offset UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 
-    UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 
-    UNION SELECT 8 UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 
-    UNION SELECT 12 UNION SELECT 13 UNION SELECT 14 UNION SELECT 15 
-    UNION SELECT 16 UNION SELECT 17 UNION SELECT 18 UNION SELECT 19 
-    UNION SELECT 20 UNION SELECT 21 UNION SELECT 22 UNION SELECT 23 
-    UNION SELECT 24 UNION SELECT 25 UNION SELECT 26 UNION SELECT 27 
-    UNION SELECT 28 UNION SELECT 29 UNION SELECT 30
+    -- Gerar todos os dias do ano
+    SELECT n AS day_offset
+    FROM (
+        SELECT @row := @row + 1 AS n
+        FROM 
+            (SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3) a,
+            (SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3) b,
+            (SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3) c,
+            (SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3) d,
+            (SELECT @row := -1) r
+        WHERE @row < @ano_dias - 1
+    ) days
 ) n
 CROSS JOIN (
-    -- Gerar 10-100 registros por dia
-    SELECT a.N + b.N * 10 + 1 as seq
+    -- Gerar múltiplos ingressos por dia
+    -- Mais ingressos nos fins de semana e feriados
+    SELECT a.N + b.N * 10 + c.N * 100 + 1 as seq
     FROM 
         (SELECT 0 AS N UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 
          UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 
          UNION SELECT 8 UNION SELECT 9) a,
         (SELECT 0 AS N UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 
          UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 
-         UNION SELECT 8 UNION SELECT 9) b
+         UNION SELECT 8 UNION SELECT 9) b,
+        (SELECT 0 AS N UNION SELECT 1) c
 ) seq
-WHERE seq.seq <= FLOOR(10 + (RAND() * 91))
-LIMIT 3000; -- Limite seguro para um mês
+WHERE seq.seq <= (
+    -- Quantidade variável de ingressos por dia
+    CASE 
+        -- Fins de semana: mais ingressos
+        WHEN DAYOFWEEK(DATE_ADD(@data_base, INTERVAL n.day_offset DAY)) IN (1, 7) 
+        THEN FLOOR(100 + (RAND() * 150))
+        
+        -- Sexta-feira: movimento médio-alto
+        WHEN DAYOFWEEK(DATE_ADD(@data_base, INTERVAL n.day_offset DAY)) = 6 
+        THEN FLOOR(80 + (RAND() * 120))
+        
+        -- Dias de semana normais
+        ELSE FLOOR(30 + (RAND() * 70))
+    END
+)
+-- Limitar para evitar sobrecarga (ajuste conforme necessário)
+LIMIT 100000;

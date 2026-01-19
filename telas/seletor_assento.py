@@ -2,15 +2,15 @@ import os
 import customtkinter as ctk
 from PIL import Image, ImageTk
 from crud.crud_filme import buscar_filme_por_id
-from crud.crud_sessao import buscar_sessao_por_dados, listar_sessoes_por_filme
+from crud.crud_sessao import listar_sessoes_por_filme
 from crud.crud_sala import buscar_sala_por_id
 from crud.crud_assento_sessao import (
     listar_assentos_por_sessao, 
     reservar_assento, 
     verificar_disponibilidade_assento,
     obter_resumo_ocupacao_sessao,
-    obter_info_sessao
 )
+from crud.crud_sessao_assento import obter_sessao_completa, alertar_pouca_disponibilidade
 from utilidades.session import get_user_id
 
 BTN_COLOR = "#F6C148"
@@ -20,11 +20,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 IMAGE_DIR = os.path.join(BASE_DIR, "utilidades", "images")
 
 def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme_selecionado=None, fonte_global=None):    
-    """
-    Cria e retorna o frame de seleção de assentos
-    """
-    
-    # Funções para aumentar/diminuir fonte (usa fonte_global quando disponível, caso contrário aplica localmente)
     def aplicar_fonte_local():
         """Atualiza widgets desta tela com o tamanho local `current_font_size`."""
         fs = current_font_size
@@ -139,7 +134,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
             seat_icon = None
 
     def confirmar():
-        """Confirma a seleção"""
+        """Confirma a seleção com verificação final de disponibilidade"""
         print(f"DEBUG: Confirmando {len(selecionados)} assentos...")
         
         if not selecionados:
@@ -154,6 +149,19 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                 
             id_sessao = sessao_info["ID_Sessao"]
             print(f"DEBUG: Reservando assentos para sessão {id_sessao}...")
+            
+            # Verificação final: confirmar que todos os assentos ainda estão disponíveis
+            assentos_indisponiveis = []
+            for assento in selecionados:
+                if not verificar_disponibilidade_assento(id_sessao, assento["id_assento"]):
+                    assentos_indisponiveis.append(assento["codigo"])
+            
+            if assentos_indisponiveis:
+                lista_selecionados.configure(
+                    text=f"❌ ERRO: Assentos indisponíveis:\n{', '.join(assentos_indisponiveis)}\nOutra pessoa comprou antes. Tente novamente."
+                )
+                print(f"DEBUG: Assentos indisponíveis: {assentos_indisponiveis}")
+                return
             
             # Reservar cada assento individualmente e capturar ID_Assento_Sessao
             assentos_reservados = []
@@ -181,7 +189,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                     print(f"DEBUG: Erro ao reservar assento {assento['codigo']}")
             
             if assentos_reservados:
-                lista_selecionados.configure(text=f"Assentos confirmados!\n{', '.join(assentos_reservados)}")
+                lista_selecionados.configure(text=f"✓ Assentos confirmados!\n{', '.join(assentos_reservados)}")
                 print(f"DEBUG: Assentos confirmados: {assentos_reservados}")
                 
                 if avancar_callback:
@@ -194,13 +202,16 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                         "assentos_ids_sessao": assentos_reservados_sessao,
                         "quantidade": len(assentos_reservados),
                         "preco_unitario": preco,
-                        "total": len(assentos_reservados) * preco
+                        "total": len(assentos_reservados) * preco,
+                        "id_cliente": get_user_id(),
+                        "timestamp_confirmacao": __import__('datetime').datetime.now().isoformat()
                     }
                     
                     print(f"DEBUG: Estrutura de dados enviada:")
                     print(f"  - Filme: {filme_info.get('Titulo_Filme') if filme_info else 'N/A'}")
                     print(f"  - Sessao ID: {sessao_info.get('ID_Sessao')}")
                     print(f"  - Assentos: {assentos_reservados}")
+                    print(f"  - Total: R$ {dados_compra['total']:.2f}")
                     
                     avancar_callback(dados_compra)
                 else:
@@ -219,11 +230,11 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                 atualizar_resumo()
                 print("DEBUG: Confirmação concluída com sucesso")
             else:
-                lista_selecionados.configure(text="Erro ao reservar assentos!")
+                lista_selecionados.configure(text="❌ Erro ao reservar assentos!\nTente novamente.")
             
         except Exception as e:
             print(f"Erro ao confirmar: {e}")
-            lista_selecionados.configure(text="Erro ao confirmar assentos!")
+            lista_selecionados.configure(text="❌ Erro ao confirmar assentos!")
             import traceback
             traceback.print_exc()
 
@@ -259,7 +270,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
         atualizar_resumo()
 
     def atualizar_resumo():
-        """Atualiza o resumo"""
+        """Atualiza o resumo com informações de ocupação em tempo real"""
         print(f"DEBUG: Atualizando resumo - {len(selecionados)} assentos selecionados")
         
         if not selecionados:
@@ -275,9 +286,22 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
         if sessao_info:
             resumo_ocupacao = obter_resumo_ocupacao_sessao(sessao_info["ID_Sessao"])
             if resumo_ocupacao:
-                label_ocupacao.configure(
-                    text=f"Disponíveis: {resumo_ocupacao['disponiveis']} / {resumo_ocupacao['total_assentos']}"
-                )
+                disponiveis = resumo_ocupacao.get('disponiveis', 0)
+                total_assentos = resumo_ocupacao.get('total_assentos', 0)
+                ocupados = resumo_ocupacao.get('ocupados', 0)
+                
+                # Calcular taxa de ocupação
+                taxa_ocupacao = (ocupados / total_assentos * 100) if total_assentos > 0 else 0
+                
+                # Mostrar aviso se poucos assentos
+                ocupacao_text = f"Disponíveis: {disponiveis} / {total_assentos}"
+                
+                if disponiveis <= 5 and disponiveis > 0:
+                    ocupacao_text += " ⚠️ POUCOS ASSENTOS!"
+                elif disponiveis == 0:
+                    ocupacao_text += " ❌ SESSÃO CHEIA"
+                
+                label_ocupacao.configure(text=ocupacao_text)
         
         # Forçar atualização da interface
         frame_dir.update()
@@ -294,52 +318,39 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                 print("DEBUG: Nenhum filme selecionado")
                 return
             
-            # Buscar filme no banco
-            if "ID_Filme" in filme_selecionado:
-                filme_info = buscar_filme_por_id(filme_selecionado["ID_Filme"])
-                print(f"DEBUG: Filme encontrado - {filme_info.get('Titulo_Filme') if filme_info else 'Nenhum'}")
-            
-            # Buscar sessão específica
-            tipo_sessao = filme_selecionado.get('tipo_selecionado', 'dublado')
-            horario_sessao = filme_selecionado.get('horario_selecionado', '16:00')
-            
-            print(f"DEBUG: Buscando sessão - Tipo: {tipo_sessao}, Horário: {horario_sessao}")
-            
-            # Buscar sessões disponíveis para este filme
-            sessoes = listar_sessoes_por_filme(filme_selecionado["ID_Filme"])
-            
-            if sessoes:
-                # Encontrar sessão que corresponde ao tipo e horário selecionado
-                sessao_encontrada = None
-                for sessao in sessoes:
-                    if (sessao.get('Tipo_Sessao') == tipo_sessao and 
-                        str(sessao.get('Hora_Sessao'))[:5] == horario_sessao):
-                        sessao_encontrada = sessao
-                        break
+            # Primeiro tenta usar ID_Sessao se foi passado do catálogo
+            if "ID_Sessao" in filme_selecionado:
+                print(f"DEBUG: Usando ID_Sessao do catálogo: {filme_selecionado['ID_Sessao']}")
+                sessao_info = obter_sessao_completa(filme_selecionado["ID_Sessao"])
                 
-                if not sessao_encontrada:
-                    # Usar a primeira sessão disponível se não encontrar exata
-                    sessao_encontrada = sessoes[0]
-                    print(f"DEBUG: Sessão exata não encontrada, usando primeira disponível")
-                
-                sessao_info = sessao_encontrada
-                print(f"DEBUG: Sessão encontrada - ID: {sessao_info['ID_Sessao']}")
-                
-                # Buscar informações da sala
-                if "ID_Sala" in sessao_info:
-                    sala_info = buscar_sala_por_id(sessao_info["ID_Sala"])
-                    print(f"DEBUG: Sala encontrada - {sala_info}")
-                
-                # Buscar assentos da sessão
                 if sessao_info:
+                    print(f"DEBUG: Sessão carregada com sucesso")
+                    # Buscar sala
+                    if "ID_Sala" in sessao_info:
+                        sala_info = buscar_sala_por_id(sessao_info["ID_Sala"])
+                        print(f"DEBUG: Sala encontrada - {sala_info.get('Nome_Sala') if sala_info else 'Nenhuma'}")
+                    
+                    # Buscar filme
+                    if "ID_Filme" in sessao_info:
+                        filme_info = buscar_filme_por_id(sessao_info["ID_Filme"])
+                        print(f"DEBUG: Filme encontrado - {filme_info.get('Titulo_Filme') if filme_info else 'Nenhum'}")
+                    
+                    # Buscar assentos
                     assentos_info = listar_assentos_por_sessao(sessao_info["ID_Sessao"])
-                    print(f"DEBUG: {len(assentos_info)} assentos encontrados para a sessão")
+                    print(f"DEBUG: {len(assentos_info)} assentos carregados para a sessão")
+                else:
+                    print("DEBUG: Falha ao carregar sessão completa, tentando método alternativo...")
+                    # Fallback para o método antigo
+                    carregar_dados_banco_alternativo()
             else:
-                print("DEBUG: Nenhuma sessão encontrada, usando dados de teste")
-                # Dados de teste
-                sessao_info = {"ID_Sessao": 1, "ID_Sala": 1, "Tipo_Sessao": tipo_sessao}
-                sala_info = {"ID_Sala": 1, "Nome_Sala": "Sala 1", "Capacidade": 56}
-                assentos_info = criar_assentos_teste()
+                # Fallback para o método antigo se não houver ID_Sessao
+                carregar_dados_banco_alternativo()
+            
+            # Verificar se há poucos assentos disponíveis
+            if sessao_info:
+                alerta, disponiveis = alertar_pouca_disponibilidade(sessao_info["ID_Sessao"], limite=10)
+                if alerta:
+                    print(f"⚠️ ALERTA: Apenas {disponiveis} assentos disponíveis nesta sessão!")
             
             # Atualizar interface
             atualizar_interface()
@@ -358,6 +369,57 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
             assentos_info = criar_assentos_teste()
             atualizar_interface()
             criar_grade_assentos()
+
+    def carregar_dados_banco_alternativo():
+        """Método alternativo para carregar dados sem ID_Sessao do catálogo"""
+        nonlocal filme_info, sala_info, sessao_info, assentos_info
+        
+        # Buscar filme no banco
+        if "ID_Filme" in filme_selecionado:
+            filme_info = buscar_filme_por_id(filme_selecionado["ID_Filme"])
+            print(f"DEBUG: Filme encontrado - {filme_info.get('Titulo_Filme') if filme_info else 'Nenhum'}")
+        
+        # Buscar sessão específica
+        tipo_sessao = filme_selecionado.get('tipo_selecionado', 'dublado')
+        horario_sessao = filme_selecionado.get('horario_selecionado', '16:00')
+        
+        print(f"DEBUG: Buscando sessão - Tipo: {tipo_sessao}, Horário: {horario_sessao}")
+        
+        # Buscar sessões disponíveis para este filme
+        sessoes = listar_sessoes_por_filme(filme_selecionado["ID_Filme"])
+        
+        if sessoes:
+            # Encontrar sessão que corresponde ao tipo e horário selecionado
+            sessao_encontrada = None
+            for sessao in sessoes:
+                if (sessao.get('Tipo_Sessao') == tipo_sessao and 
+                    str(sessao.get('Hora_Sessao'))[:5] == horario_sessao):
+                    sessao_encontrada = sessao
+                    break
+            
+            if not sessao_encontrada:
+                # Usar a primeira sessão disponível se não encontrar exata
+                sessao_encontrada = sessoes[0]
+                print(f"DEBUG: Sessão exata não encontrada, usando primeira disponível")
+            
+            sessao_info = sessao_encontrada
+            print(f"DEBUG: Sessão encontrada - ID: {sessao_info['ID_Sessao']}")
+            
+            # Buscar informações da sala
+            if "ID_Sala" in sessao_info:
+                sala_info = buscar_sala_por_id(sessao_info["ID_Sala"])
+                print(f"DEBUG: Sala encontrada - {sala_info}")
+            
+            # Buscar assentos da sessão
+            if sessao_info:
+                assentos_info = listar_assentos_por_sessao(sessao_info["ID_Sessao"])
+                print(f"DEBUG: {len(assentos_info)} assentos encontrados para a sessão")
+        else:
+            print("DEBUG: Nenhuma sessão encontrada, usando dados de teste")
+            # Dados de teste
+            sessao_info = {"ID_Sessao": 1, "ID_Sala": 1, "Tipo_Sessao": tipo_sessao}
+            sala_info = {"ID_Sala": 1, "Nome_Sala": "Sala 1", "Capacidade": 56}
+            assentos_info = criar_assentos_teste()
 
     def criar_assentos_teste():
         """Cria assentos de teste para desenvolvimento"""
