@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timedelta
 from crud.crud_filme import listar_filmes
 from crud.crud_sessao import listar_sessoes_por_filme
+from crud.crud_sessao_assento import obter_sessoes_com_disponibilidade, alertar_pouca_disponibilidade
 
 # ================== CONSTANTES DE CORES ==================
 BTN_COLOR = "#F6C148"
@@ -294,12 +295,37 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
         btn.pack(side="left", padx=5, pady=5)
         return btn
 
-    def criar_botao_horario(parent, horario, tipo):
-        btn = ctk.CTkButton(parent, text=horario, width=120, height=35, corner_radius=8,
-                           fg_color=BTN_COLOR, hover_color=BTN_HOVER, text_color=BTN_TEXT,
-                           font=fonte_global if fonte_global else ("Arial", 14), 
+    def criar_botao_horario(parent, horario, tipo, sessoes_info=None):
+        # Obter informações de disponibilidade se disponíveis
+        texto_botao = horario
+        tooltip = ""
+        cor_botao = BTN_COLOR
+        
+        if sessoes_info:
+            for sessao in sessoes_info:
+                hora_formatada = str(sessao.get('Hora_Sessao', ''))[:5] if sessao.get('Hora_Sessao') else ''
+                if hora_formatada == horario and sessao.get('Tipo_Sessao') == tipo:
+                    disponiveis = sessao.get('assentos_livres', 0)
+                    total = sessao.get('total_assentos', 0)
+                    
+                    if disponiveis <= 5 and disponiveis > 0:
+                        cor_botao = "#FF9800"  # Laranja - poucos assentos
+                        tooltip = f"⚠ {disponiveis} de {total} assentos"
+                    elif disponiveis == 0:
+                        cor_botao = "#999999"  # Cinza - cheio
+                        tooltip = "Sessão cheia"
+                    else:
+                        tooltip = f"{disponiveis} de {total} assentos"
+                    
+                    texto_botao = f"{horario}\n({disponiveis}/{total})"
+                    break
+        
+        btn = ctk.CTkButton(parent, text=texto_botao, width=120, height=50, corner_radius=8,
+                           fg_color=cor_botao, hover_color=BTN_HOVER, text_color=BTN_TEXT,
+                           font=fonte_global if fonte_global else ("Arial", 12), 
                            command=lambda: selecionar_horario(horario, tipo))
         btn.pack(side="left", padx=3, pady=2)
+        btn.tooltip = tooltip  # Armazenar tooltip
         return btn
 
     def selecionar_dia(dia_info):
@@ -324,6 +350,28 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
             messagebox.showwarning("Seleção Incompleta", "Selecione um dia primeiro")
             return
         
+        # Verificar disponibilidade antes de permitir seleção
+        if filme_selecionado[0]:
+            sessoes_disponiveis = obter_sessoes_com_disponibilidade(
+                filme_selecionado[0].get("ID_Filme"), 
+                tipo
+            )
+            
+            # Procurar a sessão com este horário
+            sessao_selecionada = None
+            for sessao in sessoes_disponiveis:
+                hora_fmt = str(sessao.get('Hora_Sessao', ''))[:5]
+                if hora_fmt == horario:
+                    sessao_selecionada = sessao
+                    break
+            
+            if not sessao_selecionada or not sessao_selecionada.get('disponivel', False):
+                messagebox.showwarning(
+                    "Sessão Indisponível", 
+                    "Esta sessão não tem assentos disponíveis no momento.\nEscolha outro horário."
+                )
+                return
+        
         horario_selecionado.set(horario)
         tipo_selecionado.set(tipo)
         
@@ -335,17 +383,17 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
         # Destacar o botão selecionado
         if tipo == "dublado":
             for btn in botoes_horarios_dublado:
-                if btn.cget("text") == horario:
+                if btn.cget("text").split('\n')[0] == horario:
                     btn.configure(fg_color=SELECTED_COLOR)
         else:  # legendado
             for btn in botoes_horarios_legendado:
-                if btn.cget("text") == horario:
+                if btn.cget("text").split('\n')[0] == horario:
                     btn.configure(fg_color=SELECTED_COLOR)
         
         atualizar_selecao()
 
     def atualizar_horarios_por_tipo():
-        """Atualiza os horários para cada tipo de sessão"""
+        """Atualiza os horários para cada tipo de sessão com info de disponibilidade"""
         # Limpar botões existentes
         for widget in frame_horarios_dublado.winfo_children():
             widget.destroy()
@@ -359,20 +407,26 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
             return
         
         filme = filme_selecionado[0]
-        if filme and "sessoes" in filme:
-            # Horários para Dublado
-            if filme["sessoes"].get("dublado"):
-                for horario in filme["sessoes"]["dublado"]:
-                    btn = criar_botao_horario(frame_horarios_dublado, horario, "dublado")
+        id_filme = filme.get("ID_Filme")
+        
+        if id_filme:
+            # Obter sessões com disponibilidade para DUBLADO
+            sessoes_dublado = obter_sessoes_com_disponibilidade(id_filme, "dublado")
+            if sessoes_dublado:
+                for sessao in sessoes_dublado:
+                    hora_fmt = str(sessao.get('Hora_Sessao', ''))[:5]
+                    btn = criar_botao_horario(frame_horarios_dublado, hora_fmt, "dublado", [sessao])
                     botoes_horarios_dublado.append(btn)
             else:
                 ctk.CTkLabel(frame_horarios_dublado, text="Nenhum horário disponível", 
                            font=("Arial", 12), text_color="gray").pack(side="left")
             
-            # Horários para Legendado
-            if filme["sessoes"].get("legendado"):
-                for horario in filme["sessoes"]["legendado"]:
-                    btn = criar_botao_horario(frame_horarios_legendado, horario, "legendado")
+            # Obter sessões com disponibilidade para LEGENDADO
+            sessoes_legendado = obter_sessoes_com_disponibilidade(id_filme, "legendado")
+            if sessoes_legendado:
+                for sessao in sessoes_legendado:
+                    hora_fmt = str(sessao.get('Hora_Sessao', ''))[:5]
+                    btn = criar_botao_horario(frame_horarios_legendado, hora_fmt, "legendado", [sessao])
                     botoes_horarios_legendado.append(btn)
             else:
                 ctk.CTkLabel(frame_horarios_legendado, text="Nenhum horário disponível", 
@@ -548,6 +602,20 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
             filme_completo["dia_selecionado"] = dia
             filme_completo["tipo_selecionado"] = tipo
             filme_completo["horario_selecionado"] = horario
+            
+            # Adicionar ID da sessão específica para melhor rastreamento
+            id_filme = filme_completo.get("ID_Filme")
+            sessoes = obter_sessoes_com_disponibilidade(id_filme, tipo)
+            
+            for sessao in sessoes:
+                hora_fmt = str(sessao.get('Hora_Sessao', ''))[:5]
+                if hora_fmt == horario:
+                    filme_completo["ID_Sessao"] = sessao.get("ID_Sessao")
+                    filme_completo["assentos_disponiveis"] = sessao.get("assentos_livres", 0)
+                    filme_completo["total_assentos"] = sessao.get("total_assentos", 0)
+                    filme_completo["taxa_ocupacao"] = sessao.get("taxa_ocupacao", 0)
+                    break
+            
             confirmar_callback(filme_completo)
         else:
             messagebox.showwarning("Seleção Incompleta", "Selecione um filme, dia, horário e tipo")

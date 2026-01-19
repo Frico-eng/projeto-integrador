@@ -739,11 +739,13 @@ def get_dados_relatorio(periodo="mensal"):
         resultados = cursor.fetchall()
         
         # Se não há dados para o período atual, buscar dados históricos
-        if not resultados and periodo in ["diário", "mensal"]:
+        if not resultados and periodo in ["diário", "mensal", "quatrenal"]:
             if periodo == "diário":
                 fallback_filter = "i.Data_Compra >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
-            else:
+            elif periodo == "mensal":
                 fallback_filter = "i.Data_Compra >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+            else:  # quatrenal
+                fallback_filter = "i.Data_Compra >= DATE_SUB(CURDATE(), INTERVAL 120 DAY)"
             
             cursor.execute(f"""
                 SELECT 

@@ -8,6 +8,7 @@ import matplotlib.patches as mpatches
 from PIL import Image, ImageTk
 import io
 import math
+import hashlib
 
 # ================== CONSTANTES DE CORES ==================
 BTN_COLOR = "#F6C148"
@@ -15,10 +16,42 @@ BTN_HOVER = "#E2952D"
 BTN_TEXT = "#1C2732"
 SELECTED_COLOR = "#B6D8F1"
 
-def criar_grafico_vendas_filme(dados_relatorio, periodo):
-    """Cria gráfico de barras para vendas por filme"""
+# ================== PALETTE DE CORES PARA FILMES ==================
+CORES_FILMES_PALETTE = [
+    '#F6C148', '#E2952D', '#B6D8F1', '#8B5CF6', '#10B981', 
+    '#F59E0B', '#EF4444', '#06B6D4', '#84CC16', '#EC4899',
+    '#14B8A6', '#F97316', '#6366F1', '#22C55E', '#3B82F6',
+    '#A855F7', '#D946EF', '#F43F5E', '#64748B', '#0891B2'
+]
+
+def obter_cor_filme(nome_filme, cache_cores=None):
+    """
+    Obtém uma cor consistente para um filme baseado no seu nome.
+    Usa hash para garantir que o mesmo filme sempre tenha a mesma cor.
+    """
+    if cache_cores is None:
+        cache_cores = {}
+    
+    if nome_filme in cache_cores:
+        return cache_cores[nome_filme]
+    
+    # Gerar hash do nome do filme para determinar índice consistente
+    hash_obj = hashlib.md5(nome_filme.encode())
+    hash_int = int(hash_obj.hexdigest(), 16)
+    indice_cor = hash_int % len(CORES_FILMES_PALETTE)
+    
+    cor = CORES_FILMES_PALETTE[indice_cor]
+    cache_cores[nome_filme] = cor
+    
+    return cor
+
+def criar_grafico_vendas_filme(dados_relatorio, periodo, cache_cores=None):
+    """Cria gráfico de barras para vendas por filme com cores consistentes"""
     if not dados_relatorio:
         return None
+    
+    if cache_cores is None:
+        cache_cores = {}
     
     # Agregar vendas por filme
     vendas_por_filme = {}
@@ -28,31 +61,24 @@ def criar_grafico_vendas_filme(dados_relatorio, periodo):
             vendas_por_filme[filme] = 0
         vendas_por_filme[filme] += 1
     
-    # Ordenar e limitar top 10
-    sorted_filmes = sorted(vendas_por_filme.items(), key=lambda x: x[1], reverse=True)[:10]
+    # Ordenar todos os filmes (sem limite)
+    sorted_filmes = sorted(vendas_por_filme.items(), key=lambda x: x[1], reverse=True)
     
     if not sorted_filmes:
         return None
     
-    fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
+    fig, ax = plt.subplots(figsize=(6, 5), facecolor='#2B2B2B')
     ax.set_facecolor('#2B2B2B')
     
     ids_filmes = [f"ID {i+1}" for i in range(len(sorted_filmes))]
     nomes_filmes = [filme[:20] + '...' if len(filme) > 20 else filme for filme, _ in sorted_filmes]
     vendas = [venda for _, venda in sorted_filmes]
     
-    # Para até 10 categorias
-    if len(ids_filmes) <= 10:
-        # Tab10 - ótimo para até 10 categorias
-        colormap = plt.cm.tab10
-        cores_barras = [colormap(i % 10) for i in range(len(ids_filmes))]
-    else:
-        # Set3 para mais categorias - cores mais suaves
-        colormap = plt.cm.Set3
-        cores_barras = [colormap(i % 12) for i in range(len(ids_filmes))]
+    # Obter cores consistentes para cada filme
+    cores_barras = [obter_cor_filme(filme, cache_cores) for filme, _ in sorted_filmes]
 
     bars = ax.bar(range(len(ids_filmes)), vendas, 
-                color=cores_barras[:len(ids_filmes)], 
+                color=cores_barras, 
                 width=0.8,
                 alpha=0.85)
     
@@ -62,8 +88,11 @@ def criar_grafico_vendas_filme(dados_relatorio, periodo):
     ax.set_xticks(range(len(ids_filmes)))
     ax.set_xticklabels(nomes_filmes, rotation=45, ha='right', color='white', fontsize=8)
     
-    # Adicionar legenda com os nomes dos filmes
-    ax.legend(bars, nomes_filmes, title="Filmes", loc="upper right", fontsize=7)
+    # Adicionar legenda com os nomes dos filmes abaixo do gráfico
+    legend_patches = [plt.matplotlib.patches.Patch(color=cores_barras[i], label=nomes_filmes[i]) 
+                      for i in range(len(nomes_filmes))]
+    ax.legend(handles=legend_patches, title="Filmes", loc="upper center", bbox_to_anchor=(0.5, -0.15), 
+              fontsize=6, framealpha=0.9, facecolor='white', edgecolor='white', labelcolor='black', ncol=3)
     
     # Adicionar valores nas barras
     for bar, venda in zip(bars, vendas):
@@ -82,14 +111,17 @@ def criar_grafico_vendas_filme(dados_relatorio, periodo):
         plt.tight_layout()
     except ValueError:
         # Se tight_layout falhar, ajustar manualmente
-        plt.subplots_adjust(bottom=0.2, top=0.9, left=0.1, right=0.75)
+        plt.subplots_adjust(bottom=0.25, top=0.9, left=0.1, right=0.75)
     
     return fig
 
-def criar_grafico_faturamento_periodo(dados_relatorio, periodo):
+def criar_grafico_faturamento_periodo(dados_relatorio, periodo, cache_cores=None):
     """Cria gráfico de linha para faturamento por período"""
     if not dados_relatorio:
         return None
+    
+    if cache_cores is None:
+        cache_cores = {}
     
     # Agregar faturamento por período
     faturamento_por_periodo = {}
@@ -117,30 +149,72 @@ def criar_grafico_faturamento_periodo(dados_relatorio, periodo):
     # Ordenar períodos
     sorted_periodos = sorted(faturamento_por_periodo.items(), key=lambda x: x[0])
     
-    # Limitar a últimos 5 períodos
-    dados_top5 = sorted_periodos[-5:] if len(sorted_periodos) > 5 else sorted_periodos
+    # Limitar a últimos períodos conforme o tipo de período
+    if periodo == "diário":
+        limite = 5
+        figsize = (6, 4)
+    elif periodo == "mensal":
+        limite = 12  # Mostrar últimos 12 meses
+        figsize = (10, 4)  # Figura mais larga para acomodar os meses
+    elif periodo == "quatrenal":
+        limite = 5  # Trimestres
+        figsize = (6, 4)
+    elif periodo == "anual":
+        limite = 10  # Últimos 10 anos
+        figsize = (8, 4)
+    else:
+        limite = 5
+        figsize = (6, 4)
+    
+    dados_top5 = sorted_periodos[-limite:] if len(sorted_periodos) > limite else sorted_periodos
     
     if not dados_top5:
         return None
     
-    fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
+    fig, ax = plt.subplots(figsize=figsize, facecolor='#2B2B2B')
     ax.set_facecolor('#2B2B2B')
     
     periodos = [p for p, _ in dados_top5]
-    # Para diário, formatar como hora
+    
+    # Formatar rótulos conforme o tipo de período
     if periodo == "diário":
         periodos_labels = [f"{int(p):02d}:00" if p != 'N/A' else 'N/A' for p in periodos]
+    elif periodo == "mensal":
+        # Converter YYYY-MM para formato mais legível (Mês/Ano)
+        periodos_labels = []
+        meses_nomes = {
+            1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun',
+            7: 'Jul', 8: 'Ago', 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez'
+        }
+        for p in periodos:
+            if p != 'N/A':
+                try:
+                    ano, mes = p.split('-')
+                    periodos_labels.append(f"{meses_nomes[int(mes)]}/{ano[-2:]}")
+                except:
+                    periodos_labels.append(p)
+            else:
+                periodos_labels.append(p)
     else:
         periodos_labels = periodos
+    
     faturamento = [f for _, f in dados_top5]
     
-    ax.plot(range(len(periodos)), faturamento, marker='o', color=BTN_COLOR, linewidth=2, markersize=6)
+    # Usar cor consistente (cor do primeiro filme, ou BTN_COLOR como fallback)
+    cor_linha = obter_cor_filme("Faturamento", cache_cores) if dados_relatorio else BTN_COLOR
+    ax.plot(range(len(periodos)), faturamento, marker='o', color=cor_linha, linewidth=2, markersize=6)
     
     ax.set_title(f'Faturamento por Período - {periodo.upper()}', color='white', fontsize=12, pad=20)
     ax.set_xlabel('Períodos', color='white', fontsize=10)
     ax.set_ylabel('Faturamento (R$)', color='white', fontsize=10)
+    
+    # Configurar ticks para mostrar todos os períodos
     ax.set_xticks(range(len(periodos)))
     ax.set_xticklabels(periodos_labels, rotation=45, ha='right', color='white', fontsize=8)
+    
+    # Para período mensal, usar locator para forçar exibição de todos os meses
+    if periodo == "mensal":
+        ax.xaxis.set_major_locator(plt.matplotlib.ticker.MaxNLocator(integer=True, nbins=len(periodos)))
     
     # Formatar valores no eixo Y
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x:.0f}'))
@@ -160,17 +234,24 @@ def criar_grafico_faturamento_periodo(dados_relatorio, periodo):
     
     return fig
 
-def criar_grafico_ocupacao_sessoes(dados_relatorio, periodo):
-    """Cria gráfico de barras para vendas por sessão"""
+def criar_grafico_ocupacao_sessoes(dados_relatorio, periodo, cache_cores=None):
+    """Cria gráfico de barras para vendas por sessão com cores por filme"""
     if not dados_relatorio:
         return None
     
-    # Agregar vendas por sessão
+    if cache_cores is None:
+        cache_cores = {}
+    
+    # Agregar vendas por sessão mantendo referência ao filme e horário
     vendas_por_sessao = {}
+    filme_por_sessao = {}
+    horario_por_sessao = {}
     for item in dados_relatorio:
         sessao_key = f"{item['nome_filme'][:10]}... {item['data_sessao']} {item['hora_sessao']}"
         if sessao_key not in vendas_por_sessao:
             vendas_por_sessao[sessao_key] = 0
+            filme_por_sessao[sessao_key] = item['nome_filme']
+            horario_por_sessao[sessao_key] = item['hora_sessao']
         vendas_por_sessao[sessao_key] += 1
     
     # Ordenar e limitar top 10 sessões
@@ -179,19 +260,47 @@ def criar_grafico_ocupacao_sessoes(dados_relatorio, periodo):
     if not sorted_sessoes:
         return None
     
-    fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
+    fig, ax = plt.subplots(figsize=(6, 5), facecolor='#2B2B2B')
     ax.set_facecolor('#2B2B2B')
     
-    sessoes_labels = [f"Sessão {i+1}" for i in range(len(sorted_sessoes))]
+    # Criar legendas com filme e horário
+    legendas = []
+    for i, (sessao, _) in enumerate(sorted_sessoes):
+        filme_nome = filme_por_sessao[sessao]
+        horario = horario_por_sessao[sessao]
+        # Formatar: "Filme... HH:MM"
+        if horario:
+            if isinstance(horario, str):
+                horario_str = horario[:5]  # Pegar HH:MM da string
+            else:
+                total_seconds = int(horario.total_seconds())
+                horas = total_seconds // 3600
+                minutos = (total_seconds % 3600) // 60
+                horario_str = f"{horas:02d}:{minutos:02d}"
+        else:
+            horario_str = "00:00"
+        
+        filme_curto = filme_nome[:18] + "..." if len(filme_nome) > 21 else filme_nome
+        legendas.append(f"{filme_curto} - {horario_str}")
+    
     vendas = [venda for _, venda in sorted_sessoes]
     
-    bars = ax.bar(range(len(sessoes_labels)), vendas, color=BTN_COLOR, width=0.8, alpha=0.8)
+    # Obter cores consistentes baseadas no filme de cada sessão
+    cores_barras = [obter_cor_filme(filme_por_sessao[sessao], cache_cores) for sessao, _ in sorted_sessoes]
+
+    bars = ax.bar(range(len(legendas)), vendas, color=cores_barras, width=0.5, alpha=0.8, label=legendas)
     
     ax.set_title(f'Vendas por Sessão - {periodo.upper()}', color='white', fontsize=12, pad=20)
     ax.set_xlabel('Sessões', color='white', fontsize=10)
     ax.set_ylabel('Ingressos Vendidos', color='white', fontsize=10)
-    ax.set_xticks(range(len(sessoes_labels)))
-    ax.set_xticklabels(sessoes_labels, rotation=45, ha='right', color='white', fontsize=7)
+    ax.set_xticks(range(len(legendas)))
+    ax.set_xticklabels([f"Sessão {i+1}" for i in range(len(legendas))], rotation=45, ha='right', color='white', fontsize=8)
+    
+    # Adicionar legenda com filme e horário abaixo do gráfico
+    legend_patches = [plt.matplotlib.patches.Patch(color=cores_barras[i], label=legendas[i]) 
+                      for i in range(len(legendas))]
+    ax.legend(handles=legend_patches, loc='upper center', bbox_to_anchor=(0.5, -0.15), 
+              fontsize=6, framealpha=0.9, facecolor='white', edgecolor='white', labelcolor='black', ncol=2)
     
     # Adicionar valores nas barras
     for bar, venda in zip(bars, vendas):
@@ -210,14 +319,17 @@ def criar_grafico_ocupacao_sessoes(dados_relatorio, periodo):
         plt.tight_layout()
     except ValueError:
         # Se tight_layout falhar, ajustar manualmente
-        plt.subplots_adjust(bottom=0.25, top=0.9, left=0.1, right=0.95)
+        plt.subplots_adjust(bottom=0.2, top=0.9, left=0.1, right=0.75)
     
     return fig
 
-def criar_grafico_filmes_populares(dados_relatorio, periodo):
-    """Cria gráfico de pizza para filmes mais populares"""
+def criar_grafico_filmes_populares(dados_relatorio, periodo, cache_cores=None):
+    """Cria gráfico de pizza para filmes mais populares com cores consistentes"""
     if not dados_relatorio:
         return None
+    
+    if cache_cores is None:
+        cache_cores = {}
     
     # Agregar vendas por filme
     vendas_por_filme = {}
@@ -227,31 +339,33 @@ def criar_grafico_filmes_populares(dados_relatorio, periodo):
             vendas_por_filme[filme] = 0
         vendas_por_filme[filme] += 1
     
-    # Filtrar apenas filmes com vendas > 0 e limitar top 10
-    sorted_filmes = sorted([(f, v) for f, v in vendas_por_filme.items() if v > 0], key=lambda x: x[1], reverse=True)[:10]
+    # Filtrar filmes com vendas > 0 (sem limite de quantidade)
+    sorted_filmes = sorted([(f, v) for f, v in vendas_por_filme.items() if v > 0], key=lambda x: x[1], reverse=True)
     
     if not sorted_filmes:
-        fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
+        fig, ax = plt.subplots(figsize=(6, 5), facecolor='#2B2B2B')
         ax.text(0.5, 0.5, 'Nenhum filme\ncom vendas\nno período', 
                 ha='center', va='center', color='white', fontsize=12, transform=ax.transAxes)
         ax.set_title(f'Filmes Mais Populares - {periodo.upper()}', color='white', fontsize=12, pad=20)
         return fig
     
-    fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
+    fig, ax = plt.subplots(figsize=(6, 5), facecolor='#2B2B2B')
     
+    filmes_completos = [f for f, _ in sorted_filmes]
     filmes = [filme[:15] + '...' if len(filme) > 15 else filme for filme, _ in sorted_filmes]
     vendas = [venda for _, venda in sorted_filmes]
     
-    # Cores para o gráfico de pizza (expandido)
-    cores = ['#F6C148', '#E2952D', '#B6D8F1', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16']
+    # Obter cores consistentes para cada filme
+    cores = [obter_cor_filme(filme_nome, cache_cores) for filme_nome in filmes_completos]
     
     wedges, texts, autotexts = ax.pie(vendas, labels=None, autopct='%1.1f%%', 
-                                      colors=cores[:len(vendas)], startangle=90)
+                                      colors=cores, startangle=90)
     
     ax.set_title(f'Filmes Mais Populares - {periodo.upper()}', color='white', fontsize=12, pad=20)
     
-    # Adicionar legenda com os nomes dos filmes
-    ax.legend(wedges, filmes, title="Filmes", loc="upper left", bbox_to_anchor=(-0.1, 1), fontsize=7)
+    # Adicionar legenda com os nomes dos filmes abaixo do gráfico
+    ax.legend(wedges, filmes, title="Filmes", loc="upper center", bbox_to_anchor=(0.5, -0.1), 
+              fontsize=6, framealpha=0.9, facecolor='white', edgecolor='white', labelcolor='black', ncol=2)
     
     # Ajustar cores dos textos
     for text in texts:
@@ -266,21 +380,26 @@ def criar_grafico_filmes_populares(dados_relatorio, periodo):
         plt.tight_layout()
     except ValueError:
         # Se tight_layout falhar, ajustar manualmente
-        plt.subplots_adjust(bottom=0.1, top=0.9, left=0.1, right=0.8)
+        plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.8)
     
     return fig
 
-def criar_grafico_ingressos_horario(dados_relatorio, periodo):
-    """Cria gráfico de barras para ingressos vendidos por horário"""
+def criar_grafico_ingressos_horario(dados_relatorio, periodo, cache_cores=None):
+    """Cria gráfico de barras para ingressos vendidos por horário com cores por filme"""
     if not dados_relatorio:
         return None
     
-    # Agregar vendas por horário
+    if cache_cores is None:
+        cache_cores = {}
+    
+    # Agregar vendas por horário mantendo filme
     vendas_por_horario = {}
+    filme_por_horario = {}
     for item in dados_relatorio:
         horario = item['hora_sessao']
         if horario not in vendas_por_horario:
             vendas_por_horario[horario] = 0
+            filme_por_horario[horario] = item['nome_filme']
         vendas_por_horario[horario] += 1
     
     # Ordenar por horário
@@ -290,7 +409,7 @@ def criar_grafico_ingressos_horario(dados_relatorio, periodo):
         fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
         ax.text(0.5, 0.5, 'Nenhum ingresso\nvendido\nno período', 
                 ha='center', va='center', color='white', fontsize=12, transform=ax.transAxes)
-        ax.set_title(f'Ingressos por Horário da sessão da sessão- {periodo.upper()}', color='white', fontsize=12, pad=20)
+        ax.set_title(f'Ingressos por Horário da sessão - {periodo.upper()}', color='white', fontsize=12, pad=20)
         return fig
     
     fig, ax = plt.subplots(figsize=(6, 4), facecolor='#2B2B2B')
@@ -299,6 +418,7 @@ def criar_grafico_ingressos_horario(dados_relatorio, periodo):
     # Converter horários para strings formatadas
     horarios_str = []
     vendas = []
+    cores_barras = []
     for horario, venda in sorted_horarios:
         if horario:
             # Converter timedelta para string HH:MM
@@ -310,8 +430,10 @@ def criar_grafico_ingressos_horario(dados_relatorio, periodo):
             horario_str = "00:00"
         horarios_str.append(horario_str)
         vendas.append(venda)
+        # Obter cor consistente para o filme deste horário
+        cores_barras.append(obter_cor_filme(filme_por_horario[horario], cache_cores))
     
-    bars = ax.bar(horarios_str, vendas, color='#F6C148', width=0.6)
+    bars = ax.bar(horarios_str, vendas, color=cores_barras, width=0.6)
     
     ax.set_title(f'Ingressos por Horário da sessão - {periodo.upper()}', color='white', fontsize=12, pad=20)
     ax.set_xlabel('Horário', color='white', fontsize=10)
@@ -348,6 +470,9 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
     
     # Variável para armazenar o período selecionado
     periodo_selecionado = ctk.StringVar(value="diário")
+    
+    # Cache de cores para manter consistência entre gráficos
+    cache_cores_filmes = {}
     
     # ================== LAYOUT PRINCIPAL ==================
     
@@ -548,24 +673,24 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
         # Obter dados
         dados_relatorio = get_dados_relatorio(periodo_atual)
         
-        # Atualizar gráfico 1: Vendas por Filme
-        fig1 = criar_grafico_vendas_filme(dados_relatorio, periodo_atual)
+        # Atualizar gráfico 1: Vendas por Filme (com cache de cores)
+        fig1 = criar_grafico_vendas_filme(dados_relatorio, periodo_atual, cache_cores_filmes)
         atualizar_frame_grafico(frames_abas["Vendas por Filme"], fig1, "Vendas por Filme")
         
-        # Atualizar gráfico 2: Faturamento por Período
-        fig2 = criar_grafico_faturamento_periodo(dados_relatorio, periodo_atual)
+        # Atualizar gráfico 2: Faturamento por Período (com cache de cores)
+        fig2 = criar_grafico_faturamento_periodo(dados_relatorio, periodo_atual, cache_cores_filmes)
         atualizar_frame_grafico(frames_abas["Faturamento por Período"], fig2, "Faturamento por Período")
         
-        # Atualizar gráfico 3: Ocupação das Sessões
-        fig3 = criar_grafico_ocupacao_sessoes(dados_relatorio, periodo_atual)
+        # Atualizar gráfico 3: Ocupação das Sessões (com cache de cores)
+        fig3 = criar_grafico_ocupacao_sessoes(dados_relatorio, periodo_atual, cache_cores_filmes)
         atualizar_frame_grafico(frames_abas["Ocupação das Sessões"], fig3, "Ocupação das Sessões")
         
-        # Atualizar gráfico 4: Filmes Mais Populares
-        fig4 = criar_grafico_filmes_populares(dados_relatorio, periodo_atual)
+        # Atualizar gráfico 4: Filmes Mais Populares (com cache de cores)
+        fig4 = criar_grafico_filmes_populares(dados_relatorio, periodo_atual, cache_cores_filmes)
         atualizar_frame_grafico(frames_abas["Filmes Mais Populares"], fig4, "Filmes Mais Populares")
         
-        # Atualizar gráfico 5: Ingressos por Horário da sessão
-        fig5 = criar_grafico_ingressos_horario(dados_relatorio, periodo_atual)
+        # Atualizar gráfico 5: Ingressos por Horário da sessão (com cache de cores)
+        fig5 = criar_grafico_ingressos_horario(dados_relatorio, periodo_atual, cache_cores_filmes)
         atualizar_frame_grafico(frames_abas["Ingressos por Horário da sessão"], fig5, "Ingressos por Horário da sessão")
         
         # Calcular estatísticas gerais dos dados
