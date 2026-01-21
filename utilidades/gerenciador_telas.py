@@ -19,7 +19,7 @@ def show_screen(name):
 
     frame = screens.get(name)
     if frame:
-        if name in ["main", "cadastro", "catalogo", "funcionario", "assentos", "pagamento", "thank_you", "relatorio", "gestao_funcionarios"]:
+        if name in ["main", "cadastro", "catalogo", "funcionario", "assentos", "pagamento", "thank_you", "relatorio", "gestao_funcionarios", "gerente", "feedback"]:
             frame.place(relx=0, rely=0, relwidth=1, relheight=0.975)
         else:
             frame.place(relx=0.5, rely=0.5, anchor="center")

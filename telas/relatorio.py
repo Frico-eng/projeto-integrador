@@ -124,22 +124,266 @@ def criar_grafico_faturamento_periodo(dados_relatorio, periodo, cache_cores=None
     if cache_cores is None:
         cache_cores = {}
     
-    # Agregar faturamento por período
+    # Se período é mensal, mostrar dia a dia do mês atual
+    if periodo == "mensal":
+        from datetime import datetime
+        agora = datetime.now()
+        ano_atual = agora.year
+        mes_atual = agora.month
+        
+        faturamento_por_dia = {}
+        
+        # Agregar faturamento por dia do mês atual
+        for item in dados_relatorio:
+            data_compra = item.get('data_compra')
+            if data_compra:
+                try:
+                    if isinstance(data_compra, str):
+                        # Parser de string YYYY-MM-DD HH:MM:SS
+                        ano = int(data_compra.split('-')[0])
+                        mes = int(data_compra.split('-')[1])
+                        dia = int(data_compra.split('-')[2].split()[0])
+                    else:
+                        # datetime object
+                        ano = data_compra.year
+                        mes = data_compra.month
+                        dia = data_compra.day
+                    
+                    # Filtrar apenas dados do mês e ano atual
+                    if ano == ano_atual and mes == mes_atual:
+                        if dia not in faturamento_por_dia:
+                            faturamento_por_dia[dia] = 0
+                        faturamento_por_dia[dia] += item['valor'] or 0
+                except:
+                    pass
+        
+        # Calcular número de dias no mês
+        import calendar
+        num_dias = calendar.monthrange(ano_atual, mes_atual)[1]
+        
+        # Criar gráfico com todos os dias do mês
+        dias = []
+        faturamentos = []
+        
+        for dia in range(1, num_dias + 1):
+            dias.append(str(dia))
+            faturamentos.append(faturamento_por_dia.get(dia, 0))
+        
+        fig, ax = plt.subplots(figsize=(14, 5), facecolor='#2B2B2B')
+        ax.set_facecolor('#2B2B2B')
+        
+        # Usar cor consistente
+        cor_linha = obter_cor_filme("Faturamento", cache_cores) if dados_relatorio else BTN_COLOR
+        ax.plot(range(len(dias)), faturamentos, marker='o', color=cor_linha, linewidth=2.5, markersize=6, label='Faturamento')
+        
+        # Adicionar preenchimento sob a linha
+        ax.fill_between(range(len(dias)), faturamentos, alpha=0.2, color=cor_linha)
+        
+        meses_nomes = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho',
+                      7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
+        ax.set_title(f'Faturamento por Dia - {meses_nomes[mes_atual]} {ano_atual}', color='white', fontsize=14, pad=20, fontweight='bold')
+        ax.set_xlabel('Dia', color='white', fontsize=11)
+        ax.set_ylabel('Faturamento (R$)', color='white', fontsize=11)
+        
+        # Configurar ticks a cada 5 dias para não ficar muito cheio
+        tick_positions = range(0, len(dias), max(1, len(dias) // 10))
+        ax.set_xticks(tick_positions)
+        ax.set_xticklabels([dias[i] for i in tick_positions], color='white', fontsize=8)
+        
+        # Formatar valores no eixo Y
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x/1000:.0f}K' if x >= 1000 else f'R$ {x:.0f}'))
+        
+        # Adicionar grid
+        ax.grid(axis='y', alpha=0.3, color='white', linestyle='--', linewidth=0.5)
+        
+        # Adicionar valores nos pontos (apenas alguns para não ficar poluído)
+        max_valor = float(max(faturamentos)) if faturamentos else 1
+        if max_valor > 0:
+            for i, (x, y) in enumerate(zip(range(len(dias)), faturamentos)):
+                if y > 0 and i % 2 == 0:  # Mostrar a cada 2 dias
+                    y_float = float(y)
+                    ax.text(x, y_float + max_valor * 0.03, f'R$ {y_float:.0f}', 
+                           ha='center', va='bottom', color='white', fontsize=6)
+        
+        ax.tick_params(colors='white')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color('white')
+        ax.spines['bottom'].set_color('white')
+        
+        try:
+            plt.tight_layout()
+        except ValueError:
+            plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.95)
+        
+        return fig
+    
+    # Se período é quatrenal, mostrar 4 trimestres
+    elif periodo == "quatrenal":
+        faturamento_por_trimestre = {}
+        trimestres_nomes = {
+            1: 'Q1', 2: 'Q2', 3: 'Q3', 4: 'Q4'
+        }
+        
+        # Agregar faturamento por trimestre
+        for item in dados_relatorio:
+            data_compra = item.get('data_compra')
+            if data_compra:
+                try:
+                    if isinstance(data_compra, str):
+                        mes = int(data_compra.split('-')[1])
+                    else:
+                        mes = data_compra.month
+                    
+                    trimestre = ((mes - 1) // 3) + 1
+                    
+                    if trimestre not in faturamento_por_trimestre:
+                        faturamento_por_trimestre[trimestre] = 0
+                    faturamento_por_trimestre[trimestre] += item['valor'] or 0
+                except:
+                    pass
+        
+        # Criar gráfico com todos os 4 trimestres
+        trimestres = []
+        faturamentos = []
+        
+        for trimestre in range(1, 5):
+            trimestres.append(trimestres_nomes[trimestre])
+            faturamentos.append(faturamento_por_trimestre.get(trimestre, 0))
+        
+        fig, ax = plt.subplots(figsize=(10, 5), facecolor='#2B2B2B')
+        ax.set_facecolor('#2B2B2B')
+        
+        # Usar cor consistente
+        cor_linha = obter_cor_filme("Faturamento", cache_cores) if dados_relatorio else BTN_COLOR
+        ax.plot(range(len(trimestres)), faturamentos, marker='o', color=cor_linha, linewidth=2.5, markersize=10, label='Faturamento')
+        
+        # Adicionar preenchimento sob a linha
+        ax.fill_between(range(len(trimestres)), faturamentos, alpha=0.2, color=cor_linha)
+        
+        ax.set_title('Faturamento por Trimestre', color='white', fontsize=14, pad=20, fontweight='bold')
+        ax.set_xlabel('Trimestre', color='white', fontsize=11)
+        ax.set_ylabel('Faturamento (R$)', color='white', fontsize=11)
+        
+        # Configurar ticks
+        ax.set_xticks(range(len(trimestres)))
+        ax.set_xticklabels(trimestres, color='white', fontsize=11)
+        
+        # Formatar valores no eixo Y
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x/1000:.0f}K' if x >= 1000 else f'R$ {x:.0f}'))
+        
+        # Adicionar grid
+        ax.grid(axis='y', alpha=0.3, color='white', linestyle='--', linewidth=0.5)
+        
+        # Adicionar valores nos pontos
+        max_valor = float(max(faturamentos)) if faturamentos else 1
+        if max_valor > 0:
+            for i, (x, y) in enumerate(zip(range(len(trimestres)), faturamentos)):
+                if y > 0:
+                    y_float = float(y)
+                    ax.text(x, y_float + max_valor * 0.03, f'R$ {y_float:.0f}', 
+                           ha='center', va='bottom', color='white', fontsize=9, fontweight='bold')
+        
+        ax.tick_params(colors='white')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color('white')
+        ax.spines['bottom'].set_color('white')
+        
+        try:
+            plt.tight_layout()
+        except ValueError:
+            plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.95)
+        
+        return fig
+    
+    # Se período é anual, mostrar últimos 12 meses
+    if periodo == "anual":
+        faturamento_por_mes = {}
+        
+        # Agregar faturamento por mês
+        for item in dados_relatorio:
+            data_compra = item.get('data_compra')
+            if data_compra:
+                try:
+                    if isinstance(data_compra, str):
+                        # Parser de string YYYY-MM-DD HH:MM:SS
+                        ano_mes = data_compra[:7]  # YYYY-MM
+                    else:
+                        # datetime object
+                        ano_mes = data_compra.strftime('%Y-%m')
+                    
+                    if ano_mes not in faturamento_por_mes:
+                        faturamento_por_mes[ano_mes] = 0
+                    faturamento_por_mes[ano_mes] += item['valor'] or 0
+                except:
+                    pass
+        
+        # Ordenar por data
+        meses_ordenados = sorted(faturamento_por_mes.keys())
+        
+        meses_labels = []
+        faturamentos = []
+        
+        for mes_key in meses_ordenados:
+            meses_labels.append(mes_key[:7].replace('-', '/'))
+            faturamentos.append(faturamento_por_mes[mes_key])
+        
+        fig, ax = plt.subplots(figsize=(14, 5), facecolor='#2B2B2B')
+        ax.set_facecolor('#2B2B2B')
+        
+        # Usar cor consistente
+        cor_linha = obter_cor_filme("Faturamento", cache_cores) if dados_relatorio else BTN_COLOR
+        ax.plot(range(len(meses_labels)), faturamentos, marker='o', color=cor_linha, linewidth=2.5, markersize=8, label='Faturamento')
+        
+        # Adicionar preenchimento sob a linha
+        ax.fill_between(range(len(meses_labels)), faturamentos, alpha=0.2, color=cor_linha)
+        
+        ax.set_title('Faturamento por Mês (Últimos 12 Meses)', color='white', fontsize=14, pad=20, fontweight='bold')
+        ax.set_xlabel('Mês', color='white', fontsize=11)
+        ax.set_ylabel('Faturamento (R$)', color='white', fontsize=11)
+        
+        # Configurar ticks
+        ax.set_xticks(range(len(meses_labels)))
+        ax.set_xticklabels(meses_labels, color='white', fontsize=9, rotation=45, ha='right')
+        
+        # Formatar valores no eixo Y
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x/1000:.0f}K' if x >= 1000 else f'R$ {x:.0f}'))
+        
+        # Adicionar grid
+        ax.grid(axis='y', alpha=0.3, color='white', linestyle='--', linewidth=0.5)
+        
+        # Adicionar valores nos pontos
+        max_valor = float(max(faturamentos)) if faturamentos else 1
+        if max_valor > 0:
+            for i, (x, y) in enumerate(zip(range(len(meses_labels)), faturamentos)):
+                if y > 0:
+                    y_float = float(y)
+                    ax.text(x, y_float + max_valor * 0.03, f'R$ {y_float:.0f}', 
+                           ha='center', va='bottom', color='white', fontsize=7)
+        
+        ax.tick_params(colors='white')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color('white')
+        ax.spines['bottom'].set_color('white')
+        
+        try:
+            plt.tight_layout()
+        except ValueError:
+            plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.95)
+        
+        return fig
+    
+    # ============ PARA OUTROS PERÍODOS (diário) ============
     faturamento_por_periodo = {}
     for item in dados_relatorio:
         if periodo == "diário":
-            # Para diário, agrupar por hora (hora_sessao é timedelta)
             if item['hora_sessao']:
                 horas = int(item['hora_sessao'].total_seconds() // 3600)
                 periodo_key = f"{horas:02d}"
             else:
                 periodo_key = '00'
-        elif periodo == "mensal":
-            periodo_key = item['data_sessao'].strftime('%Y-%m') if item['data_sessao'] else 'N/A'
-        elif periodo == "quatrenal":
-            periodo_key = f"{item['data_sessao'].year}-Q{((item['data_sessao'].month-1)//3)+1}" if item['data_sessao'] else 'N/A'
-        elif periodo == "anual":
-            periodo_key = str(item['data_sessao'].year) if item['data_sessao'] else 'N/A'
         else:
             periodo_key = item['data_sessao'].strftime('%Y-%m-%d') if item['data_sessao'] else 'N/A'
         
@@ -147,78 +391,54 @@ def criar_grafico_faturamento_periodo(dados_relatorio, periodo, cache_cores=None
             faturamento_por_periodo[periodo_key] = 0
         faturamento_por_periodo[periodo_key] += item['valor'] or 0
     
-    # Ordenar períodos
     sorted_periodos = sorted(faturamento_por_periodo.items(), key=lambda x: x[0])
     
-    # Limitar a últimos períodos conforme o tipo de período
     if periodo == "diário":
         limite = 5
         figsize = (6, 4)
-    elif periodo == "mensal":
-        limite = 12  # Mostrar últimos 12 meses
-        figsize = (10, 4)  # Figura mais larga para acomodar os meses
-    elif periodo == "quatrenal":
-        limite = 5  # Trimestres
-        figsize = (6, 4)
-    elif periodo == "anual":
-        limite = 10  # Últimos 10 anos
-        figsize = (8, 4)
     else:
         limite = 5
         figsize = (6, 4)
     
-    dados_top5 = sorted_periodos[-limite:] if len(sorted_periodos) > limite else sorted_periodos
+    dados_top = sorted_periodos[-limite:] if len(sorted_periodos) > limite else sorted_periodos
     
-    if not dados_top5:
+    if not dados_top:
         return None
     
     fig, ax = plt.subplots(figsize=figsize, facecolor='#2B2B2B')
     ax.set_facecolor('#2B2B2B')
     
-    periodos = [p for p, _ in dados_top5]
+    periodos = [p for p, _ in dados_top]
+    faturamento = [f for _, f in dados_top]
     
-    # Formatar rótulos conforme o tipo de período
     if periodo == "diário":
         periodos_labels = [f"{int(p):02d}:00" if p != 'N/A' else 'N/A' for p in periodos]
-    elif periodo == "mensal":
-        # Converter YYYY-MM para formato mais legível (Mês/Ano)
-        periodos_labels = []
-        meses_nomes = {
-            1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun',
-            7: 'Jul', 8: 'Ago', 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez'
-        }
-        for p in periodos:
-            if p != 'N/A':
-                try:
-                    ano, mes = p.split('-')
-                    periodos_labels.append(f"{meses_nomes[int(mes)]}/{ano[-2:]}")
-                except:
-                    periodos_labels.append(p)
-            else:
-                periodos_labels.append(p)
     else:
         periodos_labels = periodos
     
-    faturamento = [f for _, f in dados_top5]
-    
-    # Usar cor consistente (cor do primeiro filme, ou BTN_COLOR como fallback)
     cor_linha = obter_cor_filme("Faturamento", cache_cores) if dados_relatorio else BTN_COLOR
     ax.plot(range(len(periodos)), faturamento, marker='o', color=cor_linha, linewidth=2, markersize=6)
+    
+    # Adicionar preenchimento sob a linha
+    ax.fill_between(range(len(periodos)), faturamento, alpha=0.2, color=cor_linha)
     
     ax.set_title(f'Faturamento por Período - {periodo.upper()}', color='white', fontsize=12, pad=20)
     ax.set_xlabel('Períodos', color='white', fontsize=10)
     ax.set_ylabel('Faturamento (R$)', color='white', fontsize=10)
     
-    # Configurar ticks para mostrar todos os períodos
     ax.set_xticks(range(len(periodos)))
     ax.set_xticklabels(periodos_labels, rotation=45, ha='right', color='white', fontsize=8)
     
-    # Para período mensal, usar locator para forçar exibição de todos os meses
-    if periodo == "mensal":
-        ax.xaxis.set_major_locator(plt.matplotlib.ticker.MaxNLocator(integer=True, nbins=len(periodos)))
-    
-    # Formatar valores no eixo Y
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x:.0f}'))
+    
+    # Adicionar valores nos pontos
+    max_valor = float(max(faturamento)) if faturamento else 1
+    if max_valor > 0:
+        for i, (x, y) in enumerate(zip(range(len(periodos)), faturamento)):
+            if y > 0:
+                y_float = float(y)
+                ax.text(x, y_float + max_valor * 0.03, f'R$ {y_float:.0f}', 
+                       ha='center', va='bottom', color='white', fontsize=8)
     
     ax.tick_params(colors='white')
     ax.spines['top'].set_visible(False)
@@ -226,11 +446,9 @@ def criar_grafico_faturamento_periodo(dados_relatorio, periodo, cache_cores=None
     ax.spines['left'].set_color('white')
     ax.spines['bottom'].set_color('white')
     
-    # Aplicar tight_layout com tratamento de erro
     try:
         plt.tight_layout()
     except ValueError:
-        # Se tight_layout falhar, ajustar manualmente
         plt.subplots_adjust(bottom=0.2, top=0.9, left=0.1, right=0.95)
     
     return fig
@@ -243,12 +461,238 @@ def criar_grafico_ocupacao_sessoes(dados_relatorio, periodo, cache_cores=None):
     if cache_cores is None:
         cache_cores = {}
     
+    # Se período é mensal, agregar por dia do mês atual
+    if periodo == "mensal":
+        from datetime import datetime
+        import calendar
+        agora = datetime.now()
+        ano_atual = agora.year
+        mes_atual = agora.month
+        
+        vendas_por_dia = {}
+        
+        # Agregar vendas por dia do mês atual
+        for item in dados_relatorio:
+            data_compra = item.get('data_compra')
+            if data_compra:
+                try:
+                    if isinstance(data_compra, str):
+                        ano = int(data_compra.split('-')[0])
+                        mes = int(data_compra.split('-')[1])
+                        dia = int(data_compra.split('-')[2].split()[0])
+                    else:
+                        ano = data_compra.year
+                        mes = data_compra.month
+                        dia = data_compra.day
+                    
+                    # Filtrar apenas dados do mês e ano atual
+                    if ano == ano_atual and mes == mes_atual:
+                        if dia not in vendas_por_dia:
+                            vendas_por_dia[dia] = 0
+                        vendas_por_dia[dia] += 1
+                except:
+                    pass
+        
+        # Calcular número de dias no mês
+        num_dias = calendar.monthrange(ano_atual, mes_atual)[1]
+        
+        # Criar estrutura com todos os dias do mês
+        dias = []
+        vendas_lista = []
+        labels_dias = []
+        
+        for dia in range(1, num_dias + 1):
+            dias.append(dia)
+            vendas_lista.append(vendas_por_dia.get(dia, 0))
+            labels_dias.append(str(dia))
+        
+        fig, ax = plt.subplots(figsize=(14, 5), facecolor='#2B2B2B')
+        ax.set_facecolor('#2B2B2B')
+        
+        # Cores alternadas para dias
+        cores_barras = ['#F6C148' if i % 2 == 0 else '#E2952D' for i in range(num_dias)]
+        bars = ax.bar(labels_dias, vendas_lista, color=cores_barras, width=0.7, alpha=0.8)
+        
+        meses_nomes = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho',
+                      7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
+        ax.set_title(f'Ocupação por Dia - {meses_nomes[mes_atual]} {ano_atual}', color='white', fontsize=14, pad=20, fontweight='bold')
+        ax.set_xlabel('Dia', color='white', fontsize=11)
+        ax.set_ylabel('Ingressos Vendidos', color='white', fontsize=11)
+        ax.tick_params(colors='white', labelsize=8)
+        
+        # Adicionar valores nas barras (apenas para dias com vendas)
+        for bar, venda in zip(bars, vendas_lista):
+            if venda > 0:
+                height = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width()/2., height + max(vendas_lista)*0.02,
+                        f'{int(venda)}', ha='center', va='bottom', color='white', fontsize=7, fontweight='bold')
+        
+        # Configurar grid
+        ax.grid(axis='y', alpha=0.3, color='white', linestyle='--', linewidth=0.5)
+        
+        ax.tick_params(colors='white')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color('white')
+        ax.spines['bottom'].set_color('white')
+        
+        try:
+            plt.tight_layout()
+        except ValueError:
+            plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.95)
+        
+        return fig
+    
+    # Se período é quatrenal, agregar por trimestre
+    elif periodo == "quatrenal":
+        vendas_por_trimestre = {}
+        trimestres_nomes = {
+            1: 'Q1', 2: 'Q2', 3: 'Q3', 4: 'Q4'
+        }
+        
+        # Agregar vendas por trimestre
+        for item in dados_relatorio:
+            data_compra = item.get('data_compra')
+            if data_compra:
+                try:
+                    if isinstance(data_compra, str):
+                        mes = int(data_compra.split('-')[1])
+                    else:
+                        mes = data_compra.month
+                    
+                    trimestre = ((mes - 1) // 3) + 1
+                    
+                    if trimestre not in vendas_por_trimestre:
+                        vendas_por_trimestre[trimestre] = 0
+                    vendas_por_trimestre[trimestre] += 1
+                except:
+                    pass
+        
+        # Criar estrutura com todos os 4 trimestres
+        trimestres = []
+        vendas_lista = []
+        labels_trimestres = []
+        
+        for trimestre in range(1, 5):
+            trimestres.append(trimestre)
+            vendas_lista.append(vendas_por_trimestre.get(trimestre, 0))
+            labels_trimestres.append(trimestres_nomes[trimestre])
+        
+        fig, ax = plt.subplots(figsize=(10, 5), facecolor='#2B2B2B')
+        ax.set_facecolor('#2B2B2B')
+        
+        cores_barras = ['#F6C148' if i % 2 == 0 else '#E2952D' for i in range(4)]
+        bars = ax.bar(labels_trimestres, vendas_lista, color=cores_barras, width=0.6, alpha=0.8)
+        
+        ax.set_title('Ocupação por Trimestre', color='white', fontsize=14, pad=20, fontweight='bold')
+        ax.set_xlabel('Trimestre', color='white', fontsize=11)
+        ax.set_ylabel('Ingressos Vendidos', color='white', fontsize=11)
+        ax.tick_params(colors='white', labelsize=11)
+        
+        # Adicionar valores nas barras com conversão float
+        for bar, venda in zip(bars, vendas_lista):
+            if venda > 0:
+                height = float(bar.get_height())
+                venda_float = float(venda)
+                ax.text(bar.get_x() + bar.get_width()/2., height + venda_float * 0.03,
+                        f'{int(venda_float)}', ha='center', va='bottom', color='white', fontsize=10, fontweight='bold')
+        
+        # Configurar grid
+        ax.grid(axis='y', alpha=0.3, color='white', linestyle='--', linewidth=0.5)
+        
+        ax.tick_params(colors='white')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color('white')
+        ax.spines['bottom'].set_color('white')
+        
+        try:
+            plt.tight_layout()
+        except ValueError:
+            plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.95)
+        
+        return fig
+    
+    # Se período é anual, agregar por mês dos últimos 12 meses
+    elif periodo == "anual":
+        vendas_por_mes = {}
+        
+        # Agregar vendas por mês
+        for item in dados_relatorio:
+            data_compra = item.get('data_compra')
+            if data_compra:
+                try:
+                    if isinstance(data_compra, str):
+                        # Parser de string YYYY-MM-DD HH:MM:SS
+                        ano_mes = data_compra[:7]  # YYYY-MM
+                    else:
+                        # datetime object
+                        ano_mes = data_compra.strftime('%Y-%m')
+                    
+                    if ano_mes not in vendas_por_mes:
+                        vendas_por_mes[ano_mes] = 0
+                    vendas_por_mes[ano_mes] += 1
+                except:
+                    pass
+        
+        # Ordenar por data
+        meses_ordenados = sorted(vendas_por_mes.keys())
+        
+        meses_labels = []
+        vendas_lista = []
+        
+        for mes_key in meses_ordenados:
+            meses_labels.append(mes_key[:7].replace('-', '/'))
+            vendas_lista.append(vendas_por_mes[mes_key])
+        
+        fig, ax = plt.subplots(figsize=(14, 5), facecolor='#2B2B2B')
+        ax.set_facecolor('#2B2B2B')
+        
+        # Cores alternadas
+        cores_barras = ['#F6C148' if i % 2 == 0 else '#E2952D' for i in range(len(meses_labels))]
+        bars = ax.bar(meses_labels, vendas_lista, color=cores_barras, width=0.6, alpha=0.8)
+        
+        ax.set_title('Ocupação por Mês (Últimos 12 Meses)', color='white', fontsize=14, pad=20, fontweight='bold')
+        ax.set_xlabel('Mês', color='white', fontsize=11)
+        ax.set_ylabel('Ingressos Vendidos', color='white', fontsize=11)
+        ax.tick_params(colors='white', labelsize=9)
+        
+        # Adicionar valores nas barras
+        for bar, venda in zip(bars, vendas_lista):
+            if venda > 0:
+                height = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width()/2., height + max(vendas_lista)*0.02,
+                        f'{int(venda)}', ha='center', va='bottom', color='white', fontsize=8, fontweight='bold')
+        
+        # Configurar grid
+        ax.grid(axis='y', alpha=0.3, color='white', linestyle='--', linewidth=0.5)
+        
+        ax.tick_params(colors='white')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color('white')
+        ax.spines['bottom'].set_color('white')
+        
+        try:
+            plt.tight_layout()
+        except ValueError:
+            plt.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.95)
+        
+        return fig
+    
+    # PARA OUTROS PERÍODOS (não mensal, não anual, não quatrenal)
     # Agregar vendas por sessão mantendo referência ao filme e horário
     vendas_por_sessao = {}
     filme_por_sessao = {}
     horario_por_sessao = {}
     for item in dados_relatorio:
-        sessao_key = f"{item['nome_filme'][:10]}... {item['data_sessao']} {item['hora_sessao']}"
+        data_sessao = item.get('data_sessao')
+        if isinstance(data_sessao, str):
+            data_str = data_sessao
+        else:
+            data_str = str(data_sessao)
+        
+        sessao_key = f"{item['nome_filme'][:10]}... {data_str} {item['hora_sessao']}"
         if sessao_key not in vendas_por_sessao:
             vendas_por_sessao[sessao_key] = 0
             filme_por_sessao[sessao_key] = item['nome_filme']
@@ -463,7 +907,6 @@ def criar_grafico_ingressos_horario(dados_relatorio, periodo, cache_cores=None):
     return fig
 
 def criar_grafico_vendas_cliente(dados_relatorio, periodo, cache_cores=None):
-    """Cria gráfico de barras horizontais para top 10 clientes com mais vendas"""
     if not dados_relatorio:
         return None
     
@@ -597,7 +1040,7 @@ def criar_tela_dashboard(parent, voltar_callback=None, fonte_global=None):
     periodos = [
         ("Diário", "diário"),
         ("Mensal", "mensal"),
-        ("Quatrenal", "quatrenal"),
+        ("Trimestral", "quatrenal"),
         ("Anual", "anual")
     ]
     
