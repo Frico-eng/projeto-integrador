@@ -15,5 +15,5 @@ pip install -r requirements.txt
 ```
 3.Rodar a aplicação
 ```bash
-python main.py
+python splash.py
 ```
