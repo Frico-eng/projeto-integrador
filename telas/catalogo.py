@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 from crud.crud_filme import listar_filmes
 from crud.crud_sessao import listar_sessoes_por_filme
 from crud.crud_sessao_assento import obter_sessoes_com_disponibilidade, alertar_pouca_disponibilidade
+from utilidades.ui_helpers import alternar_tema
+from utilidades.config import BTN_COLOR, BTN_HOVER, BTN_TEXT
 
 # ================== CONSTANTES DE CORES ==================
 BTN_COLOR = "#F6C148"
@@ -126,6 +128,19 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
         frame_controle_fonte.pack(side="right", padx=10, pady=5)
         ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
         ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+        
+        # Botão para alternar tema claro e escuro
+        botao_tema = ctk.CTkButton(
+            frame_controle_fonte,
+            text="🌙",
+            command=lambda: alternar_tema(parent, botao_tema),
+            width=50,
+            font=fonte_global,
+            fg_color=BTN_COLOR,
+            hover_color=BTN_HOVER,
+            text_color=BTN_TEXT
+        )
+        botao_tema.pack(side="left", padx=5)
 
     # Dias
     frame_dias = ctk.CTkFrame(frame_superior, fg_color="transparent")
@@ -317,7 +332,7 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
                     else:
                         tooltip = f"{disponiveis} de {total} assentos"
                     
-                    texto_botao = f"{horario}\n({disponiveis}/{total})"
+                    texto_botao = horario
                     break
         
         btn = ctk.CTkButton(parent, text=texto_botao, width=120, height=50, corner_radius=8,

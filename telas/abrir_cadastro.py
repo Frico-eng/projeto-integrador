@@ -3,6 +3,9 @@ from tkinter import messagebox
 from PIL import Image
 import os
 from crud.crud_usuario import inserir_usuario
+from utilidades.ui_helpers import alternar_tema
+from utilidades.config import BTN_COLOR, BTN_HOVER, BTN_TEXT
+import utilidades.config as config_module
 
 def abrir_cadastro(root, fonte_global=None):
     """Cria e retorna o frame de cadastro dentro da janela root"""
@@ -15,6 +18,23 @@ def abrir_cadastro(root, fonte_global=None):
     def diminuir_fonte():
         if fonte_global and fonte_global.cget("size") > 6:  # 14 - (4 * 2)
             fonte_global.configure(size=fonte_global.cget("size") - 2)
+    
+    # Função para atualizar cores baseado no tema
+    def atualizar_cores_tema():
+        tema_escuro = config_module.tema_atual == "dark"
+        
+        if tema_escuro:
+            bg_color = "#1C1C1C"
+            text_color = "white"
+        else:
+            bg_color = "#F0F0F0"
+            text_color = "black"
+        
+        # Atualizar cores dos elementos
+        frame.configure(fg_color=bg_color)
+        frame_principal.configure(fg_color=bg_color)
+        frame_direito.configure(fg_color=bg_color)
+        titulo.configure(text_color=text_color)
 
     frame = ctk.CTkFrame(root, fg_color="#1C1C1C")
 
@@ -52,6 +72,9 @@ def abrir_cadastro(root, fonte_global=None):
         font=fonte_global if fonte_global else ("Arial", 24, "bold")
     )
     titulo.pack(pady=20)
+    
+    # Atualizar cores iniciais
+    atualizar_cores_tema()
 
     # Botões para controle de fonte se fonte_global for fornecida
     if fonte_global:
@@ -59,6 +82,19 @@ def abrir_cadastro(root, fonte_global=None):
         frame_controle_fonte.pack(pady=(0, 10))
         ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
         ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+        
+        # Botão para alternar tema claro e escuro
+        botao_tema = ctk.CTkButton(
+            frame_controle_fonte,
+            text="🌙",
+            command=lambda: [alternar_tema(root, botao_tema), atualizar_cores_tema()],
+            width=50,
+            font=fonte_global,
+            fg_color=BTN_COLOR,
+            hover_color=BTN_HOVER,
+            text_color=BTN_TEXT
+        )
+        botao_tema.pack(side="left", padx=5)
 
     # ======== FUNÇÃO REGISTRAR ========
     def registrar():

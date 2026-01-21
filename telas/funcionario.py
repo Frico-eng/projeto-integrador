@@ -7,9 +7,20 @@ from crud.crud_filme import inserir_filme, listar_filmes, editar_filme, excluir_
 from crud.crud_sessao import inserir_sessao, listar_todas_sessoes, editar_sessao, excluir_sessao, buscar_sessao_por_id
 from crud.crud_sala import listar_salas
 from datetime import datetime
+from utilidades.ui_helpers import alternar_tema
+from utilidades.config import BTN_COLOR, BTN_HOVER, BTN_TEXT
 
-def criar_tela_funcionario(parent, voltar_callback):
+def criar_tela_funcionario(parent, voltar_callback, fonte_global=None):
     """Cria a tela de gerenciamento para funcionários com abas para filmes e sessões"""
+    
+    # Funções para aumentar/diminuir fonte se fonte_global for fornecida
+    def aumentar_fonte():
+        if fonte_global and fonte_global.cget("size") < 22:  # 14 + (4 * 2)
+            fonte_global.configure(size=fonte_global.cget("size") + 2)
+
+    def diminuir_fonte():
+        if fonte_global and fonte_global.cget("size") > 6:  # 14 - (4 * 2)
+            fonte_global.configure(size=fonte_global.cget("size") - 2)
     
     # ================== VARIÁVEIS ==================
     filmes = []
@@ -347,6 +358,26 @@ def criar_tela_funcionario(parent, voltar_callback):
         font=("Arial", 14),
         text_color="gray"
     ).pack(pady=5)
+    
+    # Botões para controle de fonte
+    if fonte_global:
+        frame_controle_fonte = ctk.CTkFrame(titulo_frame, fg_color="transparent")
+        frame_controle_fonte.pack(side="top", padx=10, pady=10)
+        ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+        ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+        
+        # Botão para alternar tema claro e escuro
+        botao_tema = ctk.CTkButton(
+            frame_controle_fonte,
+            text="🌙",
+            command=lambda: alternar_tema(parent, botao_tema),
+            width=50,
+            font=fonte_global,
+            fg_color=BTN_COLOR,
+            hover_color=BTN_HOVER,
+            text_color=BTN_TEXT
+        )
+        botao_tema.pack(side="left", padx=5)
 
     # Abas
     tabview = ctk.CTkTabview(frame, width=900, height=700)

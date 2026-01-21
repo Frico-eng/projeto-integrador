@@ -3,6 +3,9 @@ import customtkinter as ctk
 from PIL import Image, ImageTk
 import utilidades.config as config
 from utilidades.session import logout as session_logout
+from utilidades.ui_helpers import alternar_tema
+from utilidades.config import BTN_COLOR, BTN_HOVER, BTN_TEXT
+import utilidades.config as config_module
 import os
 import threading
 import time
@@ -74,12 +77,13 @@ def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, 
         print(f"Erro ao carregar logo: {e}")
 
     # === Mensagem de agradecimento ===
-    ctk.CTkLabel(
+    titulo_agradecimento = ctk.CTkLabel(
         header_frame,
         text="✅ Pagamento Confirmado",
         font=fonte_global if fonte_global else ("Arial", 24, "bold"),
         text_color="#27AE60"
-    ).pack(pady=5)
+    )
+    titulo_agradecimento.pack(pady=5)
 
     # Se não foi passada `fonte_global`, tentar ler de main.fonte_global
     if fonte_global is None:
@@ -109,12 +113,45 @@ def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, 
             if current_font_size > 6:
                 current_font_size -= 2
                 aplicar_fonte_local()
+    
+    # Função para atualizar cores baseado no tema
+    def atualizar_cores_tema():
+        tema_escuro = config_module.tema_atual == "dark"
+        
+        if tema_escuro:
+            bg_color = config.COR_FUNDO
+            container_color = "#2B2B2B"
+            text_color = "white"
+        else:
+            bg_color = "#F0F0F0"
+            container_color = "#E8E8E8"
+            text_color = "black"
+        
+        # Atualizar cores dos elementos
+        frame.configure(fg_color=bg_color)
+        container_principal.configure(fg_color=container_color)
+        titulo_agradecimento.configure(text_color=text_color)
+        mensagem_label.configure(text_color=text_color)
+        label_timer.configure(text_color=text_color)
 
     # Frame para os controles (sempre visível)
     frame_controle_fonte = ctk.CTkFrame(header_frame, fg_color="transparent")
     frame_controle_fonte.pack(side="right")
     ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=50, font=fonte_global if fonte_global else None).pack(side="left", padx=5)
     ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=50, font=fonte_global if fonte_global else None).pack(side="left", padx=5)
+    
+    # Botão para alternar tema claro e escuro
+    botao_tema = ctk.CTkButton(
+        frame_controle_fonte,
+        text="🌙",
+        command=lambda: [alternar_tema(parent, botao_tema), atualizar_cores_tema()],
+        width=50,
+        font=fonte_global,
+        fg_color=BTN_COLOR,
+        hover_color=BTN_HOVER,
+        text_color=BTN_TEXT
+    )
+    botao_tema.pack(side="left", padx=5)
 
     # ====== TIMER DE REDIRECIONAMENTO ======
     timer_frame = ctk.CTkFrame(container_principal, fg_color="transparent")
@@ -140,14 +177,15 @@ def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, 
         "🎬 Bom filme!"
     )
     
-    ctk.CTkLabel(
+    mensagem_label = ctk.CTkLabel(
         content_frame,
         text=mensagem,
         font=("Arial", 16),
         text_color=config.COR_TEXTO,
         fg_color="transparent",
         justify="center"
-    ).pack(expand=True, pady=10)
+    )
+    mensagem_label.pack(expand=True, pady=10)
 
     # ====== RESUMO DA COMPRA ======
     if dados_compra:
@@ -201,6 +239,9 @@ def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, 
         corner_radius=10
     )
     btn_voltar.pack(pady=8)
+
+    # Aplicar tema inicial
+    atualizar_cores_tema()
 
     # ====== FUNÇÕES ======
     def atualizar_timer():

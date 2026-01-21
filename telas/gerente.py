@@ -2,48 +2,106 @@ import customtkinter as ctk
 from tkinter import messagebox, filedialog, ttk
 from PIL import Image
 from crud.crud_filme import listar_filmes
-from utilidades.ui_helpers import criar_botao
+from utilidades.ui_helpers import criar_botao, alternar_tema
 from crud.crud_ingressos import conectar
 from utilidades.config import BTN_COLOR, BTN_HOVER, BTN_TEXT
 from utilidades import gerenciador_telas
+import utilidades.config as config_module
+import os
 
-def criar_tela_gerente(parent, voltar_callback):
+def criar_tela_gerente(parent, voltar_callback, fonte_global=None, is_gerente=True):
     """Cria a tela de gerente para visualizar relatórios e estatísticas"""
     
-    frame = ctk.CTkFrame(parent, fg_color="transparent")
+    # Funções para aumentar/diminuir fonte se fonte_global for fornecida
+    def aumentar_fonte():
+        if fonte_global and fonte_global.cget("size") < 22:  # 14 + (4 * 2)
+            fonte_global.configure(size=fonte_global.cget("size") + 2)
+
+    def diminuir_fonte():
+        if fonte_global and fonte_global.cget("size") > 6:  # 14 - (4 * 2)
+            fonte_global.configure(size=fonte_global.cget("size") - 2)
     
-    # Título
-    titulo_frame = ctk.CTkFrame(frame, fg_color="transparent")
-    titulo_frame.pack(fill="x", padx=20, pady=20)
+    # Função para atualizar cores baseado no tema
+    def atualizar_cores_tema():
+        tema_escuro = config_module.tema_atual == "dark"
+        
+        if tema_escuro:
+            bg_frame = "#2B2B2B"
+            text_color = "white"
+        else:
+            bg_frame = "#E8E8E8"
+            text_color = "black"
+        
+        # Atualizar cores dos elementos
+        frame_botoes.configure(fg_color=bg_frame)
+        titulo_acoes.configure(text_color=text_color)
     
-    titulo = ctk.CTkLabel(
-        titulo_frame,
-        text="Painel de Gerente - Relatórios",
-        font=("Arial", 28, "bold"),
-        text_color="white"
-    )
-    titulo.pack()
+    # Frame principal que ocupa toda a tela
+    frame = ctk.CTkFrame(parent, fg_color="transparent",height=120)
+    frame.pack(fill="both", expand=True)
     
-    # Frame principal com duas colunas
-    conteudo_frame = ctk.CTkFrame(frame, fg_color="transparent")
-    conteudo_frame.pack(fill="both", expand=True, padx=20, pady=20)
+    # Frame de fundo com imagem (ocupa toda a tela)
+    bg_frame = ctk.CTkFrame(frame, fg_color="transparent",height=120)
+    bg_frame.pack(fill="both", expand=True)
     
-    # Ações (estatísticas removidas)
+    # Carregar imagem de fundo se existir
+    img_path = os.path.join(os.path.dirname(__file__), "..", "utilidades", "images", "gerente.png")
+    if os.path.exists(img_path):
+        try:
+            img = Image.open(img_path)
+            # Redimensionar para cobrir a tela
+            screen_width = parent.winfo_screenwidth()
+            screen_height = parent.winfo_screenheight()
+            img = img.resize((screen_width, screen_height), Image.Resampling.LANCZOS)
+            photo = ctk.CTkImage(light_image=img, dark_image=img, size=(screen_width, screen_height))
+            
+            bg_label = ctk.CTkLabel(bg_frame, image=photo, text="")
+            bg_label.image = photo
+            bg_label.pack(fill="both", expand=True)
+        except Exception as e:
+            print(f"Erro ao carregar imagem: {e}")
+            bg_frame.configure(fg_color="#1a1a1a")
+    else:
+        bg_frame.configure(fg_color="#1a1a1a")
     
-    # Coluna direita - Ações
-    col_direita = ctk.CTkFrame(conteudo_frame, fg_color="#2B2B2B", corner_radius=10)
-    col_direita.pack(fill="both", expand=True, padx=10, pady=0)
+    # Frame de botões que se sobrepõe ao fundo (usando place para sobreposição)
+    frame_botoes = ctk.CTkFrame(frame, fg_color="#2B2B2B", corner_radius=10,height=120)
+    frame_botoes.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.2, relheight=0.5)
+    
+    # Frame de controle de fonte e tema (no topo do frame_botoes)
+    if fonte_global:
+        frame_controle_fonte = ctk.CTkFrame(frame_botoes, fg_color="transparent")
+        frame_controle_fonte.pack(fill="x", padx=15, pady=(10, 5))
+        
+        ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+        ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
+        
+        # Botão para alternar tema claro e escuro
+        botao_tema = ctk.CTkButton(
+            frame_controle_fonte,
+            text="🌙",
+            command=lambda: [alternar_tema(parent, botao_tema), atualizar_cores_tema()],
+            width=50,
+            font=fonte_global,
+            fg_color=BTN_COLOR,
+            hover_color=BTN_HOVER,
+            text_color=BTN_TEXT
+        )
+        botao_tema.pack(side="left", padx=5)
     
     titulo_acoes = ctk.CTkLabel(
-        col_direita,
+        frame_botoes,
         text="⚙️ Ações",
-        font=("Arial", 18, "bold"),
+        font=fonte_global if fonte_global else ("Arial", 18, "bold"),
         text_color=BTN_COLOR
     )
     titulo_acoes.pack(pady=15, padx=15)
     
+    # Atualizar cores iniciais
+    atualizar_cores_tema()
+    
     # Botões de ações
-    botoes_frame = ctk.CTkFrame(col_direita, fg_color="transparent")
+    botoes_frame = ctk.CTkFrame(frame_botoes, fg_color="transparent",height=420)
     botoes_frame.pack(fill="both", expand=True, padx=15, pady=10)
     
     def gerar_relatorio():
@@ -53,6 +111,23 @@ def criar_tela_gerente(parent, voltar_callback):
         gerenciador_telas.show_screen("gestao_funcionarios")
     
     def gerenciar_sessoes():
+        # Importar função de criação da tela de funcionário
+        from telas.funcionario import criar_tela_funcionario
+        from utilidades.gerenciador_telas import screens
+        
+        # Limpar o frame de funcionário anterior
+        funcionario_frame = screens.get("funcionario")
+        if funcionario_frame:
+            for widget in funcionario_frame.winfo_children():
+                widget.destroy()
+        
+        # Recriar a tela de funcionário com callback para voltar ao gerente
+        criar_tela_funcionario(
+            funcionario_frame, 
+            voltar_callback=lambda: gerenciador_telas.show_screen("gerente"),
+            fonte_global=None
+        ).pack(fill="both", expand=True)
+        
         gerenciador_telas.show_screen("funcionario")
     
     def visualizar_ingressos():
@@ -131,7 +206,7 @@ def criar_tela_gerente(parent, voltar_callback):
         fg_color=BTN_COLOR,
         hover_color=BTN_HOVER,
         text_color=BTN_TEXT,
-        font=("Arial", 14, "bold"),
+        font=fonte_global if fonte_global else ("Arial", 14, "bold"),
         height=40,
         corner_radius=8
     )
@@ -145,7 +220,7 @@ def criar_tela_gerente(parent, voltar_callback):
         fg_color=BTN_COLOR,
         hover_color=BTN_HOVER,
         text_color=BTN_TEXT,
-        font=("Arial", 14, "bold"),
+        font=fonte_global if fonte_global else ("Arial", 14, "bold"),
         height=40,
         corner_radius=8
     )
@@ -159,7 +234,7 @@ def criar_tela_gerente(parent, voltar_callback):
         fg_color=BTN_COLOR,
         hover_color=BTN_HOVER,
         text_color=BTN_TEXT,
-        font=("Arial", 14, "bold"),
+        font=fonte_global if fonte_global else ("Arial", 14, "bold"),
         height=40,
         corner_radius=8
     )
@@ -173,7 +248,7 @@ def criar_tela_gerente(parent, voltar_callback):
         fg_color=BTN_COLOR,
         hover_color=BTN_HOVER,
         text_color=BTN_TEXT,
-        font=("Arial", 14, "bold"),
+        font=fonte_global if fonte_global else ("Arial", 14, "bold"),
         height=40,
         corner_radius=8
     )
@@ -181,17 +256,24 @@ def criar_tela_gerente(parent, voltar_callback):
     # Botão Visualizar Usuários removido conforme solicitado
     
     # Footer com botão voltar
-    footer_frame = ctk.CTkFrame(frame, fg_color="transparent")
-    footer_frame.pack(fill="x", padx=20, pady=20)
+    footer_frame = ctk.CTkFrame(frame_botoes, fg_color="transparent")
+    footer_frame.pack(fill="x", padx=15, pady=15)
+    
+    def voltar_com_logout():
+        """Callback que limpa o login antes de voltar"""
+        if is_gerente:
+            # Limpar entradas de login
+            gerenciador_telas.clear_login_entries()
+        voltar_callback()
     
     btn_voltar = ctk.CTkButton(
         footer_frame,
         text="← Voltar",
-        command=voltar_callback,
+        command=voltar_com_logout,
         fg_color="#555555",
         hover_color="#777777",
         text_color="white",
-        font=("Arial", 14, "bold"),
+        font=fonte_global if fonte_global else ("Arial", 14, "bold"),
         height=40,
         corner_radius=8,
         width=150

@@ -711,11 +711,13 @@ def get_dados_relatorio(periodo="mensal"):
         if periodo == "diário":
             date_filter = "DATE(i.Data_Compra) = CURDATE()"
         elif periodo == "mensal":
+            # Para mensal, retornar apenas do mês atual
             date_filter = "MONTH(i.Data_Compra) = MONTH(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
         elif periodo == "quatrenal":
             date_filter = "QUARTER(i.Data_Compra) = QUARTER(CURDATE()) AND YEAR(i.Data_Compra) = YEAR(CURDATE())"
         elif periodo == "anual":
-            date_filter = "YEAR(i.Data_Compra) = YEAR(CURDATE())"
+            # Para anual, retornar últimos 12 meses até hoje
+            date_filter = "i.Data_Compra >= DATE_SUB(CURDATE(), INTERVAL 365 DAY) AND i.Data_Compra <= CURDATE()"
         else:
             date_filter = "1=1"
         
@@ -727,23 +729,24 @@ def get_dados_relatorio(periodo="mensal"):
                 s.Data_Sessao as data_sessao,
                 sa.Nome_Sala as sala,
                 i.Valor as valor,
-                s.Hora_Sessao as hora_sessao
+                s.Hora_Sessao as hora_sessao,
+                i.Data_Compra as data_compra
             FROM Ingressos i
             JOIN Sessoes s ON i.ID_Sessao = s.ID_Sessao
             JOIN Filmes f ON s.ID_Filme = f.ID_Filme
             JOIN Salas sa ON s.ID_Sala = sa.ID_Sala
             WHERE {date_filter}
-            ORDER BY s.Data_Sessao, s.Hora_Sessao
+            ORDER BY i.Data_Compra DESC, s.Data_Sessao, s.Hora_Sessao
         """)
         
         resultados = cursor.fetchall()
         
-        # Se não há dados para o período atual, buscar dados históricos
+        # Se não há dados para o período, buscar dados históricos
         if not resultados and periodo in ["diário", "mensal", "quatrenal"]:
             if periodo == "diário":
                 fallback_filter = "i.Data_Compra >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
             elif periodo == "mensal":
-                fallback_filter = "i.Data_Compra >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+                fallback_filter = "i.Data_Compra >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)"
             else:  # quatrenal
                 fallback_filter = "i.Data_Compra >= DATE_SUB(CURDATE(), INTERVAL 120 DAY)"
             
@@ -755,7 +758,8 @@ def get_dados_relatorio(periodo="mensal"):
                     s.Data_Sessao as data_sessao,
                     sa.Nome_Sala as sala,
                     i.Valor as valor,
-                    s.Hora_Sessao as hora_sessao
+                    s.Hora_Sessao as hora_sessao,
+                    i.Data_Compra as data_compra
                 FROM Ingressos i
                 JOIN Sessoes s ON i.ID_Sessao = s.ID_Sessao
                 JOIN Filmes f ON s.ID_Filme = f.ID_Filme

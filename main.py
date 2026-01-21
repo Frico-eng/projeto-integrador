@@ -3,11 +3,9 @@ import os
 import customtkinter as ctk
 from PIL import Image
 
-# Importações do seu utilitários
 from utilidades.config import *
 from utilidades.ui_helpers import carregar_fundo, carregar_logo, carregar_icone, criar_botao, criar_footer, criar_entry_senha, alternar_tema
 
-# Importações das telas
 from telas.auth import fazer_login
 from telas.abrir_cadastro import abrir_cadastro
 from telas.catalogo import criar_tela_catalogo
@@ -20,7 +18,6 @@ from telas.seletor_assento import criar_tela_assentos
 from telas.relatorio import criar_tela_dashboard
 from telas.gestao_funcionarios import criar_tela_gestao_funcionarios
 
-# Gerenciador de telas
 from utilidades.gerenciador_telas import register_screen, show_screen, register_login_entries
 import utilidades.gerenciador_telas as gerenciador_telas
 
@@ -202,7 +199,7 @@ def inicializar_telas():
     register_screen("main", tela_inicial)
 
     # --- Feedback ---
-    feedback_frame = criar_tela_feedback(app, voltar_callback=lambda: show_screen("main"))
+    feedback_frame = criar_tela_feedback(app, voltar_callback=lambda: show_screen("main"), fonte_global=fonte_global)
     register_screen("feedback", feedback_frame)
 
     # --- Cadastro ---
@@ -223,25 +220,25 @@ def inicializar_telas():
 
     # --- Funcionario --- (mantido para acesso interno se necessário)
     funcionario_frame = ctk.CTkFrame(app, fg_color="transparent")
-    funcionario_content = criar_tela_funcionario(funcionario_frame, voltar_callback=lambda: show_screen("main"))
+    funcionario_content = criar_tela_funcionario(funcionario_frame, voltar_callback=lambda: show_screen("main"), fonte_global=fonte_global)
     funcionario_content.pack(fill="both", expand=True)
     register_screen("funcionario", funcionario_frame)
 
     # --- Gerente ---
     gerente_frame = ctk.CTkFrame(app, fg_color="transparent")
-    gerente_content = criar_tela_gerente(gerente_frame, voltar_callback=lambda: show_screen("main"))
+    gerente_content = criar_tela_gerente(gerente_frame, voltar_callback=lambda: show_screen("main"), fonte_global=fonte_global)
     gerente_content.pack(fill="both", expand=True)
     register_screen("gerente", gerente_frame)
 
     # --- Gestão de Funcionários ---
     gestao_funcionarios_frame = ctk.CTkFrame(app, fg_color="transparent")
-    gestao_funcionarios_content = criar_tela_gestao_funcionarios(gestao_funcionarios_frame, voltar_callback=lambda: show_screen("gerente"))
+    gestao_funcionarios_content = criar_tela_gestao_funcionarios(gestao_funcionarios_frame, voltar_callback=lambda: show_screen("gerente"), fonte_global=fonte_global)
     gestao_funcionarios_content.pack(fill="both", expand=True)
     register_screen("gestao_funcionarios", gestao_funcionarios_frame)
 
     # --- Relatorio ---
     relatorio_frame = ctk.CTkFrame(app, fg_color="transparent")
-    relatorio_content = criar_tela_dashboard(relatorio_frame, voltar_callback=lambda: show_screen("main"), fonte_global=fonte_global)
+    relatorio_content = criar_tela_dashboard(relatorio_frame, voltar_callback=lambda: show_screen("gerente"), fonte_global=fonte_global)
     relatorio_content.pack(fill="both", expand=True)
     register_screen("relatorio", relatorio_frame)
 

@@ -10,6 +10,9 @@ import sys
 import fitz 
 from crud.crud_ingressos import processar_compra_ingressos
 from utilidades.session import get_user_id
+from utilidades.ui_helpers import alternar_tema
+from utilidades.config import BTN_COLOR, BTN_HOVER, BTN_TEXT
+import utilidades.config as config_module
 
 # Configurações básicas
 COR_FUNDO = "#1C1C1C"
@@ -283,6 +286,27 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
                 current_font_size -= 2
                 aplicar_fonte_local()
     
+    # Função para atualizar cores baseado no tema
+    def atualizar_cores_tema():
+        tema_escuro = config_module.tema_atual == "dark"
+        
+        if tema_escuro:
+            bg_color = "#1C1C1C"
+            container_color = "#2b2b2b"
+            text_color = "white"
+            titulo_color = "#27AE60"
+        else:
+            bg_color = "#F0F0F0"
+            container_color = "#E8E8E8"
+            text_color = "black"
+            titulo_color = "#1E8449"
+        
+        # Atualizar cores dos elementos
+        frame.configure(fg_color=bg_color)
+        container.configure(fg_color=container_color)
+        titulo_label.configure(text_color=titulo_color)
+        subtitulo_label.configure(text_color=text_color)
+    
     # Container principal
     container = ctk.CTkFrame(frame, fg_color="#2b2b2b", corner_radius=15, width=1100, height=800)
     container.place(relx=0.5, rely=0.5, anchor="center")
@@ -292,16 +316,35 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
     top_bar = ctk.CTkFrame(container, fg_color="transparent")
     top_bar.pack(fill="x", pady=(20, 6), padx=20)
 
-    ctk.CTkLabel(top_bar, text="✅ Pagamento Confirmado!", 
-                 font=fonte_global if fonte_global else ("Arial", 28, "bold"), text_color="#27AE60").pack(side="left")
-    ctk.CTkLabel(top_bar, text="Seu ingresso foi reservado com sucesso",
-                 font=fonte_global if fonte_global else ("Arial", 18), text_color=COR_TEXTO).pack(side="left", padx=20)
+    titulo_label = ctk.CTkLabel(top_bar, text="✅ Pagamento Confirmado!", 
+                 font=fonte_global if fonte_global else ("Arial", 28, "bold"), text_color="#27AE60")
+    titulo_label.pack(side="left")
+    
+    subtitulo_label = ctk.CTkLabel(top_bar, text="Seu ingresso foi reservado com sucesso",
+                 font=fonte_global if fonte_global else ("Arial", 18), text_color=COR_TEXTO)
+    subtitulo_label.pack(side="left", padx=20)
 
     # Font controls top-right (always visible)
     controls_top = ctk.CTkFrame(top_bar, fg_color="transparent")
     controls_top.pack(side="right")
     ctk.CTkButton(controls_top, text="A+", command=aumentar_fonte, width=50, font=fonte_global if fonte_global else None).pack(side="left", padx=4)
     ctk.CTkButton(controls_top, text="A-", command=diminuir_fonte, width=50, font=fonte_global if fonte_global else None).pack(side="left", padx=4)
+    
+    # Botão para alternar tema claro e escuro
+    botao_tema = ctk.CTkButton(
+        controls_top,
+        text="🌙",
+        command=lambda: [alternar_tema(parent, botao_tema), atualizar_cores_tema()],
+        width=50,
+        font=fonte_global,
+        fg_color=BTN_COLOR,
+        hover_color=BTN_HOVER,
+        text_color=BTN_TEXT
+    )
+    botao_tema.pack(side="left", padx=4)
+    
+    # Atualizar cores iniciais
+    atualizar_cores_tema()
     
     # Frame de conteúdo
     content_frame = ctk.CTkFrame(container, fg_color="transparent")
@@ -438,6 +481,11 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
         if finalizar_callback:
             finalizar_callback()
     
+    def voltar_aos_assentos():
+        """Volta para a tela de seleção de assentos"""
+        from utilidades import gerenciador_telas
+        gerenciador_telas.show_screen("assentos")
+    
     # Botão Finalizar
     btn_finalizar = ctk.CTkButton(
         btn_frame,
@@ -481,6 +529,20 @@ def mostrar_confirmacao_pagamento(parent, dados_compra=None, finalizar_callback=
         state="disabled"
     )
     btn_voltar.pack(side="left", padx=10)
+    
+    # Botão Voltar aos Assentos
+    btn_voltar_assentos = ctk.CTkButton(
+        btn_frame,
+        text="🔙 Voltar aos Assentos",
+        command=voltar_aos_assentos,
+        font=fonte_global if fonte_global else ("Arial", 16, "bold"),
+        fg_color="#95A5A6",
+        hover_color="#7F8C8D",
+        text_color="#1C2732",
+        height=50,
+        width=200
+    )
+    btn_voltar_assentos.pack(side="left", padx=10)
     
     # Aplicar fonte inicial para caso de fonte local
     try:
