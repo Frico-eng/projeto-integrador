@@ -92,8 +92,21 @@ def criar_grafico_vendas_filme(dados_relatorio, periodo, cache_cores=None):
     # Adicionar legenda com os nomes dos filmes abaixo do gráfico
     legend_patches = [plt.matplotlib.patches.Patch(color=cores_barras[i], label=nomes_filmes[i]) 
                       for i in range(len(nomes_filmes))]
-    ax.legend(handles=legend_patches, title="Filmes", loc="upper center", bbox_to_anchor=(0.5, -0.15), 
-              fontsize=6, framealpha=0.9, facecolor='white', edgecolor='white', labelcolor='black', ncol=3)
+    ax.legend(
+    handles=legend_patches,
+    loc='upper center',
+    bbox_to_anchor=(0.5, -0.4),  # desce mais a legenda
+    fontsize=6,
+    framealpha=0.9,
+    facecolor='white',
+    edgecolor='white',
+    labelcolor='black',
+    ncol=5
+    )
+
+    plt.subplots_adjust(bottom=0.5)  # MAIS espaço para ticks + legenda
+
+
     
     # Adicionar valores nas barras
     for bar, venda in zip(bars, vendas):
@@ -744,8 +757,20 @@ def criar_grafico_ocupacao_sessoes(dados_relatorio, periodo, cache_cores=None):
     # Adicionar legenda com filme e horário abaixo do gráfico
     legend_patches = [plt.matplotlib.patches.Patch(color=cores_barras[i], label=legendas[i]) 
                       for i in range(len(legendas))]
-    ax.legend(handles=legend_patches, loc='upper center', bbox_to_anchor=(0.5, -0.15), 
-              fontsize=6, framealpha=0.9, facecolor='white', edgecolor='white', labelcolor='black', ncol=2)
+    ax.legend(
+    handles=legend_patches,
+    loc='upper center',
+    bbox_to_anchor=(0.5, -0.25),  # controla a distância vertical
+    fontsize=6,
+    framealpha=0.9,
+    facecolor='white',
+    edgecolor='white',
+    labelcolor='black',
+    ncol=5
+    )
+
+    plt.subplots_adjust(bottom=0.3)  # reserva espaço para a legenda
+
     
     # Adicionar valores nas barras
     for bar, venda in zip(bars, vendas):
@@ -769,7 +794,6 @@ def criar_grafico_ocupacao_sessoes(dados_relatorio, periodo, cache_cores=None):
     return fig
 
 def criar_grafico_filmes_populares(dados_relatorio, periodo, cache_cores=None):
-    """Cria gráfico de pizza para filmes mais populares com cores consistentes"""
     if not dados_relatorio:
         return None
     
@@ -809,8 +833,8 @@ def criar_grafico_filmes_populares(dados_relatorio, periodo, cache_cores=None):
     ax.set_title(f'Filmes Mais Populares - {periodo.upper()}', color='white', fontsize=12, pad=20)
     
     # Adicionar legenda com os nomes dos filmes abaixo do gráfico
-    ax.legend(wedges, filmes, title="Filmes", loc="upper center", bbox_to_anchor=(0.5, -0.1), 
-              fontsize=6, framealpha=0.9, facecolor='white', edgecolor='white', labelcolor='black', ncol=2)
+    ax.legend(wedges, filmes, title="Filmes", loc="upper center", bbox_to_anchor=(1.15, 0.7), 
+              fontsize=6, framealpha=0.9, facecolor='white', edgecolor='white', labelcolor='black', ncol=1)
     
     # Ajustar cores dos textos
     for text in texts:

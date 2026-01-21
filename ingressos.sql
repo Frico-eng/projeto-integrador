@@ -18,9 +18,9 @@ SELECT
     
     -- Valor variável com base no tipo de sessão
     CASE 
-        WHEN RAND() < 0.3 THEN 25.00  -- Sessão normal
-        WHEN RAND() < 0.6 THEN 35.00  -- 3D
-        ELSE 45.00                    -- VIP/IMAX
+        WHEN RAND() < 0.3 THEN 25.00  
+        WHEN RAND() < 0.6 THEN 35.00 
+        ELSE 45.00                    
     END,
     
     -- Data de compra distribuída ao longo de todos os meses de 2025
