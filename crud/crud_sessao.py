@@ -1,20 +1,7 @@
 # crud/crud_sessao.py
-import mysql.connector
 from mysql.connector import Error
 from datetime import datetime, time, timedelta
-
-def conectar():
-    try:
-        con = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="",
-            database="cineplus"
-        )
-        return con
-    except Error as e:
-        print("Erro ao conectar ao MySQL:", e)
-        return None
+from conexao import conectar
 
 def listar_sessoes_por_filme(id_filme):
     con = conectar()

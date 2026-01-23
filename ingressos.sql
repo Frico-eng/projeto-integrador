@@ -1,5 +1,5 @@
 SET @id_atual = (SELECT COALESCE(MAX(ID_Ingresso), 0) FROM ingressos);
-SET @data_inicio = '2025-01-01';
+SET @data_inicio = '2026-01-01';
 SET @data_fim = '2026-12-31';
 SET @max_sessoes = (SELECT MAX(ID_Sessao) FROM sessoes);
 SET @max_clientes = (SELECT MAX(ID_Usuario) FROM usuarios);

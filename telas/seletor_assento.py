@@ -9,6 +9,9 @@ from crud.crud_assento_sessao import (
     reservar_assento, 
     verificar_disponibilidade_assento,
     obter_resumo_ocupacao_sessao,
+    sincronizar_assentos_com_ingressos,
+    obter_assentos_com_ingressos,
+    verificar_assento_ocupado_por_ingresso,
 )
 from crud.crud_sessao_assento import obter_sessao_completa, alertar_pouca_disponibilidade
 from utilidades.session import get_user_id
@@ -89,6 +92,18 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                 current_font_size -= 2
                 aplicar_fonte_local()
     
+    def atualizar_cor_label_tela():
+        """Atualiza a cor do texto TELA baseado no tema atual"""
+        nonlocal label_tela
+        if label_tela:
+            # Tema claro = texto branco (visível)
+            # Tema escuro = texto branco (padrão)
+            from utilidades import config
+            if config.tema_atual == "light":
+                label_tela.configure(text_color="white")
+            else:
+                label_tela.configure(text_color="#ECF0F1")
+    
     # ================== CORES DOS ASSENTOS ==================
     COR_LIVRE = "#BDC3C7"
     COR_SELECIONADO = "#27AE60"
@@ -109,6 +124,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     preco = 25.00
     seat_icon = None  # Variável para armazenar o ícone do assento
     current_font_size = fonte_global.cget("size") if fonte_global else 14
+    label_tela = None  # Variável para armazenar o label TELA
 
     # ================== FUNÇÕES PRINCIPAIS (DEFINIDAS PRIMEIRO) ==================
     
@@ -333,9 +349,13 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                         filme_info = buscar_filme_por_id(sessao_info["ID_Filme"])
                         print(f"DEBUG: Filme encontrado - {filme_info.get('Titulo_Filme') if filme_info else 'Nenhum'}")
                     
-                    # Buscar assentos
+                    # Sincronizar assentos com ingressos comprados
+                    print(f"DEBUG: Sincronizando assentos com ingressos comprados...")
+                    sincronizar_assentos_com_ingressos(sessao_info["ID_Sessao"])
+                    
+                    # Buscar assentos após sincronização
                     assentos_info = listar_assentos_por_sessao(sessao_info["ID_Sessao"])
-                    print(f"DEBUG: {len(assentos_info)} assentos carregados para a sessão")
+                    print(f"DEBUG: {len(assentos_info)} assentos carregados para a sessão após sincronização")
                 else:
                     print("DEBUG: Falha ao carregar sessão completa, tentando método alternativo...")
                     # Fallback para o método antigo
@@ -408,10 +428,14 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                 sala_info = buscar_sala_por_id(sessao_info["ID_Sala"])
                 print(f"DEBUG: Sala encontrada - {sala_info}")
             
-            # Buscar assentos da sessão
+            # Sincronizar assentos com ingressos comprados
+            print(f"DEBUG: Sincronizando assentos com ingressos comprados...")
+            sincronizar_assentos_com_ingressos(sessao_info["ID_Sessao"])
+            
+            # Buscar assentos da sessão após sincronização
             if sessao_info:
                 assentos_info = listar_assentos_por_sessao(sessao_info["ID_Sessao"])
-                print(f"DEBUG: {len(assentos_info)} assentos encontrados para a sessão")
+                print(f"DEBUG: {len(assentos_info)} assentos encontrados para a sessão após sincronização")
         else:
             print("DEBUG: Nenhuma sessão encontrada, usando dados de teste")
             # Dados de teste
@@ -472,7 +496,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     botao_tema = ctk.CTkButton(
         frame_controle_fonte_top,
         text="🌙",
-        command=lambda: alternar_tema(root, botao_tema),
+        command=lambda: [alternar_tema(root, botao_tema), atualizar_cor_label_tela()],
         width=50,
         font=fonte_global,
         fg_color=BTN_COLOR,
@@ -496,8 +520,9 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     container_assentos.pack(expand=True, pady=20)
     
     # TELA (sempre visível)
-    ctk.CTkLabel(container_assentos, text="TELA", font=("Arial", 16, "bold"), 
-                fg_color="#2b2b2b", corner_radius=5, width=400, height=30).pack(pady=(0, 30))
+    label_tela = ctk.CTkLabel(container_assentos, text="TELA", font=("Arial", 16, "bold"), 
+                fg_color="#2b2b2b", corner_radius=5, width=400, height=30, text_color="#ECF0F1")
+    label_tela.pack(pady=(0, 30))
     
     # Coluna resumo
     painel_resumo = ctk.CTkFrame(container_conteudo, width=300, fg_color="transparent")
@@ -744,6 +769,6 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
 
     # ================== INICIALIZAÇÃO ==================
     # Carregar ícone, dados e aplicar fonte inicial
-    frame.after(100, lambda: [carregar_icone_assento(), carregar_dados_banco(), aplicar_fonte_local()])
+    frame.after(100, lambda: [carregar_icone_assento(), carregar_dados_banco(), aplicar_fonte_local(), atualizar_cor_label_tela()])
     
     return frame

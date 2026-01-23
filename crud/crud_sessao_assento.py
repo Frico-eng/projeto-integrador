@@ -3,31 +3,11 @@
 Arquivo integrado para operações envolvendo Sessões e Assentos
 Facilita a verificação de disponibilidade em tempo real
 """
-import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
-
-def conectar():
-    try:
-        con = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="",
-            database="cineplus"
-        )
-        return con
-    except Error as e:
-        print("Erro ao conectar ao MySQL:", e)
-        return None
+from conexao import conectar
 
 def obter_sessao_completa(id_sessao):
-    """
-    Obtém informações completas de uma sessão com status de disponibilidade
-    
-    Returns:
-        dict com: ID_Sessao, Titulo_Filme, Hora_Sessao, Tipo_Sessao, Nome_Sala, 
-                  assentos_disponiveis, assentos_ocupados, taxa_ocupacao
-    """
     con = conectar()
     if con is None: 
         return None

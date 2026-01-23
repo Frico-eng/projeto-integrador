@@ -1,19 +1,6 @@
 # crud/crud_sala.py
-import mysql.connector
 from mysql.connector import Error
-
-def conectar():
-    try:
-        con = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="",
-            database="cineplus"
-        )
-        return con
-    except Error as e:
-        print("Erro ao conectar ao MySQL:", e)
-        return None
+from conexao import conectar
 
 def buscar_sala_por_id(id_sala):
     """Busca uma sala pelo ID"""

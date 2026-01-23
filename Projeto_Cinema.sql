@@ -6,7 +6,7 @@ DROP TABLE IF EXISTS Filmes;
 CREATE TABLE Filmes (
     ID_Filme INT AUTO_INCREMENT PRIMARY KEY,
     Titulo_Filme VARCHAR(255) NOT NULL,
-    Genero VARCHAR(50),
+    Genero VARCHAR(90),
     Duracao VARCHAR(8),
     Classificacao VARCHAR(10),
     Cartaz_Path VARCHAR(500),

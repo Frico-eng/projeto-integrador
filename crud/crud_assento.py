@@ -1,18 +1,5 @@
-import mysql.connector
 from mysql.connector import Error
-
-def conectar():
-    try:
-        con = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="",
-            database="cineplus"
-        )
-        return con
-    except Error as e:
-        print("Erro ao conectar ao MySQL:", e)
-        return None
+from conexao import conectar
 
 def listar_assentos_por_sala(id_sala):
     con = conectar()
