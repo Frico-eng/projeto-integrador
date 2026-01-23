@@ -1,19 +1,6 @@
-import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
-
-def conectar():
-    try:
-        con = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="",
-            database="cineplus"
-        )
-        return con
-    except Error as e:
-        print("Erro ao conectar ao MySQL:", e)
-        return None
+from conexao import conectar
 
 def listar_assentos_por_sessao(id_sessao):
 
@@ -251,6 +238,155 @@ def reservar_multiplos_assentos(id_sessao, lista_assentos, id_cliente=None):
         return False
     finally:
         con.close()
+
+def obter_assentos_com_ingressos(id_sessao):
+    """
+    Retorna lista de IDs de assentos que possuem ingressos comprados para uma sessão.
+    Esta é a fonte de verdade para assentos ocupados no sistema.
+    
+    Args:
+        id_sessao: ID da sessão
+    
+    Returns:
+        Lista de IDs de Assentos (ID_Assento) que têm ingressos
+    """
+    con = conectar()
+    if con is None:
+        return []
+    
+    try:
+        cursor = con.cursor()
+        cursor.execute("""
+            SELECT DISTINCT ass.ID_Assento
+            FROM Ingressos i
+            JOIN Assentos_Sessao ass ON i.ID_Assento_Sessao = ass.ID_Assento_Sessao
+            WHERE i.ID_Sessao = %s
+        """, (id_sessao,))
+        
+        resultados = cursor.fetchall()
+        ids_assentos = [resultado[0] for resultado in resultados]
+        
+        cursor.close()
+        con.close()
+        
+        return ids_assentos
+        
+    except Error as e:
+        print(f"Erro ao obter assentos com ingressos: {e}")
+        return []
+
+def sincronizar_assentos_com_ingressos(id_sessao):
+    """
+    Sincroniza o status dos assentos na tabela Assentos_Sessao com base nos ingressos comprados.
+    Marca como 'ocupado' todos os assentos que têm ingressos, e libera os que não têm.
+    
+    Args:
+        id_sessao: ID da sessão a sincronizar
+    
+    Returns:
+        True se sincronização foi bem-sucedida, False caso contrário
+    """
+    con = conectar()
+    if con is None:
+        return False
+    
+    try:
+        cursor = con.cursor()
+        
+        # Iniciar transação para garantir consistência
+        con.start_transaction()
+        
+        # Obter lista de assentos que têm ingressos
+        cursor.execute("""
+            SELECT DISTINCT ass.ID_Assento_Sessao, ass.ID_Assento
+            FROM Ingressos i
+            JOIN Assentos_Sessao ass ON i.ID_Assento_Sessao = ass.ID_Assento_Sessao
+            WHERE i.ID_Sessao = %s
+        """, (id_sessao,))
+        
+        assentos_com_ingresso = cursor.fetchall()
+        ids_assentos_ocupados = [assento[1] for assento in assentos_com_ingresso]
+        
+        # Marcar todos os assentos como 'disponivel' primeiro
+        cursor.execute("""
+            UPDATE Assentos_Sessao 
+            SET Status = 'disponivel', 
+                ID_Cliente = NULL,
+                Data_Hora_Reserva = NULL
+            WHERE ID_Sessao = %s
+        """, (id_sessao,))
+        
+        # Marcar como 'ocupado' os assentos que têm ingressos
+        for id_assento in ids_assentos_ocupados:
+            # Obter informações do cliente e data do ingresso
+            cursor.execute("""
+                SELECT i.ID_Cliente, MAX(i.Data_Compra) as data_compra
+                FROM Ingressos i
+                JOIN Assentos_Sessao ass ON i.ID_Assento_Sessao = ass.ID_Assento_Sessao
+                WHERE i.ID_Sessao = %s AND ass.ID_Assento = %s
+                GROUP BY i.ID_Cliente
+            """, (id_sessao, id_assento))
+            
+            info_ingresso = cursor.fetchone()
+            
+            if info_ingresso:
+                id_cliente, data_compra = info_ingresso
+                
+                cursor.execute("""
+                    UPDATE Assentos_Sessao 
+                    SET Status = 'ocupado', 
+                        ID_Cliente = %s,
+                        Data_Hora_Reserva = %s
+                    WHERE ID_Sessao = %s AND ID_Assento = %s
+                """, (id_cliente, data_compra, id_sessao, id_assento))
+        
+        con.commit()
+        print(f"✓ Sincronização concluída para sessão {id_sessao}: {len(ids_assentos_ocupados)} assentos marcados como ocupados")
+        return True
+        
+    except Error as e:
+        print(f"Erro ao sincronizar assentos com ingressos: {e}")
+        con.rollback()
+        return False
+    finally:
+        con.close()
+
+def verificar_assento_ocupado_por_ingresso(id_sessao, id_assento):
+    """
+    Verifica se um assento específico tem ingresso comprado (está realmente ocupado).
+    Esta é a verificação mais confiável baseada em ingressos efetivos.
+    
+    Args:
+        id_sessao: ID da sessão
+        id_assento: ID do assento base
+    
+    Returns:
+        True se existe ingresso para este assento, False caso contrário
+    """
+    con = conectar()
+    if con is None:
+        return False
+    
+    try:
+        cursor = con.cursor()
+        cursor.execute("""
+            SELECT COUNT(*) as total
+            FROM Ingressos i
+            JOIN Assentos_Sessao ass ON i.ID_Assento_Sessao = ass.ID_Assento_Sessao
+            WHERE i.ID_Sessao = %s AND ass.ID_Assento = %s
+        """, (id_sessao, id_assento))
+        
+        resultado = cursor.fetchone()
+        total = resultado[0] if resultado else 0
+        
+        cursor.close()
+        con.close()
+        
+        return total > 0
+        
+    except Error as e:
+        print(f"Erro ao verificar assento ocupado por ingresso: {e}")
+        return False
 
 # Exemplos de uso:
 if __name__ == "__main__":

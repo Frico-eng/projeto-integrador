@@ -3,7 +3,7 @@ from tkinter import messagebox, filedialog, ttk
 from PIL import Image
 from crud.crud_filme import listar_filmes
 from utilidades.ui_helpers import criar_botao, alternar_tema
-from crud.crud_ingressos import conectar
+from conexao import conectar
 from utilidades.config import BTN_COLOR, BTN_HOVER, BTN_TEXT
 from utilidades import gerenciador_telas
 import utilidades.config as config_module

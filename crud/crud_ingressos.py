@@ -1,19 +1,6 @@
-import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
-
-def conectar():
-    try:
-        con = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="",
-            database="cineplus"
-        )
-        return con
-    except Error as e:
-        print("Erro ao conectar ao MySQL:", e)
-        return None
+from conexao import conectar
 
 def criar_ingresso(id_sessao, id_cliente, id_assento_sessao, valor):
     conexao = conectar()

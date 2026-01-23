@@ -1,21 +1,7 @@
 # crud_filmes.py
 import os
-import mysql.connector
 from mysql.connector import Error
-
-# ========================= CONEXÃO MYSQL =========================
-def conectar():
-    try:
-        con = mysql.connector.connect(
-            host="localhost",
-            user="root",         # Coloque seu usuário MySQL
-            password="",         # Coloque sua senha MySQL
-            database="cineplus"  # Certifique-se de criar este DB
-        )
-        return con
-    except Error as e:
-        print("Erro ao conectar ao MySQL:", e)
-        return None
+from conexao import conectar
 
 # ========================= CRUD FILMES =========================
 def inserir_filme(titulo, genero, duracao, classificacao, direcao, sinopse, cartaz_path=None):
