@@ -341,8 +341,21 @@ def criar_tela_funcionario(parent, voltar_callback, fonte_global=None):
 
     # ================== INTERFACE ==================
     frame = ctk.CTkFrame(parent, fg_color="transparent")
+    frame.pack(fill="both", expand=True)
     
-    # Título
+    # Função para ajustar layout conforme tamanho da janela
+    def ajustar_layout():
+        window_width = frame.winfo_width()
+        window_height = frame.winfo_height()
+        
+        if window_width < 1000:
+            # Telas pequenas
+            tabview.configure(width=max(300, window_width - 40))
+            tabview.configure(height=max(300, window_height - 200))
+        else:
+            # Telas grandes
+            tabview.configure(width=900)
+            tabview.configure(height=700)
     titulo_frame = ctk.CTkFrame(frame, fg_color="transparent")
     titulo_frame.pack(pady=20)
     
@@ -381,7 +394,7 @@ def criar_tela_funcionario(parent, voltar_callback, fonte_global=None):
 
     # Abas
     tabview = ctk.CTkTabview(frame, width=900, height=700)
-    tabview.pack(pady=20, padx=20)
+    tabview.pack(pady=20, padx=20, fill="both", expand=True)
     
     # Aba Filmes
     tab_filmes = tabview.add("🎭 Filmes")
@@ -501,5 +514,8 @@ def criar_tela_funcionario(parent, voltar_callback, fonte_global=None):
     carregar_sessoes()
     carregar_salas()
     carregar_filmes_combo()
+    
+    # Vincular evento de redimensionamento
+    frame.bind("<Configure>", lambda e: ajustar_layout())
 
     return frame
