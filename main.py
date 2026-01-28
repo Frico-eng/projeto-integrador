@@ -119,7 +119,21 @@ def inicializar_telas():
     tela_inicial = ctk.CTkFrame(app, fg_color="transparent")
     carregar_fundo(tela_inicial, BANNER_PATH)
 
+    # Frame lateral direito com login e botões
     right_frame = ctk.CTkFrame(tela_inicial, fg_color="transparent")
+    
+    # Função para ajustar layout conforme tamanho da janela
+    def ajustar_layout_main():
+        window_width = tela_inicial.winfo_width()
+        
+        if window_width < 1400:
+            # Esconde o contato em telas pequenas, mas mantém layout lateral
+            contato_frame.place_forget()
+        else:
+            # Mostra o contato em telas grandes
+            contato_frame.place(relx=0.5, rely=0.82, anchor="center")
+    
+    # Inicializar com layout padrão
     right_frame.place(relx=0.65, rely=0, relwidth=0.25, relheight=1)
 
     carregar_logo(right_frame, LOGO_PATH).pack(pady=(30, 20))
@@ -193,10 +207,13 @@ def inicializar_telas():
     contato_frame.place(relx=0.5, rely=0.82, anchor="center")
     ctk.CTkLabel(contato_frame, text="Entre em contato", font=fonte_global).pack(pady=2)
     ctk.CTkLabel(contato_frame, text="Telefone: 3022-2002", font=fonte_global).pack(pady=2)
-    ctk.CTkLabel(contato_frame, text="Endereço: R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010", font=fonte_global, wraplength=250).pack(pady=2)
-    ctk.CTkLabel(contato_frame, text="E-mail: sistema@cineplus.com.br", font=fonte_global).pack(pady=2)
+    ctk.CTkLabel(contato_frame, text="Endereço: R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010", font=fonte_global, wraplength=200).pack(pady=2)
+    ctk.CTkLabel(contato_frame, text="E-mail: sistema@cineplus.com.br", font=fonte_global, wraplength=200).pack(pady=2)
 
     register_screen("main", tela_inicial)
+    
+    # Vincula o evento de redimensionamento para ajustar layout dinamicamente
+    tela_inicial.bind("<Configure>", lambda e: ajustar_layout_main())
 
     # --- Feedback ---
     feedback_frame = criar_tela_feedback(app, voltar_callback=lambda: show_screen("main"), fonte_global=fonte_global)
@@ -270,7 +287,19 @@ def inicializar_app():
     global app, fonte_global
     app = ctk.CTk(fg_color=APP_BG)
     screen_width, screen_height = app.winfo_screenwidth(), app.winfo_screenheight()
-    app.geometry(f"{screen_width+20}x{screen_height-80}-10+0")
+    
+    # Responsivo: ajusta o tamanho da janela com limite mínimo
+    min_width = 800
+    min_height = 600
+    window_width = max(min_width, int(screen_width * 0.95))
+    window_height = max(min_height, int(screen_height * 0.95))
+    
+    # Centraliza a janela
+    x_offset = (screen_width - window_width) // 2
+    y_offset = (screen_height - window_height) // 2
+    
+    app.geometry(f"{window_width}x{window_height}+{x_offset}+{y_offset}")
+    app.minsize(min_width, min_height)
     app.title("CinePlus - Sistema de Cinema")
 
     # Criar fonte global após inicializar o app
