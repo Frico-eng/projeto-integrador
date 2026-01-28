@@ -126,14 +126,12 @@ def inicializar_telas():
     def ajustar_layout_main():
         window_width = tela_inicial.winfo_width()
         
-        if window_width < 1300:
-            # Layout centralizado para telas pequenas
-            right_frame.place(relx=0.5, rely=0.1, relwidth=0.9, relheight=0.75, anchor="n")
-            contato_frame.place_forget()  # Esconde o contato em telas pequenas
+        if window_width < 1400:
+            # Esconde o contato em telas pequenas, mas mantém layout lateral
+            contato_frame.place_forget()
         else:
-            # Layout lateral para telas maiores
-            right_frame.place(relx=0.65, rely=0, relwidth=0.25, relheight=1)
-            contato_frame.place(relx=0.5, rely=0.82, anchor="center")  # Mostra o contato em telas grandes
+            # Mostra o contato em telas grandes
+            contato_frame.place(relx=0.5, rely=0.82, anchor="center")
     
     # Inicializar com layout padrão
     right_frame.place(relx=0.65, rely=0, relwidth=0.25, relheight=1)

@@ -92,9 +92,34 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
             fonte_global.configure(size=fonte_global.cget("size") - 2)
     
     # Frame principal
-    frame = ctk.CTkFrame(parent, fg_color="transparent", width=1800, height=900)
-    frame.pack_propagate(False)
+    frame = ctk.CTkFrame(parent, fg_color="transparent")
+    frame.pack(fill="both", expand=True)
     frame.image_cache = {}
+    
+    # Função para ajustar layout conforme tamanho da janela
+    def ajustar_layout():
+        window_width = frame.winfo_width()
+        window_height = frame.winfo_height()
+        
+        # Ajustar altura dos frames do meio e inferior
+        if window_height < 800:
+            frame_meio.configure(height=180)
+            frame_inferior.configure(height=max(window_height - 310, 150))
+        else:
+            frame_meio.configure(height=280)
+            frame_inferior.configure(height=max(window_height - 450, 250))
+        
+        # Ajustar largura dos subframes
+        if window_width < 1200:
+            # Layout vertical para telas pequenas
+            frame_esquerdo.pack(side="top", fill="both", expand=True, padx=10, pady=5)
+            frame_direito.pack(side="top", fill="both", padx=10, pady=5)
+            frame_imagem.configure(width=150, height=220)
+        else:
+            # Layout horizontal para telas grandes
+            frame_esquerdo.pack(side="left", fill="both", expand=True, padx=(0, 6), pady=10)
+            frame_direito.pack(side="right", fill="both", padx=(6, 0), pady=10)
+            frame_imagem.configure(width=200, height=290)
 
     # Variáveis de controle
     dia_selecionado = ctk.StringVar(value="")
@@ -671,5 +696,8 @@ def criar_tela_catalogo(parent, voltar_callback=None, confirmar_callback=None, f
 
     # Expor função de atualização
     frame.atualizar_catalogo = atualizar_catalogo
+    
+    # Vincular evento de redimensionamento
+    frame.bind("<Configure>", lambda e: ajustar_layout())
 
     return frame

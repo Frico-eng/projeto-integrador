@@ -111,8 +111,35 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     COR_TEXTO = "#ECF0F1"
     
     # Frame principal
-    frame = ctk.CTkFrame(root, fg_color="transparent", width=1800, height=900)
-    frame.pack_propagate(False)
+    frame = ctk.CTkFrame(root, fg_color="transparent")
+    frame.pack(fill="both", expand=True)
+    
+    # Função para ajustar layout conforme tamanho da janela
+    def ajustar_layout():
+        window_width = frame.winfo_width()
+        window_height = frame.winfo_height()
+        
+        # Ajustar tamanho do frame esquerdo com a altura da janela
+        if window_height < 800:
+            frame_esq.configure(height=max(300, window_height - 100))
+            tamanho_botao = 50
+        else:
+            frame_esq.configure(height=max(400, window_height - 150))
+            tamanho_botao = 60
+        
+        if window_width < 1200:
+            # Layout vertical para telas pequenas
+            frame_esq.pack(side="top", fill="x", expand=False, padx=20, pady=(20, 10))
+            frame_dir.pack(side="top", fill="both", expand=True, padx=20, pady=(10, 20))
+            painel_resumo.configure(width=300)
+        else:
+            # Layout horizontal para telas grandes
+            frame_esq.pack(side="left", fill="y", expand=False, padx=(20, 10), pady=20)
+            frame_dir.pack(side="right", fill="both", expand=True, padx=(10, 20), pady=20)
+            painel_resumo.configure(width=350)
+        
+        # Armazenar tamanho do botão para usar na grade
+        frame.tamanho_botao_assento = tamanho_botao
     
     # ================== VARIÁVEIS ==================
     filme_info = None
@@ -468,15 +495,16 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     # ================== INTERFACE ==================
     
     # Frame esquerdo - Detalhes do filme
-    frame_esq = ctk.CTkFrame(frame, width=320, height=650, fg_color="#F6C148")
+    frame_esq = ctk.CTkFrame(frame, width=280, fg_color="#F6C148")
     frame_esq.pack(side="left", fill="y", padx=(12,6), pady=12)
     frame_esq.pack_propagate(False)
+    frame.tamanho_botao_assento = 60  # Tamanho padrão
 
     ctk.CTkLabel(frame_esq, text="Detalhes do Filme", font=("Arial", 16, "bold"), text_color="black").pack(pady=(8,6))
 
     # Frame direito - Assentos e resumo
-    frame_dir = ctk.CTkFrame(frame, width=2000, height=700)
-    frame_dir.pack(side="right", fill="both", padx=(6,12), pady=12)
+    frame_dir = ctk.CTkFrame(frame)
+    frame_dir.pack(side="right", fill="both", padx=(6,12), pady=12, expand=True)
     frame_dir.pack_propagate(False)
 
     # Top bar: title left, font controls right
@@ -525,7 +553,7 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     label_tela.pack(pady=(0, 30))
     
     # Coluna resumo
-    painel_resumo = ctk.CTkFrame(container_conteudo, width=300, fg_color="transparent")
+    painel_resumo = ctk.CTkFrame(container_conteudo, fg_color="transparent")
     painel_resumo.pack(side="right", fill="y", padx=(15, 0))
     painel_resumo.pack_propagate(False)
     
@@ -568,8 +596,9 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     label_total.pack(pady=15)
     
     # Botões
-    frame_botoes = ctk.CTkFrame(frame_dir, height=100)
-    frame_botoes.pack(side="bottom", fill="x", padx=20, pady=0)
+    frame_botoes = ctk.CTkFrame(frame_dir, height=60)
+    frame_botoes.pack(side="bottom", fill="x", padx=20, pady=10)
+    frame_botoes.pack_propagate(False)
 
     if voltar_callback:
         btn_voltar = ctk.CTkButton(frame_botoes, text="Voltar", font=("Arial", 14, "bold"), 
@@ -705,16 +734,17 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                     cor = COR_OCUPADO if status == "ocupado" else COR_LIVRE
                     estado = "disabled" if status == "ocupado" else "normal"
                     
-                    # Criar botão com ícone
+                    # Criar botão com ícone - tamanho adaptativo
+                    tamanho = getattr(frame, 'tamanho_botao_assento', 60)
                     botao = ctk.CTkButton(
                         linha_frame, 
                         text=codigo, 
-                        width=70, 
-                        height=70, 
+                        width=tamanho, 
+                        height=tamanho, 
                         fg_color=cor, 
                         text_color="black", 
-                        font=fonte_global if fonte_global else ("Arial", current_font_size, "bold"), 
-                        corner_radius=8,
+                        font=fonte_global if fonte_global else ("Arial", max(8, current_font_size - 2), "bold"), 
+                        corner_radius=6,
                         state=estado,
                         image=seat_icon,  # Adiciona o ícone aqui
                         compound="top",   # Ícone acima do texto
@@ -770,5 +800,8 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     # ================== INICIALIZAÇÃO ==================
     # Carregar ícone, dados e aplicar fonte inicial
     frame.after(100, lambda: [carregar_icone_assento(), carregar_dados_banco(), aplicar_fonte_local(), atualizar_cor_label_tela()])
+    
+    # Vincular evento de redimensionamento
+    frame.bind("<Configure>", lambda e: ajustar_layout())
     
     return frame
