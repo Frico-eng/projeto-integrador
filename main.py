@@ -202,13 +202,13 @@ def inicializar_telas():
     )
     botao_tema.pack(side="left", padx=5)
 
-    # Contato
+    # Contato - Fonte estática e menor
     contato_frame = ctk.CTkFrame(right_frame, fg_color="transparent")
     contato_frame.place(relx=0.5, rely=0.82, anchor="center")
-    ctk.CTkLabel(contato_frame, text="Entre em contato", font=fonte_global).pack(pady=2)
-    ctk.CTkLabel(contato_frame, text="Telefone: 3022-2002", font=fonte_global).pack(pady=2)
-    ctk.CTkLabel(contato_frame, text="Endereço: R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010", font=fonte_global, wraplength=200).pack(pady=2)
-    ctk.CTkLabel(contato_frame, text="E-mail: sistema@cineplus.com.br", font=fonte_global, wraplength=200).pack(pady=2)
+    ctk.CTkLabel(contato_frame, text="Entre em contato", font=("Arial", 10, "bold")).pack(pady=2)
+    ctk.CTkLabel(contato_frame, text="Telefone: 3022-2002", font=("Arial", 9)).pack(pady=1)
+    ctk.CTkLabel(contato_frame, text="Endereço: R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010", font=("Arial", 9), wraplength=200).pack(pady=1)
+    ctk.CTkLabel(contato_frame, text="E-mail: sistema@cineplus.com.br", font=("Arial", 9), wraplength=200).pack(pady=1)
 
     register_screen("main", tela_inicial)
     

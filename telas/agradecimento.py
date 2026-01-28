@@ -29,16 +29,28 @@ def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, 
     timer_ativo = True
 
     # ====== CONFIGURAR FRAME PRINCIPAL ======
-    frame = ctk.CTkFrame(parent, fg_color=config.COR_FUNDO, width=1800, height=1200)
-    frame.pack_propagate(False)
+    frame = ctk.CTkFrame(parent, fg_color=config.COR_FUNDO)
     frame.pack(fill="both", expand=True)
+    
+    # Função para ajustar layout conforme tamanho da janela
+    def ajustar_layout():
+        window_width = frame.winfo_width()
+        window_height = frame.winfo_height()
+        
+        if window_width < 900:
+            container_principal.configure(width=max(400, window_width - 40))
+        else:
+            container_principal.configure(width=700)
 
     # ====== IMAGEM DE FUNDO ======
     agradecimento_path = os.path.join(config.IMAGE_DIR, "agradecimento.png")
     
     try:
         bg_image = Image.open(agradecimento_path)
-        bg_photo = ctk.CTkImage(bg_image, size=(1800, 900))
+        # Ajustar tamanho da imagem conforme a janela
+        window_width = frame.winfo_width() if frame.winfo_width() > 1 else 800
+        window_height = frame.winfo_height() if frame.winfo_height() > 1 else 600
+        bg_photo = ctk.CTkImage(bg_image, size=(window_width, window_height))
         
         bg_label = ctk.CTkLabel(frame, image=bg_photo, text="")
         bg_label.place(x=0, y=0, relwidth=1, relheight=1)
@@ -54,8 +66,7 @@ def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, 
         fg_color="#2b2b2b",
         bg_color="transparent",
         corner_radius=20,
-        width=700,
-        height=1000
+        width=700
     )
     container_principal.place(relx=0.5, rely=0.5, anchor="center")
     container_principal.pack_propagate(False)
@@ -279,9 +290,9 @@ def mostrar_tela_agradecimento(parent, dados_compra=None, voltar_callback=None, 
 
     # ====== INICIAR TIMER ======
     frame.after(1000, atualizar_timer)
-
-    # Configurar fullscreen
-    parent.master.attributes('-fullscreen', True)
+    
+    # Vincular evento de redimensionamento
+    frame.bind("<Configure>", lambda e: ajustar_layout())
 
     # Fonte local quando fonte_global não for fornecida
     current_font_size = fonte_global.cget("size") if fonte_global else 14
