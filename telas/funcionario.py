@@ -348,16 +348,18 @@ def criar_tela_funcionario(parent, voltar_callback, fonte_global=None):
         window_width = frame.winfo_width()
         window_height = frame.winfo_height()
         
-        if window_width < 1000:
+        if window_width < 1500:
             # Telas pequenas
             tabview.configure(width=max(300, window_width - 40))
-            tabview.configure(height=max(300, window_height - 200))
+            tabview.configure(height=max(280, int(window_height * 0.5)))
         else:
             # Telas grandes
             tabview.configure(width=900)
-            tabview.configure(height=700)
+            tabview.configure(height=max(380, int(window_height * 0.55)))
+    
+    # Título
     titulo_frame = ctk.CTkFrame(frame, fg_color="transparent")
-    titulo_frame.pack(pady=20)
+    titulo_frame.pack(pady=10)
     
     ctk.CTkLabel(
         titulo_frame, 
@@ -375,7 +377,7 @@ def criar_tela_funcionario(parent, voltar_callback, fonte_global=None):
     # Botões para controle de fonte
     if fonte_global:
         frame_controle_fonte = ctk.CTkFrame(titulo_frame, fg_color="transparent")
-        frame_controle_fonte.pack(side="top", padx=10, pady=10)
+        frame_controle_fonte.pack(side="top", padx=10, pady=5)
         ctk.CTkButton(frame_controle_fonte, text="A+", command=aumentar_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
         ctk.CTkButton(frame_controle_fonte, text="A-", command=diminuir_fonte, width=50, font=fonte_global).pack(side="left", padx=5)
         
@@ -392,9 +394,12 @@ def criar_tela_funcionario(parent, voltar_callback, fonte_global=None):
         )
         botao_tema.pack(side="left", padx=5)
 
-    # Abas
-    tabview = ctk.CTkTabview(frame, width=900, height=700)
-    tabview.pack(pady=20, padx=20, fill="both", expand=True)
+    # Abas - usar frame container para controlar tamanho
+    frame_tabview = ctk.CTkFrame(frame, fg_color="transparent")
+    frame_tabview.pack(pady=5, padx=20, fill="both", expand=False)
+    
+    tabview = ctk.CTkTabview(frame_tabview, width=900, height=400)
+    tabview.pack(fill="x")
     
     # Aba Filmes
     tab_filmes = tabview.add("🎭 Filmes")
