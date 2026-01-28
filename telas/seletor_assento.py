@@ -495,10 +495,9 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     # ================== INTERFACE ==================
     
     # Frame esquerdo - Detalhes do filme
-    frame_esq = ctk.CTkFrame(frame, width=280, fg_color="#F6C148")
+    frame_esq = ctk.CTkFrame(frame, width=320, fg_color="#F6C148")
     frame_esq.pack(side="left", fill="y", padx=(12,6), pady=12)
     frame_esq.pack_propagate(False)
-    frame.tamanho_botao_assento = 60  # Tamanho padrão
 
     ctk.CTkLabel(frame_esq, text="Detalhes do Filme", font=("Arial", 16, "bold"), text_color="black").pack(pady=(8,6))
 
@@ -596,9 +595,8 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
     label_total.pack(pady=15)
     
     # Botões
-    frame_botoes = ctk.CTkFrame(frame_dir, height=60)
-    frame_botoes.pack(side="bottom", fill="x", padx=20, pady=10)
-    frame_botoes.pack_propagate(False)
+    frame_botoes = ctk.CTkFrame(frame_dir, height=100)
+    frame_botoes.pack(side="bottom", fill="x", padx=20, pady=0)
 
     if voltar_callback:
         btn_voltar = ctk.CTkButton(frame_botoes, text="Voltar", font=("Arial", 14, "bold"), 
@@ -734,16 +732,15 @@ def criar_tela_assentos(root, voltar_callback=None, avancar_callback=None, filme
                     cor = COR_OCUPADO if status == "ocupado" else COR_LIVRE
                     estado = "disabled" if status == "ocupado" else "normal"
                     
-                    # Criar botão com ícone - tamanho adaptativo
-                    tamanho = getattr(frame, 'tamanho_botao_assento', 60)
+                    # Criar botão com ícone - tamanho reduzido por padrão
                     botao = ctk.CTkButton(
                         linha_frame, 
                         text=codigo, 
-                        width=tamanho, 
-                        height=tamanho, 
+                        width=55, 
+                        height=55, 
                         fg_color=cor, 
                         text_color="black", 
-                        font=fonte_global if fonte_global else ("Arial", max(8, current_font_size - 2), "bold"), 
+                        font=fonte_global if fonte_global else ("Arial", current_font_size - 2, "bold"), 
                         corner_radius=6,
                         state=estado,
                         image=seat_icon,  # Adiciona o ícone aqui
