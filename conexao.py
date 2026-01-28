@@ -1,41 +1,33 @@
-# conexao.py
 import os
+from pathlib import Path
 import mysql.connector
 from mysql.connector import Error
 
-# Conexão global (pode ser reutilizada)
 _conexao_global = None
-
-# Armazena a senha digitada para não pedir novamente
 _senha_nuvem = None
-
-_tipo_conexao_funcionando = None  # "nuvem" ou "local"
+_tipo_conexao_funcionando = None
+_env_loaded = False
 
 def conectar(usar_global=False, reutilizar=False):
     global _conexao_global, _senha_nuvem, _tipo_conexao_funcionando
+    _load_env()
     if usar_global and reutilizar and _conexao_global is not None:
         try:
             _conexao_global.ping()
             return _conexao_global
         except:
             _conexao_global = None
-    
-    # Se já sabemos qual tipo funcionou, tenta esse primeiro
     if _tipo_conexao_funcionando == "nuvem":
         con = _tentar_nuvem(usar_global)
         if con is not None:
             return con
-        # Se falhar, reseta o cache e tenta local
         _tipo_conexao_funcionando = None
     
     if _tipo_conexao_funcionando == "local":
         con = _tentar_local(usar_global)
         if con is not None:
             return con
-        # Se falhar, reseta o cache
         _tipo_conexao_funcionando = None
-    
-    # Primeira vez: tenta nuvem primeiro
     con = _tentar_nuvem(usar_global)
     if con is not None:
         _tipo_conexao_funcionando = "nuvem"
@@ -55,21 +47,48 @@ def _tentar_nuvem(usar_global=False):
     
     try:
         print("🌐 Tentando conexão com a nuvem...")
-        
-        # Se a senha ainda não foi digitada, pede agora
-        if _senha_nuvem is None:
-            _senha_nuvem = input("🔐 Digite a senha da nuvem (Aiven): ")
-        
-        con = mysql.connector.connect(
-            host="cineplus-fhrl-eng.b.aivencloud.com",
-            port=25144,
-            user="avnadmin",
-            password=_senha_nuvem,
-            database="cineplus",
-            ssl_disabled=False,
-            ssl_verify_cert=True,
-            ssl_ca="ca.pem"
+        host = os.environ.get("DB_HOST")
+        port = os.environ.get("DB_PORT")
+        user = os.environ.get("DB_USER")
+        password = os.environ.get("DB_PASS")
+        database = os.environ.get("DB_NAME")
+        ssl_disabled = os.environ.get("DB_SSLD")
+        ssl_verify = os.environ.get("DB_SSLV")
+        ssl_ca = os.environ.get("DB_SSL_CA")
+        print(host,port,user,password,database,ssl_disabled,ssl_verify,ssl_ca)
+        try:
+            port = int(port) if port is not None else None
+        except ValueError:
+            port = None
+
+        def _bool_of(v):
+            if v is None:
+                return None
+            return str(v).strip().lower() in ("1", "true", "yes", "y")
+
+        ssl_disabled = _bool_of(ssl_disabled)
+        ssl_verify = _bool_of(ssl_verify)
+
+        # Se não há host/usuário/banco, não tenta nuvem
+        if not host or not user or not database:
+            raise ValueError("Configurações de nuvem incompletas (DB_HOST/DB_USER/DB_NAME)")
+
+        conn_kwargs = dict(
+            host=host,
+            user=user,
+            password=password,
+            database=database,
         )
+        if port is not None:
+            conn_kwargs["port"] = port
+        if ssl_disabled is not None:
+            conn_kwargs["ssl_disabled"] = bool(ssl_disabled)
+        if ssl_verify is not None:
+            conn_kwargs["ssl_verify_cert"] = bool(ssl_verify)
+        if ssl_ca:
+            conn_kwargs["ssl_ca"] = ssl_ca
+
+        con = mysql.connector.connect(**conn_kwargs)
         print("✓ Conectado à nuvem com sucesso!")
         
         # Se quer usar global, armazena
@@ -83,7 +102,6 @@ def _tentar_nuvem(usar_global=False):
         return None
 
 def _tentar_local(usar_global=False):
-    """Tenta conectar localmente"""
     global _conexao_global
     
     try:
@@ -106,7 +124,6 @@ def _tentar_local(usar_global=False):
         return None
 
 def fechar_conexao_global():
-    """Fecha a conexão global se existir"""
     global _conexao_global
     if _conexao_global is not None:
         try:
@@ -115,3 +132,45 @@ def fechar_conexao_global():
             print("✓ Conexão global fechada")
         except Error as e:
             print(f"Erro ao fechar conexão: {e}")
+
+
+def _load_env():
+    """Carrega variáveis do arquivo .env para os.environ (não sobrescreve variáveis já definidas)."""
+    global _env_loaded
+    if _env_loaded:
+        return
+    _env_loaded = True
+
+    # Procura por arquivos .env em locais prováveis
+    candidates = [
+        Path.cwd() / '.env',
+        Path.cwd() / 'telas' / '.env',
+        Path.cwd() / 'utilidades' / '.env',
+    ]
+    env_path = None
+    for p in candidates:
+        if p.exists():
+            env_path = p
+            break
+    if env_path is None:
+        return
+
+    try:
+        for line in env_path.read_text(encoding='utf-8').splitlines():
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            if '=' not in line:
+                continue
+            key, val = line.split('=', 1)
+            key = key.strip()
+            val = val.strip()
+            # Remove optional surrounding quotes
+            if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+                val = val[1:-1]
+            # Só define se não existir
+            if key and key not in os.environ:
+                os.environ[key] = val
+    except Exception:
+        # Falhar silenciosamente; fallback continuará funcionando
+        return

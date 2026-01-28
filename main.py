@@ -119,6 +119,7 @@ def inicializar_telas():
     tela_inicial = ctk.CTkFrame(app, fg_color="transparent")
     carregar_fundo(tela_inicial, BANNER_PATH)
 
+    # Frame lateral direito com login e botões
     right_frame = ctk.CTkFrame(tela_inicial, fg_color="transparent")
     right_frame.place(relx=0.65, rely=0, relwidth=0.25, relheight=1)
 
@@ -193,8 +194,8 @@ def inicializar_telas():
     contato_frame.place(relx=0.5, rely=0.82, anchor="center")
     ctk.CTkLabel(contato_frame, text="Entre em contato", font=fonte_global).pack(pady=2)
     ctk.CTkLabel(contato_frame, text="Telefone: 3022-2002", font=fonte_global).pack(pady=2)
-    ctk.CTkLabel(contato_frame, text="Endereço: R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010", font=fonte_global, wraplength=250).pack(pady=2)
-    ctk.CTkLabel(contato_frame, text="E-mail: sistema@cineplus.com.br", font=fonte_global).pack(pady=2)
+    ctk.CTkLabel(contato_frame, text="Endereço: R. Aristides Lobo, 1058 - Campina, Belém - PA, 66017-010", font=fonte_global, wraplength=200).pack(pady=2)
+    ctk.CTkLabel(contato_frame, text="E-mail: sistema@cineplus.com.br", font=fonte_global, wraplength=200).pack(pady=2)
 
     register_screen("main", tela_inicial)
 
@@ -270,7 +271,19 @@ def inicializar_app():
     global app, fonte_global
     app = ctk.CTk(fg_color=APP_BG)
     screen_width, screen_height = app.winfo_screenwidth(), app.winfo_screenheight()
-    app.geometry(f"{screen_width+20}x{screen_height-80}-10+0")
+    
+    # Responsivo: ajusta o tamanho da janela com limite mínimo
+    min_width = 800
+    min_height = 600
+    window_width = max(min_width, int(screen_width * 0.95))
+    window_height = max(min_height, int(screen_height * 0.95))
+    
+    # Centraliza a janela
+    x_offset = (screen_width - window_width) // 2
+    y_offset = (screen_height - window_height) // 2
+    
+    app.geometry(f"{window_width}x{window_height}+{x_offset}+{y_offset}")
+    app.minsize(min_width, min_height)
     app.title("CinePlus - Sistema de Cinema")
 
     # Criar fonte global após inicializar o app
