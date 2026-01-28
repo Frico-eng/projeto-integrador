@@ -121,6 +121,21 @@ def inicializar_telas():
 
     # Frame lateral direito com login e botões
     right_frame = ctk.CTkFrame(tela_inicial, fg_color="transparent")
+    
+    # Função para ajustar layout conforme tamanho da janela
+    def ajustar_layout_main():
+        window_width = tela_inicial.winfo_width()
+        
+        if window_width < 1300:
+            # Layout centralizado para telas pequenas
+            right_frame.place(relx=0.5, rely=0.1, relwidth=0.9, relheight=0.75, anchor="n")
+            contato_frame.place_forget()  # Esconde o contato em telas pequenas
+        else:
+            # Layout lateral para telas maiores
+            right_frame.place(relx=0.65, rely=0, relwidth=0.25, relheight=1)
+            contato_frame.place(relx=0.5, rely=0.82, anchor="center")  # Mostra o contato em telas grandes
+    
+    # Inicializar com layout padrão
     right_frame.place(relx=0.65, rely=0, relwidth=0.25, relheight=1)
 
     carregar_logo(right_frame, LOGO_PATH).pack(pady=(30, 20))
@@ -198,6 +213,9 @@ def inicializar_telas():
     ctk.CTkLabel(contato_frame, text="E-mail: sistema@cineplus.com.br", font=fonte_global, wraplength=200).pack(pady=2)
 
     register_screen("main", tela_inicial)
+    
+    # Vincula o evento de redimensionamento para ajustar layout dinamicamente
+    tela_inicial.bind("<Configure>", lambda e: ajustar_layout_main())
 
     # --- Feedback ---
     feedback_frame = criar_tela_feedback(app, voltar_callback=lambda: show_screen("main"), fonte_global=fonte_global)
