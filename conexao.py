@@ -10,38 +10,16 @@ _env_loaded = False
 
 def conectar(reutilizar=True):
     global _conn, _last_successful_type
-    # 1. Tenta reutilizar conexão existente
-    if reutilizar and _conn is not None and _conn.is_connected():
-        _conn.ping(reconnect=False, attempts=1)
-        return _conn
-    
-    # 2. Carrega variáveis de ambiente
-    _load_env()
-    
-    # 3. Define ordem de tentativas
-    if _last_successful_type == "local":
-        # Se local funcionou antes, tenta ele primeiro
-        connection_order = ["local", "nuvem"]
-    else:
-        # Caso contrário, tenta nuvem primeiro
-        connection_order = ["nuvem", "local"]
-    
-    # 4. Tenta conectar na ordem definida
-    for conn_type in connection_order:
-        if conn_type == "nuvem":
-            conn = _conectar_nuvem()
-        else:  # local
-            conn = _conectar_local()
-        
+    conn = _conectar_nuvem()
+    if conn:
+        return conn
+    else:  # local
+        conn = _conectar_local()
         if conn:
-            _conn = conn
-            _last_successful_type = conn_type
-            print(f"✓ Usando conexão: {conn_type}")
             return conn
-    
-    # 5. Todas as tentativas falharam
-    print("✗ Todas as tentativas de conexão falharam")
-    return None
+        else:
+            print("✗ Todas as tentativas de conexão falharam")
+            return None
 
 def _conectar_nuvem():
     try:
