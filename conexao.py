@@ -3,174 +3,154 @@ from pathlib import Path
 import mysql.connector
 from mysql.connector import Error
 
-_conexao_global = None
-_senha_nuvem = None
-_tipo_conexao_funcionando = None
+# Variáveis globais
+_conn = None  # Conexão ativa
+_last_successful_type = None  # Tipo da última conexão bem-sucedida
 _env_loaded = False
 
-def conectar(usar_global=False, reutilizar=False):
-    global _conexao_global, _senha_nuvem, _tipo_conexao_funcionando
+def conectar(reutilizar=True):
+    global _conn, _last_successful_type
+    # 1. Tenta reutilizar conexão existente
+    if reutilizar and _conn is not None and _conn.is_connected():
+        _conn.ping(reconnect=False, attempts=1)
+        return _conn
+    
+    # 2. Carrega variáveis de ambiente
     _load_env()
-    if usar_global and reutilizar and _conexao_global is not None:
-        try:
-            _conexao_global.ping()
-            return _conexao_global
-        except:
-            _conexao_global = None
-    if _tipo_conexao_funcionando == "nuvem":
-        con = _tentar_nuvem(usar_global)
-        if con is not None:
-            return con
-        _tipo_conexao_funcionando = None
     
-    if _tipo_conexao_funcionando == "local":
-        con = _tentar_local(usar_global)
-        if con is not None:
-            return con
-        _tipo_conexao_funcionando = None
-    con = _tentar_nuvem(usar_global)
-    if con is not None:
-        _tipo_conexao_funcionando = "nuvem"
-        return con
+    # 3. Define ordem de tentativas
+    if _last_successful_type == "local":
+        # Se local funcionou antes, tenta ele primeiro
+        connection_order = ["local", "nuvem"]
+    else:
+        # Caso contrário, tenta nuvem primeiro
+        connection_order = ["nuvem", "local"]
     
-    # Se falhar na nuvem, tenta local
-    con = _tentar_local(usar_global)
-    if con is not None:
-        _tipo_conexao_funcionando = "local"
-        return con
+    # 4. Tenta conectar na ordem definida
+    for conn_type in connection_order:
+        if conn_type == "nuvem":
+            conn = _conectar_nuvem()
+        else:  # local
+            conn = _conectar_local()
+        
+        if conn:
+            _conn = conn
+            _last_successful_type = conn_type
+            print(f"✓ Usando conexão: {conn_type}")
+            return conn
     
+    # 5. Todas as tentativas falharam
+    print("✗ Todas as tentativas de conexão falharam")
     return None
 
-def _tentar_nuvem(usar_global=False):
-    """Tenta conectar à nuvem"""
-    global _conexao_global, _senha_nuvem
-    
+def _conectar_nuvem():
     try:
-        print("🌐 Tentando conexão com a nuvem...")
-        host = os.environ.get("DB_HOST")
-        port = os.environ.get("DB_PORT")
-        user = os.environ.get("DB_USER")
-        password = os.environ.get("DB_PASS")
-        database = os.environ.get("DB_NAME")
-        ssl_disabled = os.environ.get("DB_SSLD")
-        ssl_verify = os.environ.get("DB_SSLV")
-        ssl_ca = os.environ.get("DB_SSL_CA")
-        print(host,port,user,password,database,ssl_disabled,ssl_verify,ssl_ca)
-        try:
-            port = int(port) if port is not None else None
-        except ValueError:
-            port = None
-
-        def _bool_of(v):
-            if v is None:
-                return None
-            return str(v).strip().lower() in ("1", "true", "yes", "y")
-
-        ssl_disabled = _bool_of(ssl_disabled)
-        ssl_verify = _bool_of(ssl_verify)
-
-        # Se não há host/usuário/banco, não tenta nuvem
-        if not host or not user or not database:
-            raise ValueError("Configurações de nuvem incompletas (DB_HOST/DB_USER/DB_NAME)")
-
-        conn_kwargs = dict(
-            host=host,
-            user=user,
-            password=password,
-            database=database,
-        )
-        if port is not None:
-            conn_kwargs["port"] = port
-        if ssl_disabled is not None:
-            conn_kwargs["ssl_disabled"] = bool(ssl_disabled)
-        if ssl_verify is not None:
-            conn_kwargs["ssl_verify_cert"] = bool(ssl_verify)
-        if ssl_ca:
-            conn_kwargs["ssl_ca"] = ssl_ca
-
-        con = mysql.connector.connect(**conn_kwargs)
-        print("✓ Conectado à nuvem com sucesso!")
+        # Timeouts curtos para tentativa rápida
+        conn_params = {
+            'host': os.environ.get('DB_HOST'),
+            'user': os.environ.get('DB_USER'),
+            'password': os.environ.get('DB_PASS', ''),
+            'database': os.environ.get('DB_NAME'),
+            'port': int(os.environ.get('DB_PORT', 3306)),
+            'connection_timeout': 5,
+            'connect_timeout': 5,
+        }
         
-        # Se quer usar global, armazena
-        if usar_global:
-            _conexao_global = con
+        # SSL configurado apenas se necessário
+        ssl_disabled = os.environ.get('DB_SSLD', '').lower() in ('1', 'true', 'yes')
+        if ssl_disabled:
+            conn_params['ssl_disabled'] = True
         
-        return con
-    except Exception as e_cloud:
-        print(f"✗ Falha na conexão com a nuvem: {e_cloud}")
-        _senha_nuvem = None  # Reseta para pedir novamente
+        # Tenta conexão rápida
+        return mysql.connector.connect(**conn_params)
+    except Exception as e:
+        # Log curto
+        if "timeout" in str(e).lower():
+            print("⏱️ Timeout nuvem")
         return None
 
-def _tentar_local(usar_global=False):
-    global _conexao_global
-    
+def _conectar_local():
+    """Tenta conectar ao banco local"""
     try:
-        print("💾 Tentando conexão local...")
-        con = mysql.connector.connect(
+        print("💻 Tentando conexão local...")
+        conn = mysql.connector.connect(
             host="localhost",
             user="root",
             password="",
             database="cineplus"
         )
-        print("✓ Conectado localmente com sucesso!")
-        
-        # Se quer usar global, armazena
-        if usar_global:
-            _conexao_global = con
-        
-        return con
-    except Exception as e_local:
-        print(f"✗ Falha na conexão local: {e_local}")
+        return conn
+    except Exception as e:
+        print(f"✗ Falha na conexão local: {e}")
         return None
 
-def fechar_conexao_global():
-    global _conexao_global
-    if _conexao_global is not None:
+def fechar():
+    """Fecha a conexão atual"""
+    global _conn
+    if _conn:
         try:
-            _conexao_global.close()
-            _conexao_global = None
-            print("✓ Conexão global fechada")
-        except Error as e:
-            print(f"Erro ao fechar conexão: {e}")
-
+            _conn.close()
+        except:
+            pass
+        finally:
+            _conn = None
+            _last_successful_type = None
+    print("✓ Conexão fechada")
 
 def _load_env():
-    """Carrega variáveis do arquivo .env para os.environ (não sobrescreve variáveis já definidas)."""
+    """Carrega variáveis do arquivo .env"""
     global _env_loaded
     if _env_loaded:
         return
+    
     _env_loaded = True
-
-    # Procura por arquivos .env em locais prováveis
-    candidates = [
+    
+    # Procura arquivo .env em diretórios comuns
+    env_paths = [
         Path.cwd() / '.env',
         Path.cwd() / 'telas' / '.env',
         Path.cwd() / 'utilidades' / '.env',
     ]
-    env_path = None
-    for p in candidates:
-        if p.exists():
-            env_path = p
-            break
-    if env_path is None:
-        return
+    
+    for env_path in env_paths:
+        if env_path.exists():
+            try:
+                for line in env_path.read_text(encoding='utf-8').splitlines():
+                    line = line.strip()
+                    if not line or line.startswith('#') or '=' not in line:
+                        continue
+                    
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    
+                    # Remove aspas
+                    if (value.startswith('"') and value.endswith('"')) or \
+                       (value.startswith("'") and value.endswith("'")):
+                        value = value[1:-1]
+                    
+                    # Só define se não existir
+                    if key and key not in os.environ:
+                        os.environ[key] = value
+                
+                print(f"✓ Variáveis carregadas de: {env_path}")
+                return
+            except Exception as e:
+                print(f"⚠️ Erro ao ler {env_path}: {e}")
 
-    try:
-        for line in env_path.read_text(encoding='utf-8').splitlines():
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            if '=' not in line:
-                continue
-            key, val = line.split('=', 1)
-            key = key.strip()
-            val = val.strip()
-            # Remove optional surrounding quotes
-            if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
-                val = val[1:-1]
-            # Só define se não existir
-            if key and key not in os.environ:
-                os.environ[key] = val
-    except Exception:
-        # Falhar silenciosamente; fallback continuará funcionando
-        return
+def resetar_conexao():
+    """Reseta a conexão, forçando nova tentativa na próxima chamada"""
+    global _conn, _last_successful_type
+    fechar()
+    _last_successful_type = None
+    print("✓ Conexão resetada - próxima tentativa começará do início")
+
+# Função auxiliar para verificar status
+def status():
+    """Retorna status atual da conexão"""
+    if _conn is None:
+        return "Desconectado"
+    elif _conn.is_connected():
+        return f"Conectado ({_last_successful_type})"
+    else:
+        return "Conexão inválida"
