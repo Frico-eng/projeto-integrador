@@ -66,21 +66,13 @@ def criar_footer(app):
 
 
 def criar_entry_senha(master, placeholder="Sua senha", width=300, height=35, show_char='•', icone_fechado_path=None, icone_aberto_path=None, icon_size=(20, 20)):
-    """Cria um frame com `CTkEntry` configurado para senha e um botão para alternar visibilidade.
-
-    Retorna a tupla (container, entry, toggle_button). O botão altera o `show` do entry entre
-    `show_char` e '' (visível).
-    """
     container = ctk.CTkFrame(master, fg_color="transparent")
-
     # Usar grid interno para que o `entry` expanda e o botão mantenha largura fixa
     entry = ctk.CTkEntry(container, placeholder_text=placeholder, show=show_char, height=height)
     entry.grid(row=0, column=0, sticky='ew', padx=(0, 6), pady=5)
     container.grid_columnconfigure(0, weight=1)
-
     # Estado inicial: senha oculta
     estado = {"oculta": True}
-
     # Tentar carregar ícones se caminhos foram fornecidos
     icone_fechado_ctk = None
     icone_aberto_ctk = None
@@ -88,7 +80,6 @@ def criar_entry_senha(master, placeholder="Sua senha", width=300, height=35, sho
         icone_fechado_ctk = carregar_icone(icone_fechado_path, size=icon_size)
     if icone_aberto_path:
         icone_aberto_ctk = carregar_icone(icone_aberto_path, size=icon_size)
-
     def alternar():
         if estado["oculta"]:
             entry.configure(show="")
@@ -105,8 +96,6 @@ def criar_entry_senha(master, placeholder="Sua senha", width=300, height=35, sho
                 toggle.configure(text="Mostrar")
             estado["oculta"] = True
 
-    # Botão com largura fixa; usa imagem se disponível
-    # Estilo: botão mais quadrado e com as cores dos botões principais
     btn_kwargs = {
         'width': 36,
         'height': 36,
@@ -129,12 +118,6 @@ def criar_entry_senha(master, placeholder="Sua senha", width=300, height=35, sho
 
 # --- Alternância de Tema ---
 def alternar_tema(app, botao_tema=None):
-    """Alterna entre tema claro e escuro e atualiza a aparência da aplicação.
-    
-    Args:
-        app: A janela principal da aplicação
-        botao_tema: O botão de alternância de tema (para atualizar seu texto)
-    """
     from utilidades import config
     
     # Alternar o tema
